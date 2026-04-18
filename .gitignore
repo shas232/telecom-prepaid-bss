@@ -1,0 +1,11 @@
+node_modules/
+*.log
+.DS_Store
+.bw-*.json
+.e2e-*.json
+.realistic-*.json
+.seed-ids.json
+.schema-audit.json
+.audit-report.json
+scripts/env.sh
+.env

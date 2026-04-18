@@ -1,0 +1,1245 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Prepaid Telecom Billing System</title>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>
+<script>
+  mermaid.initialize({
+    startOnLoad:true,
+    theme:'default',
+    securityLevel:'loose',
+    er:{useMaxWidth:true, entityPadding:40, minEntityWidth:200, minEntityHeight:90, fontSize:14},
+    flowchart:{nodeSpacing:100, rankSpacing:120}
+  });
+</script>
+<style>
+  :root{--bg:#fff;--fg:#111;--muted:#666;--border:#e5e5e5;--accent:#2563eb;--badge-bg:#f3f4f6;--card-bg:#fafafa}
+  html{color-scheme:light}
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:var(--bg);color:var(--fg);line-height:1.6;max-width:900px;margin:0 auto;padding:40px 24px}
+  h1{font-size:36px;font-weight:700;margin-bottom:12px;letter-spacing:-0.02em}
+  .subtitle{color:var(--muted);font-size:16px;line-height:1.55;margin-bottom:32px;max-width:720px}
+  section{margin-top:48px}
+  h2{font-size:20px;font-weight:700;margin:0 0 20px;padding-bottom:10px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px}
+  h3{font-size:14px;font-weight:600;margin-bottom:4px}
+  .count{font-size:11px;font-weight:500;background:var(--badge-bg);color:var(--muted);padding:2px 8px;border-radius:99px}
+  .badge{display:inline-block;font-size:10px;font-weight:500;background:var(--badge-bg);color:var(--muted);padding:2px 8px;border-radius:4px;margin-right:4px}
+  .badge.ro{background:#fef3c7;color:#92400e}
+  .req{color:#ef4444;margin-left:2px}
+  .table-block{border:1px solid var(--border);border-radius:8px;overflow:hidden;margin-bottom:24px}
+  .table-header{padding:18px 20px;background:var(--card-bg);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:14px;font-size:14px}
+  .table-header strong{font-size:16px;letter-spacing:0.2px;padding:2px 0}
+  .table-desc{padding:10px 16px;font-size:12px;color:var(--muted);border-bottom:1px solid var(--border)}
+  .col-count{margin-left:auto;font-size:10px;color:var(--muted)}
+  table{width:100%;border-collapse:collapse;font-size:12px}
+  th{text-align:left;padding:6px 12px;font-weight:500;color:var(--muted);border-bottom:1px solid var(--border);background:var(--card-bg)}
+  td{padding:5px 12px;border-bottom:1px solid var(--border)}
+  tr:last-child td{border-bottom:none}
+  code{font-size:11px;background:var(--badge-bg);padding:1px 5px;border-radius:3px;font-family:'SF Mono',Consolas,monospace}
+  .card{border:1px solid var(--border);border-radius:8px;padding:12px;margin-bottom:8px}
+  .card p{font-size:12px;color:var(--muted);margin:4px 0}
+  .perms{display:flex;flex-wrap:wrap;gap:4px;margin-top:8px}
+  ul{padding-left:20px;font-size:13px}
+  li{margin-bottom:6px}
+  .prose{font-size:13px;color:var(--fg)}
+  .prose p{margin-bottom:8px}
+  .footer{margin-top:40px;padding-top:16px;border-top:1px solid var(--border);font-size:11px;color:var(--muted);text-align:center}
+  .mermaid{background:var(--card-bg);border:1px solid var(--border);border-radius:8px;padding:20px;font-size:16px;cursor:zoom-in;position:relative;overflow:hidden}
+  .mermaid svg{width:100%!important;height:auto!important;max-height:520px}
+  .mermaid::after{content:"Click to expand · zoom";position:absolute;top:12px;right:14px;font-size:11px;color:var(--muted);background:var(--bg);padding:4px 10px;border-radius:99px;border:1px solid var(--border);pointer-events:none}
+  .erd-lightbox{position:fixed;inset:0;background:rgba(15,15,20,0.85);z-index:9999;display:none;align-items:center;justify-content:center;backdrop-filter:blur(4px)}
+  .erd-lightbox.open{display:flex}
+  .erd-lightbox-inner{position:relative;width:95vw;height:92vh;background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,0.4)}
+  .erd-canvas{width:100%;height:100%;overflow:hidden;position:relative;cursor:grab}
+  .erd-canvas.dragging{cursor:grabbing}
+  .erd-canvas svg{transform-origin:0 0;position:absolute;top:0;left:0}
+  .erd-controls{position:absolute;top:14px;right:14px;display:flex;gap:6px;z-index:2}
+  .erd-btn{width:38px;height:38px;border-radius:8px;border:1px solid #e5e5e5;background:#fff;font-size:18px;font-weight:600;cursor:pointer;color:#111;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 6px rgba(0,0,0,0.08)}
+  .erd-btn:hover{background:#f3f4f6}
+  .erd-btn.close{font-size:20px}
+  .erd-hint{position:absolute;bottom:14px;left:14px;font-size:12px;color:#666;background:rgba(255,255,255,0.9);padding:6px 12px;border-radius:99px;border:1px solid #e5e5e5;z-index:2}
+  .wide{margin-left:calc(-50vw + 50%);margin-right:calc(-50vw + 50%);max-width:100vw;padding:0 24px}
+  @media print{body{max-width:100%;padding:20px}h2{break-after:avoid}.table-block{break-inside:avoid}.card{break-inside:avoid}@page{margin:1.5cm}}
+</style>
+</head>
+<body>
+  <h1>Prepaid Telecom Billing System</h1>
+  <div class="subtitle">A prepaid mobile operator's Business Support System covering customers, SIMs, product catalog, wallets, recharge distribution, and real-time charging driven by Diameter credit-control messages.</div>
+
+  <section>
+    <h2>Business Overview</h2>
+    <div class="prose">
+      <p>A prepaid mobile operator's Business Support System (BSS) — the business and data layer behind the network. Customers load money into a <strong>Wallet</strong>, buy a <strong>Tariff Plan</strong> that credits <strong>Balances</strong> (data MB, voice minutes, SMS count), then consume services. Every chargeable event (data session, call, SMS) arrives as a Diameter <code>CCR</code> message, is rated and debited from the appropriate balance in real time, and answered with a <code>CCA</code> carrying granted quota or a final-unit indication.</p>
+      <p>Scope is <strong>prepaid only</strong>: pay-before-use with real-time enforcement. No postpaid invoicing, dunning, or credit scoring. Retail distribution (recharge vouchers, dealer commissions) and self-care channels (USSD, app, IVR, POS) are first-class. Diameter is simulated as JSON events rather than running over the wire.</p>
+    </div>
+  </section>
+
+  <section class="wide">
+    <h2 style="max-width:900px;margin-left:auto;margin-right:auto">Entity Relationship Diagram</h2>
+    <div class="mermaid">erDiagram
+    Customers ||--o{ Subscriptions : "owns"
+    Customers ||--o{ "Customer Identifications" : "has KYC"
+    Customers ||--o{ "Customer Lifecycle Events" : "logs"
+    Customers ||--o{ Wallets : "has"
+    Customers ||--o{ Orders : "places"
+    Customers ||--o{ Cases : "opens"
+    Customers ||--o{ "Customer Interactions" : "touches"
+    Customers ||--o{ "Account Hierarchy" : "parent"
+    Customers ||--o{ CUGs : "owns"
+    Customers ||--o{ "Promotion Redemptions" : "redeems"
+    Customers ||--o{ "Notifications Sent" : "receives"
+    Customers ||--o{ CDRs : "billed"
+    Subscriptions ||--o{ "Subscription Status History" : "audits"
+    Subscriptions ||--o{ "Subscription Plan Assignments" : "has"
+    Subscriptions ||--o{ Balances : "has"
+    Subscriptions ||--o{ "Charging Sessions" : "has"
+    Subscriptions ||--o{ "Bonus Grants" : "grants"
+    Subscriptions ||--o{ "Balance Transfers" : "from or to"
+    Subscriptions ||--o{ "F&F Groups" : "owns"
+    Subscriptions ||--o{ "CUG Members" : "joins"
+    "MSISDN Pool" ||--o| Subscriptions : "assigned"
+    "SIM Inventory" ||--o| Subscriptions : "allocated"
+    "Product Offerings" ||--o{ "Tariff Plans" : "instantiates"
+    Bundles ||--|{ "Bundle Components" : "has"
+    "Product Offerings" ||--o{ "Bundle Components" : "in"
+    Services ||--o{ "Plan Allowances" : "rates"
+    "Tariff Plans" ||--|{ "Plan Allowances" : "has"
+    "Tariff Plans" ||--o{ "Subscription Plan Assignments" : "chosen"
+    "Tariff Plans" ||--o{ "Order Items" : "purchased"
+    "Subscription Plan Assignments" ||--|{ Balances : "grants"
+    "Charging Sessions" ||--|{ "Usage Transactions" : "has"
+    "Charging Sessions" ||--o| CDRs : "generates"
+    Balances ||--o{ "Usage Transactions" : "debits"
+    Wallets ||--|{ "Wallet Transactions" : "logs"
+    Wallets ||--o{ Recharges : "credits"
+    "Recharge Vouchers" ||--o| Recharges : "redeemed"
+    "Distribution Partners" ||--o{ Recharges : "sells"
+    "Distribution Partners" ||--o{ "Partner Commissions" : "earns"
+    "Distribution Partners" ||--o{ "Partner Contracts" : "signs"
+    "Distribution Partners" ||--o{ "Recharge Vouchers" : "holds"
+    "Distribution Partners" ||--o{ "SIM Inventory" : "holds"
+    Recharges ||--o| "Partner Commissions" : "accrues"
+    Promotions ||--o{ "Promotion Redemptions" : "has"
+    "F&F Groups" ||--|{ "F&F Members" : "has"
+    CUGs ||--|{ "CUG Members" : "has"
+    Channels ||--o{ "Customer Interactions" : "via"
+    Channels ||--o{ Orders : "via"
+    Channels ||--o{ Cases : "via"
+    Channels ||--o{ "Notifications Sent" : "via"
+    Orders ||--|{ "Order Items" : "has"
+    Orders ||--o{ "Order Status History" : "audits"
+    "Notification Templates" ||--o{ "Notifications Sent" : "renders"
+    "Network Elements" ||--o{ "Charging Sessions" : "originates"</div>
+  </section>
+
+  <section>
+    <h2>Tables <span class="count">44</span></h2>
+
+    <div class="table-block">
+      <div class="table-header"><strong>Customers</strong><span class="badge">master</span><span class="col-count">13 columns</span></div>
+      <div class="table-desc">Legal entity (individual or organization) owning subscriptions. Primary relationship anchor.</div>
+      <table><thead><tr><th>Column</th><th>Type</th><th>Details</th></tr></thead><tbody>
+        <tr><td>CustomerID<span class="req">*</span></td><td><code>text</code></td><td>auto CUST-000001</td></tr>
+        <tr><td>Name<span class="req">*</span></td><td><code>text</code></td><td></td></tr>
+        <tr><td>Email</td><td><code>email</code></td><td></td></tr>
+        <tr><td>Phone<span class="req">*</span></td><td><code>phone</code></td><td></td></tr>
+        <tr><td>Address</td><td><code>text</code></td><td></td></tr>
+        <tr><td>CustomerType<span class="req">*</span></td><td><code>select</code></td><td>individual, corporate, family</td></tr>
+        <tr><td>Segment<span class="req">*</span></td><td><code>select</code></td><td>prepaid_consumer, business, student, senior</td></tr>
+        <tr><td>Status<span class="req">*</span></td><td><code>select</code></td><td>active, suspended, churned</td></tr>
+        <tr><td>Language</td><td><code>select</code></td><td></td></tr>
+        <tr><td>KYCStatus<span class="req">*</span></td><td><code>select</code></td><td>unverified, in_progress, verified, rejected</td></tr>
+        <tr><td>OnboardedDate<span class="req">*</span></td><td><code>date</code></td><td></td></tr>
+        <tr><td>ChurnDate</td><td><code>date</code></td><td></td></tr>
+        <tr><td>LifetimeValue</td><td><code>currency</code></td><td></td></tr>
+      </tbody></table>
+    </div>
+
+    <div class="table-block">
+      <div class="table-header"><strong>Customer Identifications</strong><span class="badge">master</span><span class="col-count">8 columns</span></div>
+      <div class="table-desc">KYC documents. A single customer may have multiple (passport + national ID).</div>
+      <table><thead><tr><th>Column</th><th>Type</th><th>Details</th></tr></thead><tbody>
+        <tr><td>Customer<span class="req">*</span></td><td><code>reference</code></td><td>→ Customers</td></tr>
+        <tr><td>IDType<span class="req">*</span></td><td><code>select</code></td><td>passport, national_id, aadhaar, driver_license</td></tr>
+        <tr><td>IDNumber<span class="req">*</span></td><td><code>text</code></td><td></td></tr>
+        <tr><td>IssuingAuthority</td><td><code>text</code></td><td></td></tr>
+        <tr><td>ExpiryDate</td><td><code>date</code></td><td></td></tr>
+        <tr><td>Verified<span class="req">*</span></td><td><code>toggle</code></td><td></td></tr>
+        <tr><td>VerificationMethod</td><td><code>select</code></td><td>biometric, otp, manual</td></tr>
+        <tr><td>ScanURL</td><td><code>url</code></td><td></td></tr>
+      </tbody></table>
+    </div>
+
+    <div class="table-block">
+      <div class="table-header"><strong>Customer Lifecycle Events</strong><span class="badge">transaction</span><span class="col-count">7 columns</span></div>
+      <div class="table-desc">Immutable audit log of customer state transitions.</div>
+      <table><thead><tr><th>Column</th><th>Type</th><th>Details</th></tr></thead><tbody>
+        <tr><td>Customer<span class="req">*</span></td><td><code>reference</code></td><td>→ Customers</td></tr>
+        <tr><td>EventType<span class="req">*</span></td><td><code>select</code></td><td>activated, suspended, churned, reinstated</td></tr>
+        <tr><td>EventDate<span class="req">*</span></td><td><code>date</code></td><td></td></tr>
+        <tr><td>Reason</td><td><code>text</code></td><td></td></tr>
+        <tr><td>TriggeredBy</td><td><code>select</code></td><td>system, csr, customer, fraud_rule</td></tr>
+        <tr><td>PreviousStatus</td><td><code>text</code></td><td></td></tr>
+        <tr><td>NewStatus<span class="req">*</span></td><td><code>text</code></td><td></td></tr>
+      </tbody></table>
+    </div>
+
+    <div class="table-block">
+      <div class="table-header"><strong>Account Hierarchy</strong><span class="badge">master</span><span class="col-count">6 columns</span></div>
+      <div class="table-desc">Parent-child relationships between customers (family plans, corporate masters).</div>
+      <table><thead><tr><th>Column</th><th>Type</th><th>Details</th></tr></thead><tbody>
+        <tr><td>ParentCustomer<span class="req">*</span></td><td><code>reference</code></td><td>→ Customers</td></tr>
+        <tr><td>ChildCustomer<span class="req">*</span></td><td><code>reference</code></td><td>→ Customers</td></tr>
+        <tr><td>RelationshipType<span class="req">*</span></td><td><code>select</code></td><td>family_head, family_member, corp_master, corp_employee</td></tr>
+        <tr><td>BillingResponsibility</td><td><code>select</code></td><td>parent_pays, child_pays, split</td></tr>
+        <tr><td>EffectiveFrom<span class="req">*</span></td><td><code>date</code></td><td></td></tr>
+        <tr><td>EffectiveTo</td><td><code>date</code></td><td></td></tr>
+      </tbody></table>
+    </div>
+
+    <div class="table-block">
+      <div class="table-header"><strong>Subscriptions</strong><span class="badge">master</span><span class="col-count">12 columns</span></div>
+      <div class="table-desc">A SIM / MSISDN owned by a customer. One customer can own many.</div>
+      <table><thead><tr><th>Column</th><th>Type</th><th>Details</th></tr></thead><tbody>
+        <tr><td>MSISDN<span class="req">*</span></td><td><code>text</code></td><td>e.g. 919812345678</td></tr>
+        <tr><td>IMSI<span class="req">*</span></td><td><code>text</code></td><td></td></tr>
+        <tr><td>ICCID<span class="req">*</span></td><td><code>text</code></td><td></td></tr>
+        <tr><td>Customer<span class="req">*</span></td><td><code>reference</code></td><td>→ Customers</td></tr>
+        <tr><td>APN</td><td><code>text</code></td><td></td></tr>
+        <tr><td>SubscriptionType<span class="req">*</span></td><td><code>select</code></td><td>prepaid_voice, prepaid_data, hybrid</td></tr>
+        <tr><td>Status<span class="req">*</span></td><td><code>select</code></td><td>active, suspended, terminated, port_out</td></tr>
+        <tr><td>ActivationDate<span class="req">*</span></td><td><code>date</code></td><td></td></tr>
+        <tr><td>LastUsageDate</td><td><code>date</code></td><td></td></tr>
+        <tr><td>RoamingEnabled<span class="req">*</span></td><td><code>toggle</code></td><td></td></tr>
+        <tr><td>CurrentPlan</td><td><code>reference</code></td><td>→ TariffPlans</td></tr>
+        <tr><td>TotalSessions</td><td><code>rollup</code></td><td><code>fx: COUNT(ChargingSessions)</code></td></tr>
+      </tbody></table>
+    </div>
+
+    <div class="table-block">
+      <div class="table-header"><strong>Subscription Status History</strong><span class="badge">transaction</span><span class="col-count">6 columns</span></div>
+      <div class="table-desc">Audit of subscription state changes.</div>
+      <table><thead><tr><th>Column</th><th>Type</th><th>Details</th></tr></thead><tbody>
+        <tr><td>Subscription<span class="req">*</span></td><td><code>reference</code></td><td>→ Subscriptions</td></tr>
+        <tr><td>FromStatus</td><td><code>text</code></td><td></td></tr>
+        <tr><td>ToStatus<span class="req">*</span></td><td><code>text</code></td><td></td></tr>
+        <tr><td>ChangedAt<span class="req">*</span></td><td><code>date</code></td><td></td></tr>
+        <tr><td>Reason</td><td><code>text</code></td><td></td></tr>
+        <tr><td>ChangedBy</td><td><code>text</code></td><td></td></tr>
+      </tbody></table>
+    </div>
+
+    <div class="table-block">
+      <div class="table-header"><strong>MSISDN Pool</strong><span class="badge">master</span><span class="col-count">6 columns</span></div>
+      <div class="table-desc">Inventory of phone numbers. Flow: pool → reserved → assigned → (churned) → pool.</div>
+      <table><thead><tr><th>Column</th><th>Type</th><th>Details</th></tr></thead><tbody>
+        <tr><td>MSISDN<span class="req">*</span></td><td><code>text</code></td><td></td></tr>
+        <tr><td>Status<span class="req">*</span></td><td><code>select</code></td><td>available, reserved, assigned, quarantined, blocked</td></tr>
+        <tr><td>Tier<span class="req">*</span></td><td><code>select</code></td><td>standard, gold, platinum, vanity</td></tr>
+        <tr><td>ReservationExpiry</td><td><code>date</code></td><td></td></tr>
+        <tr><td>AssignedToSubscription</td><td><code>reference</code></td><td>→ Subscriptions</td></tr>
+        <tr><td>LastAssignedDate</td><td><code>date</code></td><td></td></tr>
+      </tbody></table>
+    </div>
+
+    <div class="table-block">
+      <div class="table-header"><strong>SIM Inventory</strong><span class="badge">master</span><span class="col-count">7 columns</span></div>
+      <div class="table-desc">Physical SIM cards before assignment. Sourced in batches from vendors.</div>
+      <table><thead><tr><th>Column</th><th>Type</th><th>Details</th></tr></thead><tbody>
+        <tr><td>ICCID<span class="req">*</span></td><td><code>text</code></td><td></td></tr>
+        <tr><td>IMSI<span class="req">*</span></td><td><code>text</code></td><td></td></tr>
+        <tr><td>BatchID</td><td><code>text</code></td><td></td></tr>
+        <tr><td>Vendor</td><td><code>text</code></td><td></td></tr>
+        <tr><td>Status<span class="req">*</span></td><td><code>select</code></td><td>in_stock, allocated, activated, returned, damaged</td></tr>
+        <tr><td>WarehouseLocation</td><td><code>text</code></td><td></td></tr>
+        <tr><td>AllocatedToPartner</td><td><code>reference</code></td><td>→ DistributionPartners</td></tr>
+      </tbody></table>
+    </div>
+
+    <div class="table-block">
+      <div class="table-header"><strong>Services</strong><span class="badge">master</span><span class="col-count">6 columns</span></div>
+      <div class="table-desc">Technical services the network offers — the billable primitives.</div>
+      <table><thead><tr><th>Column</th><th>Type</th><th>Details</th></tr></thead><tbody>
+        <tr><td>ServiceCode<span class="req">*</span></td><td><code>text</code></td><td>DATA_GPRS, VOICE_ONNET, SMS_DOM</td></tr>
+        <tr><td>ServiceName<span class="req">*</span></td><td><code>text</code></td><td></td></tr>
+        <tr><td>ServiceFamily<span class="req">*</span></td><td><code>select</code></td><td>data, voice, messaging, content</td></tr>
+        <tr><td>DefaultRatingGroup<span class="req">*</span></td><td><code>number</code></td><td>10, 100, 200, etc.</td></tr>
+        <tr><td>DefaultServiceContextID</td><td><code>text</code></td><td>e.g. 32251@3gpp.org</td></tr>
+        <tr><td>UnitType<span class="req">*</span></td><td><code>select</code></td><td>MB, minutes, count</td></tr>
+      </tbody></table>
+    </div>
+
+    <div class="table-block">
+      <div class="table-header"><strong>Product Offerings</strong><span class="badge">master</span><span class="col-count">9 columns</span></div>
+      <div class="table-desc">Customer-facing plans named by marketing — "Ultimate 10GB", "Daily Combo".</div>
+      <table><thead><tr><th>Column</th><th>Type</th><th>Details</th></tr></thead><tbody>
+        <tr><td>OfferingCode<span class="req">*</span></td><td><code>text</code></td><td></td></tr>
+        <tr><td>OfferingName<span class="req">*</span></td><td><code>text</code></td><td></td></tr>
+        <tr><td>Description</td><td><code>text</code></td><td></td></tr>
+        <tr><td>OfferingType<span class="req">*</span></td><td><code>select</code></td><td>plan, booster, top_up_bonus</td></tr>
+        <tr><td>BasePrice<span class="req">*</span></td><td><code>currency</code></td><td></td></tr>
+        <tr><td>ValidityDays<span class="req">*</span></td><td><code>number</code></td><td></td></tr>
+        <tr><td>RenewalType<span class="req">*</span></td><td><code>select</code></td><td>one_time, auto_renew, on_demand</td></tr>
+        <tr><td>SegmentEligibility</td><td><code>multi-select</code></td><td></td></tr>
+        <tr><td>Status<span class="req">*</span></td><td><code>select</code></td><td>draft, active, retired</td></tr>
+      </tbody></table>
+    </div>
+
+    <div class="table-block">
+      <div class="table-header"><strong>Bundles</strong><span class="badge">master</span><span class="col-count">5 columns</span></div>
+      <div class="table-desc">A named combination of offerings (e.g. "New User Welcome Pack" = plan + booster).</div>
+      <table><thead><tr><th>Column</th><th>Type</th><th>Details</th></tr></thead><tbody>
+        <tr><td>BundleCode<span class="req">*</span></td><td><code>text</code></td><td></td></tr>
+        <tr><td>BundleName<span class="req">*</span></td><td><code>text</code></td><td></td></tr>
+        <tr><td>BundlePrice<span class="req">*</span></td><td><code>currency</code></td><td></td></tr>
+        <tr><td>DiscountVsComponents</td><td><code>currency</code></td><td></td></tr>
+        <tr><td>ValidityDays<span class="req">*</span></td><td><code>number</code></td><td></td></tr>
+      </tbody></table>
+    </div>
+
+    <div class="table-block">
+      <div class="table-header"><strong>Bundle Components (line item of Bundles)</strong><span class="badge">master</span><span class="badge">line-item</span><span class="col-count">4 columns</span></div>
+      <div class="table-desc">Ordered components within a bundle.</div>
+      <table><thead><tr><th>Column</th><th>Type</th><th>Details</th></tr></thead><tbody>
+        <tr><td>Bundle<span class="req">*</span></td><td><code>reference</code></td><td>→ Bundles</td></tr>
+        <tr><td>Offering<span class="req">*</span></td><td><code>reference</code></td><td>→ ProductOfferings</td></tr>
+        <tr><td>Quantity<span class="req">*</span></td><td><code>number</code></td><td></td></tr>
+        <tr><td>Sequence</td><td><code>number</code></td><td></td></tr>
+      </tbody></table>
+    </div>
+
+    <div class="table-block">
+      <div class="table-header"><strong>Tariff Plans</strong><span class="badge">master</span><span class="col-count">10 columns</span></div>
+      <div class="table-desc">Instantiated, buyable plan with price and allowance set. Multiple per offering (regions/segments).</div>
+      <table><thead><tr><th>Column</th><th>Type</th><th>Details</th></tr></thead><tbody>
+        <tr><td>PlanCode<span class="req">*</span></td><td><code>text</code></td><td></td></tr>
+        <tr><td>PlanName<span class="req">*</span></td><td><code>text</code></td><td></td></tr>
+        <tr><td>ProductOffering<span class="req">*</span></td><td><code>reference</code></td><td>→ ProductOfferings</td></tr>
+        <tr><td>Price<span class="req">*</span></td><td><code>currency</code></td><td></td></tr>
+        <tr><td>PlanType<span class="req">*</span></td><td><code>select</code></td><td>daily, weekly, monthly, annual, payg</td></tr>
+        <tr><td>ValidityDays<span class="req">*</span></td><td><code>number</code></td><td></td></tr>
+        <tr><td>AutoRenewDefault</td><td><code>toggle</code></td><td></td></tr>
+        <tr><td>PriorityOnCharge<span class="req">*</span></td><td><code>number</code></td><td>Order of depletion when stacked</td></tr>
+        <tr><td>Region</td><td><code>select</code></td><td></td></tr>
+        <tr><td>TotalSubscribers</td><td><code>rollup</code></td><td><code>fx: COUNT(Balances)</code></td></tr>
+      </tbody></table>
+    </div>
+
+    <div class="table-block">
+      <div class="table-header"><strong>Plan Allowances</strong><span class="badge">master</span><span class="col-count">8 columns</span></div>
+      <div class="table-desc">What the plan gives, per rating group. A plan has one or more of these.</div>
+      <table><thead><tr><th>Column</th><th>Type</th><th>Details</th></tr></thead><tbody>
+        <tr><td>TariffPlan<span class="req">*</span></td><td><code>reference</code></td><td>→ TariffPlans</td></tr>
+        <tr><td>RatingGroup<span class="req">*</span></td><td><code>number</code></td><td>10, 100, 200…</td></tr>
+        <tr><td>ServiceContextID</td><td><code>text</code></td><td></td></tr>
+        <tr><td>AllowanceLabel<span class="req">*</span></td><td><code>text</code></td><td>e.g. "General Internet 10GB"</td></tr>
+        <tr><td>UnitType<span class="req">*</span></td><td><code>select</code></td><td>MB, minutes, count</td></tr>
+        <tr><td>InitialAmount<span class="req">*</span></td><td><code>number</code></td><td></td></tr>
+        <tr><td>OverageAction<span class="req">*</span></td><td><code>select</code></td><td>block, charge_from_wallet, continue_free</td></tr>
+        <tr><td>OverageRate</td><td><code>currency</code></td><td></td></tr>
+      </tbody></table>
+    </div>
+
+    <div class="table-block">
+      <div class="table-header"><strong>Rate Cards</strong><span class="badge">master</span><span class="col-count">7 columns</span></div>
+      <div class="table-desc">Pay-as-you-go pricing when no allowance applies (or overage continues from wallet).</div>
+      <table><thead><tr><th>Column</th><th>Type</th><th>Details</th></tr></thead><tbody>
+        <tr><td>RateCardCode<span class="req">*</span></td><td><code>text</code></td><td></td></tr>
+        <tr><td>RatingGroup<span class="req">*</span></td><td><code>number</code></td><td></td></tr>
+        <tr><td>UnitType<span class="req">*</span></td><td><code>select</code></td><td></td></tr>
+        <tr><td>PricePerUnit<span class="req">*</span></td><td><code>currency</code></td><td></td></tr>
+        <tr><td>PeakOffPeak</td><td><code>select</code></td><td>all, peak, off_peak</td></tr>
+        <tr><td>EffectiveFrom<span class="req">*</span></td><td><code>date</code></td><td></td></tr>
+        <tr><td>EffectiveTo</td><td><code>date</code></td><td></td></tr>
+      </tbody></table>
+    </div>
+
+    <div class="table-block">
+      <div class="table-header"><strong>Tax Rates</strong><span class="badge">master</span><span class="col-count">6 columns</span></div>
+      <div class="table-desc">VAT/GST per region, applied on recharges and plan purchases.</div>
+      <table><thead><tr><th>Column</th><th>Type</th><th>Details</th></tr></thead><tbody>
+        <tr><td>TaxCode<span class="req">*</span></td><td><code>text</code></td><td></td></tr>
+        <tr><td>TaxName<span class="req">*</span></td><td><code>text</code></td><td></td></tr>
+        <tr><td>RatePercent<span class="req">*</span></td><td><code>number</code></td><td></td></tr>
+        <tr><td>AppliesTo<span class="req">*</span></td><td><code>select</code></td><td>recharge, plan_purchase, payg, all</td></tr>
+        <tr><td>Region</td><td><code>select</code></td><td></td></tr>
+        <tr><td>EffectiveFrom<span class="req">*</span></td><td><code>date</code></td><td></td></tr>
+      </tbody></table>
+    </div>
+
+    <div class="table-block">
+      <div class="table-header"><strong>Subscription Plan Assignments</strong><span class="badge">transaction</span><span class="col-count">9 columns</span></div>
+      <div class="table-desc">Link between a subscription and the tariff plans it holds. Can stack multiple active plans.</div>
+      <table><thead><tr><th>Column</th><th>Type</th><th>Details</th></tr></thead><tbody>
+        <tr><td>AssignmentCode<span class="req">*</span></td><td><code>text</code></td><td></td></tr>
+        <tr><td>Subscription<span class="req">*</span></td><td><code>reference</code></td><td>→ Subscriptions</td></tr>
+        <tr><td>TariffPlan<span class="req">*</span></td><td><code>reference</code></td><td>→ TariffPlans</td></tr>
+        <tr><td>EffectiveFrom<span class="req">*</span></td><td><code>date</code></td><td></td></tr>
+        <tr><td>EffectiveTo</td><td><code>date</code></td><td>null = currently active</td></tr>
+        <tr><td>ActivationSource<span class="req">*</span></td><td><code>select</code></td><td>self_care, csr, auto_renew, promotion</td></tr>
+        <tr><td>RenewalCount</td><td><code>number</code></td><td></td></tr>
+        <tr><td>Status<span class="req">*</span></td><td><code>select</code></td><td>active, expired, cancelled, suspended</td></tr>
+        <tr><td>CancelledReason</td><td><code>text</code></td><td></td></tr>
+      </tbody></table>
+    </div>
+
+    <div class="table-block">
+      <div class="table-header"><strong>Bonus Grants</strong><span class="badge">transaction</span><span class="col-count">9 columns</span></div>
+      <div class="table-desc">Ad-hoc free allowance (loyalty reward, service compensation, promotional credit).</div>
+      <table><thead><tr><th>Column</th><th>Type</th><th>Details</th></tr></thead><tbody>
+        <tr><td>BonusCode<span class="req">*</span></td><td><code>text</code></td><td></td></tr>
+        <tr><td>Subscription<span class="req">*</span></td><td><code>reference</code></td><td>→ Subscriptions</td></tr>
+        <tr><td>RatingGroup<span class="req">*</span></td><td><code>number</code></td><td></td></tr>
+        <tr><td>UnitType<span class="req">*</span></td><td><code>select</code></td><td></td></tr>
+        <tr><td>Amount<span class="req">*</span></td><td><code>number</code></td><td></td></tr>
+        <tr><td>ValidityDays<span class="req">*</span></td><td><code>number</code></td><td></td></tr>
+        <tr><td>GrantedReason<span class="req">*</span></td><td><code>select</code></td><td>loyalty, compensation, promo, referral, win_back</td></tr>
+        <tr><td>ExpiryDate<span class="req">*</span></td><td><code>date</code></td><td></td></tr>
+        <tr><td>ConsumedAmount</td><td><code>number</code></td><td></td></tr>
+      </tbody></table>
+    </div>
+
+    <div class="table-block">
+      <div class="table-header"><strong>Wallets</strong><span class="badge">master</span><span class="col-count">9 columns</span></div>
+      <div class="table-desc">Monetary balance per customer (prepaid cash account).</div>
+      <table><thead><tr><th>Column</th><th>Type</th><th>Details</th></tr></thead><tbody>
+        <tr><td>WalletCode<span class="req">*</span></td><td><code>text</code></td><td></td></tr>
+        <tr><td>Customer<span class="req">*</span></td><td><code>reference</code></td><td>→ Customers</td></tr>
+        <tr><td>Currency<span class="req">*</span></td><td><code>select</code></td><td></td></tr>
+        <tr><td>CurrentBalance<span class="req">*</span></td><td><code>currency</code></td><td></td></tr>
+        <tr><td>LifetimeRecharge</td><td><code>currency</code></td><td></td></tr>
+        <tr><td>LifetimeSpend</td><td><code>currency</code></td><td></td></tr>
+        <tr><td>LastRechargeDate</td><td><code>date</code></td><td></td></tr>
+        <tr><td>Status<span class="req">*</span></td><td><code>select</code></td><td>active, frozen, closed</td></tr>
+        <tr><td>TotalRecharged</td><td><code>rollup</code></td><td><code>fx: SUM(Recharges.Amount)</code></td></tr>
+      </tbody></table>
+    </div>
+
+    <div class="table-block">
+      <div class="table-header"><strong>Wallet Transactions</strong><span class="badge">transaction</span><span class="col-count">9 columns</span></div>
+      <div class="table-desc">Double-entry style audit log of every money movement touching a wallet.</div>
+      <table><thead><tr><th>Column</th><th>Type</th><th>Details</th></tr></thead><tbody>
+        <tr><td>TransactionCode<span class="req">*</span></td><td><code>text</code></td><td></td></tr>
+        <tr><td>Wallet<span class="req">*</span></td><td><code>reference</code></td><td>→ Wallets</td></tr>
+        <tr><td>TransactionType<span class="req">*</span></td><td><code>select</code></td><td>recharge, plan_purchase, payg_debit, refund, bonus, adjustment, transfer</td></tr>
+        <tr><td>Amount<span class="req">*</span></td><td><code>currency</code></td><td></td></tr>
+        <tr><td>BalanceBefore<span class="req">*</span></td><td><code>currency</code></td><td></td></tr>
+        <tr><td>BalanceAfter<span class="req">*</span></td><td><code>currency</code></td><td></td></tr>
+        <tr><td>ReferenceID</td><td><code>text</code></td><td></td></tr>
+        <tr><td>ReferenceType</td><td><code>select</code></td><td>recharge, order, usage_transaction, transfer</td></tr>
+        <tr><td>Timestamp<span class="req">*</span></td><td><code>date</code></td><td></td></tr>
+      </tbody></table>
+    </div>
+
+    <div class="table-block">
+      <div class="table-header"><strong>Recharges</strong><span class="badge">transaction</span><span class="col-count">10 columns</span></div>
+      <div class="table-desc">A top-up event that adds money to the wallet.</div>
+      <table><thead><tr><th>Column</th><th>Type</th><th>Details</th></tr></thead><tbody>
+        <tr><td>RechargeCode<span class="req">*</span></td><td><code>text</code></td><td></td></tr>
+        <tr><td>Wallet<span class="req">*</span></td><td><code>reference</code></td><td>→ Wallets</td></tr>
+        <tr><td>Amount<span class="req">*</span></td><td><code>currency</code></td><td></td></tr>
+        <tr><td>Currency<span class="req">*</span></td><td><code>select</code></td><td></td></tr>
+        <tr><td>Channel<span class="req">*</span></td><td><code>select</code></td><td>voucher, ussd, app, retail_pos, ivr, online, bank</td></tr>
+        <tr><td>DistributionPartner</td><td><code>reference</code></td><td>→ DistributionPartners</td></tr>
+        <tr><td>VoucherSerial</td><td><code>text</code></td><td></td></tr>
+        <tr><td>GatewayReference</td><td><code>text</code></td><td></td></tr>
+        <tr><td>Status<span class="req">*</span></td><td><code>select</code></td><td>initiated, successful, failed, reversed</td></tr>
+        <tr><td>Timestamp<span class="req">*</span></td><td><code>date</code></td><td></td></tr>
+      </tbody></table>
+    </div>
+
+    <div class="table-block">
+      <div class="table-header"><strong>Recharge Vouchers</strong><span class="badge">master</span><span class="col-count">9 columns</span></div>
+      <div class="table-desc">Pre-printed voucher inventory (scratch cards / digital PINs).</div>
+      <table><thead><tr><th>Column</th><th>Type</th><th>Details</th></tr></thead><tbody>
+        <tr><td>VoucherSerial<span class="req">*</span></td><td><code>text</code></td><td></td></tr>
+        <tr><td>PINEncrypted<span class="req">*</span></td><td><code>text</code></td><td></td></tr>
+        <tr><td>Denomination<span class="req">*</span></td><td><code>currency</code></td><td></td></tr>
+        <tr><td>BatchID</td><td><code>text</code></td><td></td></tr>
+        <tr><td>Status<span class="req">*</span></td><td><code>select</code></td><td>generated, distributed, sold, redeemed, expired, cancelled</td></tr>
+        <tr><td>AllocatedToPartner</td><td><code>reference</code></td><td>→ DistributionPartners</td></tr>
+        <tr><td>SoldDate</td><td><code>date</code></td><td></td></tr>
+        <tr><td>RedeemedDate</td><td><code>date</code></td><td></td></tr>
+        <tr><td>ExpiryDate<span class="req">*</span></td><td><code>date</code></td><td></td></tr>
+      </tbody></table>
+    </div>
+
+    <div class="table-block">
+      <div class="table-header"><strong>Balance Transfers</strong><span class="badge">transaction</span><span class="col-count">8 columns</span></div>
+      <div class="table-desc">P2P money or allowance gifting from one subscription to another.</div>
+      <table><thead><tr><th>Column</th><th>Type</th><th>Details</th></tr></thead><tbody>
+        <tr><td>TransferCode<span class="req">*</span></td><td><code>text</code></td><td></td></tr>
+        <tr><td>FromSubscription<span class="req">*</span></td><td><code>reference</code></td><td>→ Subscriptions</td></tr>
+        <tr><td>ToSubscription<span class="req">*</span></td><td><code>reference</code></td><td>→ Subscriptions</td></tr>
+        <tr><td>TransferType<span class="req">*</span></td><td><code>select</code></td><td>money, data_mb, voice_min</td></tr>
+        <tr><td>Amount<span class="req">*</span></td><td><code>number</code></td><td></td></tr>
+        <tr><td>Fee</td><td><code>currency</code></td><td></td></tr>
+        <tr><td>Status<span class="req">*</span></td><td><code>select</code></td><td></td></tr>
+        <tr><td>Timestamp<span class="req">*</span></td><td><code>date</code></td><td></td></tr>
+      </tbody></table>
+    </div>
+
+    <div class="table-block">
+      <div class="table-header"><strong>Charging Sessions</strong><span class="badge">transaction</span><span class="col-count">13 columns</span></div>
+      <div class="table-desc">One row per Diameter Session-Id. Groups the CCR lifecycle (I → U* → T).</div>
+      <table><thead><tr><th>Column</th><th>Type</th><th>Details</th></tr></thead><tbody>
+        <tr><td>SessionID<span class="req">*</span></td><td><code>text</code></td><td>from Diameter Session-Id AVP</td></tr>
+        <tr><td>Subscription<span class="req">*</span></td><td><code>reference</code></td><td>→ Subscriptions</td></tr>
+        <tr><td>ServiceContextID<span class="req">*</span></td><td><code>text</code></td><td></td></tr>
+        <tr><td>ServiceType<span class="req">*</span></td><td><code>select</code></td><td>data, voice_onnet, voice_offnet, sms_dom</td></tr>
+        <tr><td>StartedAt<span class="req">*</span></td><td><code>date</code></td><td></td></tr>
+        <tr><td>EndedAt</td><td><code>date</code></td><td></td></tr>
+        <tr><td>Status<span class="req">*</span></td><td><code>select</code></td><td>active, terminated, abandoned</td></tr>
+        <tr><td>TerminationCause</td><td><code>select</code></td><td>LOGOUT, SESSION_TIMEOUT, AUTH_EXPIRED</td></tr>
+        <tr><td>APN</td><td><code>text</code></td><td></td></tr>
+        <tr><td>RATType</td><td><code>select</code></td><td>EUTRAN, UTRAN, GERAN, WLAN, NR</td></tr>
+        <tr><td>TotalUsedAmount</td><td><code>rollup</code></td><td><code>fx: SUM(UsageTransactions.UsedAmount)</code></td></tr>
+        <tr><td>EventCount</td><td><code>rollup</code></td><td><code>fx: COUNT(UsageTransactions)</code></td></tr>
+        <tr><td>LastEvent</td><td><code>rollup</code></td><td><code>fx: MAX(UsageTransactions.Timestamp)</code></td></tr>
+      </tbody></table>
+    </div>
+
+    <div class="table-block">
+      <div class="table-header"><strong>Usage Transactions</strong><span class="badge">transaction</span><span class="col-count">13 columns</span></div>
+      <div class="table-desc">One row per CCR message — the source of truth for billable events.</div>
+      <table><thead><tr><th>Column</th><th>Type</th><th>Details</th></tr></thead><tbody>
+        <tr><td>TransactionID<span class="req">*</span></td><td><code>text</code></td><td>auto TXN-000001</td></tr>
+        <tr><td>ChargingSession<span class="req">*</span></td><td><code>reference</code></td><td>→ ChargingSessions</td></tr>
+        <tr><td>Balance</td><td><code>reference</code></td><td>→ Balances</td></tr>
+        <tr><td>MessageType<span class="req">*</span></td><td><code>select</code></td><td>CCR-I, CCR-U, CCR-T, CCR-E</td></tr>
+        <tr><td>RequestNumber<span class="req">*</span></td><td><code>number</code></td><td></td></tr>
+        <tr><td>Timestamp<span class="req">*</span></td><td><code>date</code></td><td></td></tr>
+        <tr><td>RatingGroup<span class="req">*</span></td><td><code>number</code></td><td></td></tr>
+        <tr><td>UsedAmount<span class="req">*</span></td><td><code>number</code></td><td></td></tr>
+        <tr><td>UnitType<span class="req">*</span></td><td><code>select</code></td><td></td></tr>
+        <tr><td>RequestedAmount</td><td><code>number</code></td><td></td></tr>
+        <tr><td>GrantedAmount</td><td><code>number</code></td><td></td></tr>
+        <tr><td>ResultCode<span class="req">*</span></td><td><code>number</code></td><td>2001, 4010, 4012, 5030</td></tr>
+        <tr><td>FUIAction</td><td><code>select</code></td><td>none, terminate, redirect, restrict</td></tr>
+      </tbody></table>
+    </div>
+
+    <div class="table-block">
+      <div class="table-header"><strong>Balances</strong><span class="badge">transaction</span><span class="col-count">10 columns</span></div>
+      <div class="table-desc">Live remaining allowance per (subscription × rating group × plan assignment). Read on every CCR.</div>
+      <table><thead><tr><th>Column</th><th>Type</th><th>Details</th></tr></thead><tbody>
+        <tr><td>BalanceCode<span class="req">*</span></td><td><code>text</code></td><td></td></tr>
+        <tr><td>Subscription<span class="req">*</span></td><td><code>reference</code></td><td>→ Subscriptions</td></tr>
+        <tr><td>SubscriptionPlanAssignment<span class="req">*</span></td><td><code>reference</code></td><td>→ SubscriptionPlanAssignments</td></tr>
+        <tr><td>RatingGroup<span class="req">*</span></td><td><code>number</code></td><td></td></tr>
+        <tr><td>UnitType<span class="req">*</span></td><td><code>select</code></td><td></td></tr>
+        <tr><td>InitialAmount<span class="req">*</span></td><td><code>number</code></td><td></td></tr>
+        <tr><td>UsedAmount<span class="req">*</span></td><td><code>rollup</code></td><td><code>fx: SUM(UsageTransactions.UsedAmount)</code></td></tr>
+        <tr><td>RemainingAmount<span class="req">*</span></td><td><code>formula</code></td><td><code>fx: InitialAmount − UsedAmount</code></td></tr>
+        <tr><td>CycleEnd<span class="req">*</span></td><td><code>date</code></td><td></td></tr>
+        <tr><td>Status<span class="req">*</span></td><td><code>select</code></td><td>active, depleted, expired, suspended</td></tr>
+      </tbody></table>
+    </div>
+
+    <div class="table-block">
+      <div class="table-header"><strong>CDRs</strong><span class="badge">transaction</span><span class="col-count">11 columns</span></div>
+      <div class="table-desc">Post-session flattened record derived once a session closes with CCR-T.</div>
+      <table><thead><tr><th>Column</th><th>Type</th><th>Details</th></tr></thead><tbody>
+        <tr><td>CDRCode<span class="req">*</span></td><td><code>text</code></td><td></td></tr>
+        <tr><td>ChargingSession<span class="req">*</span></td><td><code>reference</code></td><td>→ ChargingSessions</td></tr>
+        <tr><td>Subscription<span class="req">*</span></td><td><code>reference</code></td><td>→ Subscriptions</td></tr>
+        <tr><td>Customer<span class="req">*</span></td><td><code>reference</code></td><td>→ Customers</td></tr>
+        <tr><td>ServiceType<span class="req">*</span></td><td><code>select</code></td><td></td></tr>
+        <tr><td>StartedAt<span class="req">*</span></td><td><code>date</code></td><td></td></tr>
+        <tr><td>EndedAt<span class="req">*</span></td><td><code>date</code></td><td></td></tr>
+        <tr><td>DurationSeconds</td><td><code>number</code></td><td></td></tr>
+        <tr><td>TotalUnits<span class="req">*</span></td><td><code>number</code></td><td></td></tr>
+        <tr><td>TotalChargedFromAllowance</td><td><code>currency</code></td><td></td></tr>
+        <tr><td>TotalChargedFromWallet</td><td><code>currency</code></td><td></td></tr>
+      </tbody></table>
+    </div>
+
+    <div class="table-block">
+      <div class="table-header"><strong>Promotions</strong><span class="badge">master</span><span class="col-count">10 columns</span></div>
+      <div class="table-desc">Campaign offers (double data weekend, buy 1 get 1, referral bonus).</div>
+      <table><thead><tr><th>Column</th><th>Type</th><th>Details</th></tr></thead><tbody>
+        <tr><td>PromotionCode<span class="req">*</span></td><td><code>text</code></td><td></td></tr>
+        <tr><td>PromotionName<span class="req">*</span></td><td><code>text</code></td><td></td></tr>
+        <tr><td>Type<span class="req">*</span></td><td><code>select</code></td><td>percent_discount, fixed_discount, bonus_allowance, cashback</td></tr>
+        <tr><td>EligibilityRules</td><td><code>text</code></td><td></td></tr>
+        <tr><td>StartDate<span class="req">*</span></td><td><code>date</code></td><td></td></tr>
+        <tr><td>EndDate<span class="req">*</span></td><td><code>date</code></td><td></td></tr>
+        <tr><td>MaxRedemptionsPerCustomer</td><td><code>number</code></td><td></td></tr>
+        <tr><td>TotalBudget</td><td><code>currency</code></td><td></td></tr>
+        <tr><td>Status<span class="req">*</span></td><td><code>select</code></td><td></td></tr>
+        <tr><td>RedemptionCount</td><td><code>rollup</code></td><td><code>fx: COUNT(PromotionRedemptions)</code></td></tr>
+      </tbody></table>
+    </div>
+
+    <div class="table-block">
+      <div class="table-header"><strong>Promotion Redemptions</strong><span class="badge">transaction</span><span class="col-count">7 columns</span></div>
+      <div class="table-desc">Who redeemed what — tracks per-customer redemption history.</div>
+      <table><thead><tr><th>Column</th><th>Type</th><th>Details</th></tr></thead><tbody>
+        <tr><td>Promotion<span class="req">*</span></td><td><code>reference</code></td><td>→ Promotions</td></tr>
+        <tr><td>Customer<span class="req">*</span></td><td><code>reference</code></td><td>→ Customers</td></tr>
+        <tr><td>Subscription</td><td><code>reference</code></td><td>→ Subscriptions</td></tr>
+        <tr><td>RedeemedAt<span class="req">*</span></td><td><code>date</code></td><td></td></tr>
+        <tr><td>ValueGranted<span class="req">*</span></td><td><code>currency</code></td><td></td></tr>
+        <tr><td>ReferenceTransaction</td><td><code>text</code></td><td></td></tr>
+        <tr><td>ExpiryDate</td><td><code>date</code></td><td></td></tr>
+      </tbody></table>
+    </div>
+
+    <div class="table-block">
+      <div class="table-header"><strong>F&amp;F Groups</strong><span class="badge">master</span><span class="col-count">5 columns</span></div>
+      <div class="table-desc">Friends &amp; Family calling circle — owner subscription with special rates.</div>
+      <table><thead><tr><th>Column</th><th>Type</th><th>Details</th></tr></thead><tbody>
+        <tr><td>GroupCode<span class="req">*</span></td><td><code>text</code></td><td></td></tr>
+        <tr><td>Subscription<span class="req">*</span></td><td><code>reference</code></td><td>→ Subscriptions (owner)</td></tr>
+        <tr><td>GroupName<span class="req">*</span></td><td><code>text</code></td><td></td></tr>
+        <tr><td>MaxMembers</td><td><code>number</code></td><td></td></tr>
+        <tr><td>SpecialRateCard</td><td><code>reference</code></td><td>→ RateCards</td></tr>
+      </tbody></table>
+    </div>
+
+    <div class="table-block">
+      <div class="table-header"><strong>F&amp;F Members (line item of F&amp;F Groups)</strong><span class="badge">master</span><span class="badge">line-item</span><span class="col-count">4 columns</span></div>
+      <div class="table-desc">Members of an F&amp;F group.</div>
+      <table><thead><tr><th>Column</th><th>Type</th><th>Details</th></tr></thead><tbody>
+        <tr><td>Group<span class="req">*</span></td><td><code>reference</code></td><td>→ FFGroups</td></tr>
+        <tr><td>MemberMSISDN<span class="req">*</span></td><td><code>text</code></td><td></td></tr>
+        <tr><td>AddedDate<span class="req">*</span></td><td><code>date</code></td><td></td></tr>
+        <tr><td>OnNet<span class="req">*</span></td><td><code>toggle</code></td><td></td></tr>
+      </tbody></table>
+    </div>
+
+    <div class="table-block">
+      <div class="table-header"><strong>CUGs</strong><span class="badge">master</span><span class="col-count">5 columns</span></div>
+      <div class="table-desc">Closed User Groups (corporate, MVPN, community).</div>
+      <table><thead><tr><th>Column</th><th>Type</th><th>Details</th></tr></thead><tbody>
+        <tr><td>CUGCode<span class="req">*</span></td><td><code>text</code></td><td></td></tr>
+        <tr><td>CUGName<span class="req">*</span></td><td><code>text</code></td><td></td></tr>
+        <tr><td>OwnerCustomer<span class="req">*</span></td><td><code>reference</code></td><td>→ Customers (corporate master)</td></tr>
+        <tr><td>CUGType<span class="req">*</span></td><td><code>select</code></td><td>corporate, community, mvpn</td></tr>
+        <tr><td>InternalRateCard</td><td><code>reference</code></td><td>→ RateCards</td></tr>
+      </tbody></table>
+    </div>
+
+    <div class="table-block">
+      <div class="table-header"><strong>CUG Members (line item of CUGs)</strong><span class="badge">master</span><span class="badge">line-item</span><span class="col-count">4 columns</span></div>
+      <div class="table-desc">Members of a Closed User Group.</div>
+      <table><thead><tr><th>Column</th><th>Type</th><th>Details</th></tr></thead><tbody>
+        <tr><td>CUG<span class="req">*</span></td><td><code>reference</code></td><td>→ CUGs</td></tr>
+        <tr><td>Subscription<span class="req">*</span></td><td><code>reference</code></td><td>→ Subscriptions</td></tr>
+        <tr><td>Role<span class="req">*</span></td><td><code>select</code></td><td>admin, member</td></tr>
+        <tr><td>AddedDate<span class="req">*</span></td><td><code>date</code></td><td></td></tr>
+      </tbody></table>
+    </div>
+
+    <div class="table-block">
+      <div class="table-header"><strong>Distribution Partners</strong><span class="badge">master</span><span class="col-count">11 columns</span></div>
+      <div class="table-desc">Retail shops, super-dealers, app-based agents that sell recharges/SIMs.</div>
+      <table><thead><tr><th>Column</th><th>Type</th><th>Details</th></tr></thead><tbody>
+        <tr><td>PartnerCode<span class="req">*</span></td><td><code>text</code></td><td></td></tr>
+        <tr><td>PartnerName<span class="req">*</span></td><td><code>text</code></td><td></td></tr>
+        <tr><td>PartnerType<span class="req">*</span></td><td><code>select</code></td><td>retail_shop, super_dealer, app_agent, bank_channel</td></tr>
+        <tr><td>Tier<span class="req">*</span></td><td><code>select</code></td><td>gold, silver, bronze</td></tr>
+        <tr><td>Region</td><td><code>select</code></td><td></td></tr>
+        <tr><td>ContactPerson</td><td><code>text</code></td><td></td></tr>
+        <tr><td>ContactPhone</td><td><code>phone</code></td><td></td></tr>
+        <tr><td>Status<span class="req">*</span></td><td><code>select</code></td><td>onboarding, active, suspended, terminated</td></tr>
+        <tr><td>WalletBalance</td><td><code>currency</code></td><td>partner float</td></tr>
+        <tr><td>TotalCommission</td><td><code>rollup</code></td><td><code>fx: SUM(PartnerCommissions.CommissionAmount)</code></td></tr>
+        <tr><td>RechargeVolume</td><td><code>rollup</code></td><td><code>fx: SUM(Recharges.Amount)</code></td></tr>
+      </tbody></table>
+    </div>
+
+    <div class="table-block">
+      <div class="table-header"><strong>Partner Commissions</strong><span class="badge">transaction</span><span class="col-count">8 columns</span></div>
+      <div class="table-desc">Accrual ledger per recharge. Settlement flips status to settled.</div>
+      <table><thead><tr><th>Column</th><th>Type</th><th>Details</th></tr></thead><tbody>
+        <tr><td>Partner<span class="req">*</span></td><td><code>reference</code></td><td>→ DistributionPartners</td></tr>
+        <tr><td>Recharge<span class="req">*</span></td><td><code>reference</code></td><td>→ Recharges</td></tr>
+        <tr><td>CommissionType<span class="req">*</span></td><td><code>select</code></td><td>percent, fixed, tiered</td></tr>
+        <tr><td>BaseAmount<span class="req">*</span></td><td><code>currency</code></td><td></td></tr>
+        <tr><td>CommissionAmount<span class="req">*</span></td><td><code>currency</code></td><td></td></tr>
+        <tr><td>AccruedDate<span class="req">*</span></td><td><code>date</code></td><td></td></tr>
+        <tr><td>SettledDate</td><td><code>date</code></td><td></td></tr>
+        <tr><td>Status<span class="req">*</span></td><td><code>select</code></td><td>accrued, pending_settlement, settled</td></tr>
+      </tbody></table>
+    </div>
+
+    <div class="table-block">
+      <div class="table-header"><strong>Partner Contracts</strong><span class="badge">master</span><span class="col-count">7 columns</span></div>
+      <div class="table-desc">Legal agreements with commission structures and SLAs.</div>
+      <table><thead><tr><th>Column</th><th>Type</th><th>Details</th></tr></thead><tbody>
+        <tr><td>Partner<span class="req">*</span></td><td><code>reference</code></td><td>→ DistributionPartners</td></tr>
+        <tr><td>ContractNumber<span class="req">*</span></td><td><code>text</code></td><td></td></tr>
+        <tr><td>EffectiveFrom<span class="req">*</span></td><td><code>date</code></td><td></td></tr>
+        <tr><td>EffectiveTo</td><td><code>date</code></td><td></td></tr>
+        <tr><td>CommissionStructure</td><td><code>text</code></td><td></td></tr>
+        <tr><td>SLATargets</td><td><code>text</code></td><td></td></tr>
+        <tr><td>Status<span class="req">*</span></td><td><code>select</code></td><td></td></tr>
+      </tbody></table>
+    </div>
+
+    <div class="table-block">
+      <div class="table-header"><strong>Channels</strong><span class="badge">master</span><span class="col-count">5 columns</span></div>
+      <div class="table-desc">Registry of customer interaction channels.</div>
+      <table><thead><tr><th>Column</th><th>Type</th><th>Details</th></tr></thead><tbody>
+        <tr><td>ChannelCode<span class="req">*</span></td><td><code>text</code></td><td></td></tr>
+        <tr><td>ChannelName<span class="req">*</span></td><td><code>text</code></td><td></td></tr>
+        <tr><td>ChannelType<span class="req">*</span></td><td><code>select</code></td><td>ussd, sms, ivr, mobile_app, web, retail, chat, whatsapp</td></tr>
+        <tr><td>Enabled<span class="req">*</span></td><td><code>toggle</code></td><td></td></tr>
+        <tr><td>OperatingHours</td><td><code>text</code></td><td></td></tr>
+      </tbody></table>
+    </div>
+
+    <div class="table-block">
+      <div class="table-header"><strong>Customer Interactions</strong><span class="badge">transaction</span><span class="col-count">9 columns</span></div>
+      <div class="table-desc">Unified touch log across all channels.</div>
+      <table><thead><tr><th>Column</th><th>Type</th><th>Details</th></tr></thead><tbody>
+        <tr><td>InteractionCode<span class="req">*</span></td><td><code>text</code></td><td></td></tr>
+        <tr><td>Customer<span class="req">*</span></td><td><code>reference</code></td><td>→ Customers</td></tr>
+        <tr><td>Subscription</td><td><code>reference</code></td><td>→ Subscriptions</td></tr>
+        <tr><td>Channel<span class="req">*</span></td><td><code>reference</code></td><td>→ Channels</td></tr>
+        <tr><td>InteractionType<span class="req">*</span></td><td><code>select</code></td><td>balance_check, recharge, plan_purchase, complaint, query</td></tr>
+        <tr><td>Timestamp<span class="req">*</span></td><td><code>date</code></td><td></td></tr>
+        <tr><td>DurationSeconds</td><td><code>number</code></td><td></td></tr>
+        <tr><td>Outcome</td><td><code>text</code></td><td></td></tr>
+        <tr><td>CSATScore</td><td><code>number</code></td><td></td></tr>
+      </tbody></table>
+    </div>
+
+    <div class="table-block">
+      <div class="table-header"><strong>Orders</strong><span class="badge">transaction</span><span class="col-count">9 columns</span></div>
+      <div class="table-desc">Activations, plan purchases, SIM replacement, port-in/out, barring, reactivation.</div>
+      <table><thead><tr><th>Column</th><th>Type</th><th>Details</th></tr></thead><tbody>
+        <tr><td>OrderCode<span class="req">*</span></td><td><code>text</code></td><td></td></tr>
+        <tr><td>Customer<span class="req">*</span></td><td><code>reference</code></td><td>→ Customers</td></tr>
+        <tr><td>Subscription</td><td><code>reference</code></td><td>→ Subscriptions</td></tr>
+        <tr><td>OrderType<span class="req">*</span></td><td><code>select</code></td><td>new_activation, plan_purchase, sim_replacement, port_in, port_out, barring</td></tr>
+        <tr><td>Channel<span class="req">*</span></td><td><code>reference</code></td><td>→ Channels</td></tr>
+        <tr><td>TotalAmount<span class="req">*</span></td><td><code>formula</code></td><td><code>fx: SUM(OrderItems.Total)</code></td></tr>
+        <tr><td>Status<span class="req">*</span></td><td><code>select</code></td><td>draft, submitted, in_progress, fulfilled, cancelled, failed</td></tr>
+        <tr><td>SubmittedAt</td><td><code>date</code></td><td></td></tr>
+        <tr><td>FulfilledAt</td><td><code>date</code></td><td></td></tr>
+      </tbody></table>
+    </div>
+
+    <div class="table-block">
+      <div class="table-header"><strong>Order Items (line item of Orders)</strong><span class="badge">master</span><span class="badge">line-item</span><span class="col-count">6 columns</span></div>
+      <div class="table-desc">Line items on an order.</div>
+      <table><thead><tr><th>Column</th><th>Type</th><th>Details</th></tr></thead><tbody>
+        <tr><td>Order<span class="req">*</span></td><td><code>reference</code></td><td>→ Orders</td></tr>
+        <tr><td>ProductOffering</td><td><code>reference</code></td><td>→ ProductOfferings</td></tr>
+        <tr><td>TariffPlan</td><td><code>reference</code></td><td>→ TariffPlans</td></tr>
+        <tr><td>Quantity<span class="req">*</span></td><td><code>number</code></td><td></td></tr>
+        <tr><td>UnitPrice<span class="req">*</span></td><td><code>currency</code></td><td></td></tr>
+        <tr><td>Total<span class="req">*</span></td><td><code>formula</code></td><td><code>fx: Quantity * UnitPrice</code></td></tr>
+      </tbody></table>
+    </div>
+
+    <div class="table-block">
+      <div class="table-header"><strong>Order Status History</strong><span class="badge">transaction</span><span class="col-count">5 columns</span></div>
+      <div class="table-desc">Audit of order state changes.</div>
+      <table><thead><tr><th>Column</th><th>Type</th><th>Details</th></tr></thead><tbody>
+        <tr><td>Order<span class="req">*</span></td><td><code>reference</code></td><td>→ Orders</td></tr>
+        <tr><td>FromStatus</td><td><code>text</code></td><td></td></tr>
+        <tr><td>ToStatus<span class="req">*</span></td><td><code>text</code></td><td></td></tr>
+        <tr><td>ChangedAt<span class="req">*</span></td><td><code>date</code></td><td></td></tr>
+        <tr><td>Reason</td><td><code>text</code></td><td></td></tr>
+      </tbody></table>
+    </div>
+
+    <div class="table-block">
+      <div class="table-header"><strong>Cases</strong><span class="badge">transaction</span><span class="col-count">11 columns</span></div>
+      <div class="table-desc">Support tickets — billing, technical, complaints, fraud.</div>
+      <table><thead><tr><th>Column</th><th>Type</th><th>Details</th></tr></thead><tbody>
+        <tr><td>CaseCode<span class="req">*</span></td><td><code>text</code></td><td></td></tr>
+        <tr><td>Customer<span class="req">*</span></td><td><code>reference</code></td><td>→ Customers</td></tr>
+        <tr><td>Subscription</td><td><code>reference</code></td><td>→ Subscriptions</td></tr>
+        <tr><td>Channel</td><td><code>reference</code></td><td>→ Channels</td></tr>
+        <tr><td>Category<span class="req">*</span></td><td><code>select</code></td><td>billing, technical, service_request, complaint, fraud</td></tr>
+        <tr><td>Priority<span class="req">*</span></td><td><code>select</code></td><td></td></tr>
+        <tr><td>Status<span class="req">*</span></td><td><code>select</code></td><td>open, in_progress, resolved, closed, reopened</td></tr>
+        <tr><td>Subject<span class="req">*</span></td><td><code>text</code></td><td></td></tr>
+        <tr><td>AssignedTo</td><td><code>text</code></td><td></td></tr>
+        <tr><td>OpenedAt<span class="req">*</span></td><td><code>date</code></td><td></td></tr>
+        <tr><td>ResolvedAt</td><td><code>date</code></td><td></td></tr>
+      </tbody></table>
+    </div>
+
+    <div class="table-block">
+      <div class="table-header"><strong>Notification Templates</strong><span class="badge">master</span><span class="col-count">8 columns</span></div>
+      <div class="table-desc">Reusable message templates per trigger event.</div>
+      <table><thead><tr><th>Column</th><th>Type</th><th>Details</th></tr></thead><tbody>
+        <tr><td>TemplateCode<span class="req">*</span></td><td><code>text</code></td><td></td></tr>
+        <tr><td>TemplateName<span class="req">*</span></td><td><code>text</code></td><td></td></tr>
+        <tr><td>TriggerEvent<span class="req">*</span></td><td><code>select</code></td><td>low_balance, plan_expiring, recharge_success, plan_activated</td></tr>
+        <tr><td>ChannelType<span class="req">*</span></td><td><code>select</code></td><td>sms, push, email, ivr</td></tr>
+        <tr><td>Subject</td><td><code>text</code></td><td></td></tr>
+        <tr><td>Body<span class="req">*</span></td><td><code>text</code></td><td></td></tr>
+        <tr><td>Language</td><td><code>select</code></td><td></td></tr>
+        <tr><td>Enabled<span class="req">*</span></td><td><code>toggle</code></td><td></td></tr>
+      </tbody></table>
+    </div>
+
+    <div class="table-block">
+      <div class="table-header"><strong>Notifications Sent</strong><span class="badge">transaction</span><span class="col-count">9 columns</span></div>
+      <div class="table-desc">Delivery log for every notification sent.</div>
+      <table><thead><tr><th>Column</th><th>Type</th><th>Details</th></tr></thead><tbody>
+        <tr><td>Template<span class="req">*</span></td><td><code>reference</code></td><td>→ NotificationTemplates</td></tr>
+        <tr><td>Customer<span class="req">*</span></td><td><code>reference</code></td><td>→ Customers</td></tr>
+        <tr><td>Subscription</td><td><code>reference</code></td><td>→ Subscriptions</td></tr>
+        <tr><td>Channel<span class="req">*</span></td><td><code>reference</code></td><td>→ Channels</td></tr>
+        <tr><td>SentAt<span class="req">*</span></td><td><code>date</code></td><td></td></tr>
+        <tr><td>DeliveredAt</td><td><code>date</code></td><td></td></tr>
+        <tr><td>ReadAt</td><td><code>date</code></td><td></td></tr>
+        <tr><td>Status<span class="req">*</span></td><td><code>select</code></td><td>queued, sent, delivered, failed, bounced</td></tr>
+        <tr><td>ContentSnapshot</td><td><code>text</code></td><td></td></tr>
+      </tbody></table>
+    </div>
+
+    <div class="table-block">
+      <div class="table-header"><strong>Business Rules</strong><span class="badge">master</span><span class="col-count">6 columns</span></div>
+      <div class="table-desc">Configurable policies for the rule engine (rating, notification, fraud, workflow triggers).</div>
+      <table><thead><tr><th>Column</th><th>Type</th><th>Details</th></tr></thead><tbody>
+        <tr><td>RuleCode<span class="req">*</span></td><td><code>text</code></td><td></td></tr>
+        <tr><td>RuleName<span class="req">*</span></td><td><code>text</code></td><td></td></tr>
+        <tr><td>RuleType<span class="req">*</span></td><td><code>select</code></td><td>rating, notification, promotion, fraud, workflow</td></tr>
+        <tr><td>TriggerConditionJSON<span class="req">*</span></td><td><code>text</code></td><td></td></tr>
+        <tr><td>ActionJSON<span class="req">*</span></td><td><code>text</code></td><td></td></tr>
+        <tr><td>Priority</td><td><code>number</code></td><td></td></tr>
+      </tbody></table>
+    </div>
+
+    <div class="table-block">
+      <div class="table-header"><strong>Network Elements</strong><span class="badge">master</span><span class="col-count">8 columns</span></div>
+      <div class="table-desc">Registry of network functions we receive signaling from or interact with.</div>
+      <table><thead><tr><th>Column</th><th>Type</th><th>Details</th></tr></thead><tbody>
+        <tr><td>ElementCode<span class="req">*</span></td><td><code>text</code></td><td></td></tr>
+        <tr><td>ElementType<span class="req">*</span></td><td><code>select</code></td><td>PGW, SGW, SMSC, MSC, MME, HSS, PCRF, SMF, UPF, AMF, NRF</td></tr>
+        <tr><td>FQDN<span class="req">*</span></td><td><code>text</code></td><td></td></tr>
+        <tr><td>IPAddress</td><td><code>text</code></td><td></td></tr>
+        <tr><td>DiameterRealm</td><td><code>text</code></td><td></td></tr>
+        <tr><td>Region</td><td><code>select</code></td><td></td></tr>
+        <tr><td>Status<span class="req">*</span></td><td><code>select</code></td><td></td></tr>
+        <tr><td>LastHeartbeat</td><td><code>date</code></td><td></td></tr>
+      </tbody></table>
+    </div>
+  </section>
+
+  <section>
+    <h2>Relationships <span class="count">61</span></h2>
+    <ul>
+      <li><strong>Customer Identifications</strong> ──→ <strong>Customers</strong></li>
+      <li><strong>Customer Lifecycle Events</strong> ──→ <strong>Customers</strong></li>
+      <li><strong>Account Hierarchy</strong> ──→ <strong>Customers</strong> (ParentCustomer + ChildCustomer)</li>
+      <li><strong>Subscriptions</strong> ──→ <strong>Customers</strong></li>
+      <li><strong>Subscriptions</strong> ──→ <strong>Tariff Plans</strong> (CurrentPlan)</li>
+      <li><strong>Subscription Status History</strong> ──→ <strong>Subscriptions</strong></li>
+      <li><strong>MSISDN Pool</strong> ──→ <strong>Subscriptions</strong> (AssignedToSubscription)</li>
+      <li><strong>SIM Inventory</strong> ──→ <strong>Distribution Partners</strong> (AllocatedToPartner)</li>
+      <li><strong>Product Offerings</strong> <span>←─ parent of</span> <strong>Tariff Plans</strong></li>
+      <li><strong>Bundles</strong> ┣━━┫ <strong>BundleComponents</strong> (line item)</li>
+      <li><strong>BundleComponents</strong> ──→ <strong>Product Offerings</strong></li>
+      <li><strong>Tariff Plans</strong> ──→ <strong>Product Offerings</strong></li>
+      <li><strong>Plan Allowances</strong> ──→ <strong>Tariff Plans</strong></li>
+      <li><strong>Subscription Plan Assignments</strong> ──→ <strong>Subscriptions</strong></li>
+      <li><strong>Subscription Plan Assignments</strong> ──→ <strong>Tariff Plans</strong></li>
+      <li><strong>Bonus Grants</strong> ──→ <strong>Subscriptions</strong></li>
+      <li><strong>Wallets</strong> ──→ <strong>Customers</strong></li>
+      <li><strong>Wallet Transactions</strong> ──→ <strong>Wallets</strong></li>
+      <li><strong>Recharges</strong> ──→ <strong>Wallets</strong></li>
+      <li><strong>Recharges</strong> ──→ <strong>Distribution Partners</strong></li>
+      <li><strong>Recharge Vouchers</strong> ──→ <strong>Distribution Partners</strong> (AllocatedToPartner)</li>
+      <li><strong>Balance Transfers</strong> ──→ <strong>Subscriptions</strong> (From + To)</li>
+      <li><strong>Charging Sessions</strong> ──→ <strong>Subscriptions</strong></li>
+      <li><strong>Charging Sessions</strong> ┣━━┫ <strong>Usage Transactions</strong> (line item)</li>
+      <li><strong>Usage Transactions</strong> ──→ <strong>Balances</strong></li>
+      <li><strong>Balances</strong> ──→ <strong>Subscriptions</strong></li>
+      <li><strong>Balances</strong> ──→ <strong>Subscription Plan Assignments</strong></li>
+      <li><strong>CDRs</strong> ──→ <strong>Charging Sessions</strong></li>
+      <li><strong>CDRs</strong> ──→ <strong>Subscriptions</strong>, <strong>Customers</strong></li>
+      <li><strong>Promotion Redemptions</strong> ──→ <strong>Promotions</strong>, <strong>Customers</strong>, <strong>Subscriptions</strong></li>
+      <li><strong>F&amp;F Groups</strong> ──→ <strong>Subscriptions</strong> (owner)</li>
+      <li><strong>F&amp;F Groups</strong> ┣━━┫ <strong>FFMembers</strong> (line item)</li>
+      <li><strong>CUGs</strong> ──→ <strong>Customers</strong> (OwnerCustomer)</li>
+      <li><strong>CUGs</strong> ┣━━┫ <strong>CUGMembers</strong> (line item)</li>
+      <li><strong>CUGMembers</strong> ──→ <strong>Subscriptions</strong></li>
+      <li><strong>Partner Commissions</strong> ──→ <strong>Distribution Partners</strong>, <strong>Recharges</strong></li>
+      <li><strong>Partner Contracts</strong> ──→ <strong>Distribution Partners</strong></li>
+      <li><strong>Customer Interactions</strong> ──→ <strong>Customers</strong>, <strong>Subscriptions</strong>, <strong>Channels</strong></li>
+      <li><strong>Orders</strong> ──→ <strong>Customers</strong>, <strong>Subscriptions</strong>, <strong>Channels</strong></li>
+      <li><strong>Orders</strong> ┣━━┫ <strong>OrderItems</strong> (line item)</li>
+      <li><strong>OrderItems</strong> ──→ <strong>Product Offerings</strong>, <strong>Tariff Plans</strong></li>
+      <li><strong>Order Status History</strong> ──→ <strong>Orders</strong></li>
+      <li><strong>Cases</strong> ──→ <strong>Customers</strong>, <strong>Subscriptions</strong>, <strong>Channels</strong></li>
+      <li><strong>Notifications Sent</strong> ──→ <strong>Notification Templates</strong>, <strong>Customers</strong>, <strong>Subscriptions</strong>, <strong>Channels</strong></li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>Rating Groups &amp; Service Contexts</h2>
+    <div class="table-block">
+      <div class="table-header"><strong>Rating Group Convention</strong><span class="badge">reference</span><span class="col-count">8 groups</span></div>
+      <div class="table-desc">Operator-defined integer buckets that map service usage to billable allowances.</div>
+      <table>
+        <thead><tr><th>RG</th><th>Bucket</th><th>Service Context</th><th>Unit</th></tr></thead>
+        <tbody>
+          <tr><td><code>10</code></td><td>General internet</td><td><code>32251@3gpp.org</code></td><td>MB</td></tr>
+          <tr><td><code>20</code></td><td>Zero-rated operator portal</td><td><code>32251@3gpp.org</code></td><td>MB (not billed)</td></tr>
+          <tr><td><code>30</code></td><td>Social / streaming bundle</td><td><code>32251@3gpp.org</code></td><td>MB</td></tr>
+          <tr><td><code>100</code></td><td>Voice on-net</td><td><code>32260@3gpp.org</code></td><td>minutes</td></tr>
+          <tr><td><code>101</code></td><td>Voice off-net</td><td><code>32260@3gpp.org</code></td><td>minutes</td></tr>
+          <tr><td><code>102</code></td><td>Voice international</td><td><code>32260@3gpp.org</code></td><td>minutes</td></tr>
+          <tr><td><code>200</code></td><td>SMS domestic</td><td><code>32274@3gpp.org</code></td><td>count</td></tr>
+          <tr><td><code>201</code></td><td>SMS international</td><td><code>32274@3gpp.org</code></td><td>count</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="table-block">
+      <div class="table-header"><strong>Diameter CCA Result Codes</strong><span class="badge">reference</span><span class="col-count">6 codes</span></div>
+      <div class="table-desc">Return codes the charging engine sends back to the network element.</div>
+      <table>
+        <thead><tr><th>Code</th><th>Meaning</th><th>When</th></tr></thead>
+        <tbody>
+          <tr><td><code>2001</code></td><td>DIAMETER_SUCCESS</td><td>Granted</td></tr>
+          <tr><td><code>4010</code></td><td>END_USER_SERVICE_DENIED</td><td>Subscriber blocked</td></tr>
+          <tr><td><code>4011</code></td><td>CREDIT_CONTROL_NOT_APPLICABLE</td><td>Not chargeable here</td></tr>
+          <tr><td><code>4012</code></td><td>CREDIT_LIMIT_REACHED</td><td>Balance zero — FUI</td></tr>
+          <tr><td><code>5030</code></td><td>USER_UNKNOWN</td><td>MSISDN not found</td></tr>
+          <tr><td><code>5031</code></td><td>RATING_FAILED</td><td>Rating engine error</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section>
+    <h2>Roles &amp; Permissions <span class="count">7</span></h2>
+
+    <div class="card">
+      <h3>Admin</h3>
+      <p>Superuser with full access across all modules.</p>
+      <div class="perms"><span class="badge">Full CRUD on all tables</span><span class="badge">Manage Business Rules</span><span class="badge">Access all reports</span></div>
+    </div>
+    <div class="card">
+      <h3>CSR (Customer Service Rep)</h3>
+      <p>Front-line agents resolving customer queries and cases.</p>
+      <div class="perms"><span class="badge">Manage Customers, Subscriptions, Cases</span><span class="badge">Create Recharges, plan changes</span><span class="badge">View Balances, Wallets, CDRs</span><span class="badge">Log CustomerInteractions</span></div>
+    </div>
+    <div class="card">
+      <h3>Retail Partner Manager</h3>
+      <p>Manages distribution partner network, vouchers, and commissions.</p>
+      <div class="perms"><span class="badge">Manage DistributionPartners, PartnerContracts</span><span class="badge">Issue RechargeVouchers, SIMInventory</span><span class="badge">View PartnerCommissions</span><span class="badge">Trigger settlement</span></div>
+    </div>
+    <div class="card">
+      <h3>Catalog Manager</h3>
+      <p>Product / marketing owner for offerings, tariff plans, and promotions.</p>
+      <div class="perms"><span class="badge">Manage ProductOfferings, Bundles, TariffPlans, PlanAllowances, RateCards</span><span class="badge">Manage Promotions</span><span class="badge">View uptake reports</span></div>
+    </div>
+    <div class="card">
+      <h3>Billing / Finance</h3>
+      <p>Owns wallet ledgers, tax, and revenue reporting.</p>
+      <div class="perms"><span class="badge">View Wallets, WalletTransactions, Recharges, CDRs</span><span class="badge">Manage TaxRates</span><span class="badge">Access ARPU / revenue reports</span></div>
+    </div>
+    <div class="card">
+      <h3>Network Ops</h3>
+      <p>Monitors real-time charging health and signaling integrations.</p>
+      <div class="perms"><span class="badge">View ChargingSessions, UsageTransactions, Balances</span><span class="badge">Manage NetworkElements</span><span class="badge">Access FUI &amp; error-code dashboards</span></div>
+    </div>
+    <div class="card">
+      <h3>Self-Care Customer</h3>
+      <p>End subscriber via app / USSD / web portal.</p>
+      <div class="perms"><span class="badge">View own balance, plan, usage</span><span class="badge">Recharge, buy plan, transfer</span><span class="badge">Open Cases</span><span class="badge">Submit BalanceTransfers</span></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Views <span class="count">12</span></h2>
+
+    <div class="card">
+      <h3>Active Subscriptions <span class="badge">Subscriptions</span></h3>
+      <p><strong>Filter:</strong> Status = 'active'</p>
+      <p><strong>Roles:</strong> CSR, Admin, Billing</p>
+      <div class="perms"><span class="badge ro">MSISDN (ro)</span><span class="badge ro">Customer (ro)</span><span class="badge">Status</span><span class="badge">CurrentPlan</span><span class="badge">LastUsageDate</span></div>
+    </div>
+    <div class="card">
+      <h3>Depleted Balances <span class="badge">Balances</span></h3>
+      <p><strong>Filter:</strong> RemainingAmount ≤ 0 OR Status = 'depleted'</p>
+      <p><strong>Roles:</strong> CSR, Network Ops</p>
+      <div class="perms"><span class="badge">Subscription</span><span class="badge">RatingGroup</span><span class="badge">InitialAmount</span><span class="badge ro">UsedAmount (ro)</span><span class="badge ro">RemainingAmount (ro)</span></div>
+    </div>
+    <div class="card">
+      <h3>Low Balance Watch <span class="badge">Balances</span></h3>
+      <p><strong>Filter:</strong> RemainingAmount / InitialAmount &lt; 0.2</p>
+      <p><strong>Roles:</strong> CSR, Admin</p>
+      <div class="perms"><span class="badge">Subscription</span><span class="badge">AllowanceLabel</span><span class="badge ro">RemainingAmount (ro)</span><span class="badge">CycleEnd</span></div>
+    </div>
+    <div class="card">
+      <h3>Active Charging Sessions <span class="badge">ChargingSessions</span></h3>
+      <p><strong>Filter:</strong> Status = 'active'</p>
+      <p><strong>Roles:</strong> Network Ops, Admin</p>
+      <div class="perms"><span class="badge">SessionID</span><span class="badge">Subscription</span><span class="badge">ServiceType</span><span class="badge">StartedAt</span><span class="badge ro">TotalUsedAmount (ro)</span></div>
+    </div>
+    <div class="card">
+      <h3>Failed CCRs (FUI triggers) <span class="badge">UsageTransactions</span></h3>
+      <p><strong>Filter:</strong> ResultCode IN (4010, 4012, 5030)</p>
+      <p><strong>Roles:</strong> Network Ops</p>
+      <div class="perms"><span class="badge">Timestamp</span><span class="badge">MessageType</span><span class="badge">RatingGroup</span><span class="badge">ResultCode</span><span class="badge">FUIAction</span></div>
+    </div>
+    <div class="card">
+      <h3>Today's Recharges <span class="badge">Recharges</span></h3>
+      <p><strong>Filter:</strong> Timestamp = TODAY AND Status = 'successful'</p>
+      <p><strong>Roles:</strong> Retail Partner Manager, Billing</p>
+      <div class="perms"><span class="badge">RechargeCode</span><span class="badge">Wallet</span><span class="badge">Amount</span><span class="badge">Channel</span><span class="badge">DistributionPartner</span></div>
+    </div>
+    <div class="card">
+      <h3>Pending KYC Queue <span class="badge">Customers</span></h3>
+      <p><strong>Filter:</strong> KYCStatus IN ('unverified', 'in_progress')</p>
+      <p><strong>Roles:</strong> CSR, Admin</p>
+      <div class="perms"><span class="badge">CustomerID</span><span class="badge">Name</span><span class="badge">Phone</span><span class="badge">KYCStatus</span><span class="badge">OnboardedDate</span></div>
+    </div>
+    <div class="card">
+      <h3>Partner Commission Accrual <span class="badge">PartnerCommissions</span></h3>
+      <p><strong>Filter:</strong> Status = 'accrued'</p>
+      <p><strong>Roles:</strong> Retail Partner Manager, Billing</p>
+      <div class="perms"><span class="badge">Partner</span><span class="badge">Recharge</span><span class="badge ro">CommissionAmount (ro)</span><span class="badge">AccruedDate</span></div>
+    </div>
+    <div class="card">
+      <h3>Available MSISDNs <span class="badge">MSISDNPool</span></h3>
+      <p><strong>Filter:</strong> Status = 'available'</p>
+      <p><strong>Roles:</strong> CSR, Admin</p>
+      <div class="perms"><span class="badge">MSISDN</span><span class="badge">Tier</span><span class="badge">LastAssignedDate</span></div>
+    </div>
+    <div class="card">
+      <h3>Open Cases <span class="badge">Cases</span></h3>
+      <p><strong>Filter:</strong> Status IN ('open', 'in_progress')</p>
+      <p><strong>Roles:</strong> CSR, Admin</p>
+      <div class="perms"><span class="badge">CaseCode</span><span class="badge">Customer</span><span class="badge">Category</span><span class="badge">Priority</span><span class="badge">OpenedAt</span></div>
+    </div>
+    <div class="card">
+      <h3>Expiring Plans (next 3 days) <span class="badge">Balances</span></h3>
+      <p><strong>Filter:</strong> CycleEnd between TODAY and TODAY+3</p>
+      <p><strong>Roles:</strong> CSR, Admin</p>
+      <div class="perms"><span class="badge">Subscription</span><span class="badge">AllowanceLabel</span><span class="badge">CycleEnd</span><span class="badge ro">RemainingAmount (ro)</span></div>
+    </div>
+    <div class="card">
+      <h3>Voucher Inventory <span class="badge">RechargeVouchers</span></h3>
+      <p><strong>Filter:</strong> Status IN ('generated', 'distributed')</p>
+      <p><strong>Roles:</strong> Retail Partner Manager</p>
+      <div class="perms"><span class="badge">VoucherSerial</span><span class="badge">Denomination</span><span class="badge">Status</span><span class="badge">AllocatedToPartner</span><span class="badge">ExpiryDate</span></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Reports &amp; Analytics <span class="count">10</span></h2>
+    <ul>
+      <li><strong>ARPU &amp; Revenue Mix</strong> <span class="badge">flat</span> — Average Revenue Per User, revenue split by plan / PAYG / overage per period.</li>
+      <li><strong>Usage Dashboard (MOU, Data MB, SMS)</strong> <span class="badge">flat</span> — Per-subscriber and per-segment consumption across rating groups.</li>
+      <li><strong>Recharge Trends</strong> <span class="badge">hierarchical</span> — Volume and value by channel, denomination, partner, and region.</li>
+      <li><strong>Voucher Lifecycle</strong> <span class="badge">flat</span> — Generated → distributed → sold → redeemed rates, expiry leakage.</li>
+      <li><strong>Plan Uptake &amp; Renewal</strong> <span class="badge">hierarchical</span> — Active assignments, auto-renew success, allowance exhaustion distribution.</li>
+      <li><strong>Charging Success Rate</strong> <span class="badge">flat</span> — % CCRs returning 2001 vs. 4xxx/5xxx, FUI trigger rate per RG.</li>
+      <li><strong>Customer Health &amp; Churn</strong> <span class="badge">hierarchical</span> — Active subs, churn rate, port-out rate, net adds, segment cuts.</li>
+      <li><strong>Partner Performance</strong> <span class="badge">flat</span> — Recharge volume, commission accrued, settlement aging per partner.</li>
+      <li><strong>Notification Delivery</strong> <span class="badge">flat</span> — Send / delivered / bounce rate per channel and template.</li>
+      <li><strong>Case Backlog</strong> <span class="badge">hierarchical</span> — Open / aging cases by category, priority, assignee, and resolution SLA.</li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>Business Process Flow</h2>
+    <div class="prose flow">
+      <ol>
+        <li>
+          <strong>Customer Acquisition</strong>
+          <ul>
+            <li>Lead / walk-in via retail partner, app, or online portal.</li>
+            <li>KYC capture — document(s) uploaded to Customer Identifications.</li>
+            <li>MSISDN selection from MSISDN Pool (reserve → assign).</li>
+            <li>SIM allocation from SIM Inventory (allocated → activated).</li>
+            <li>Customer + Subscription + Wallet created; welcome SMS dispatched.</li>
+          </ul>
+        </li>
+        <li>
+          <strong>Recharge / Top-up</strong>
+          <ul>
+            <li>Customer initiates via voucher, USSD, app, retail POS, IVR, or online.</li>
+            <li>Voucher PIN validated or gateway payment authorized.</li>
+            <li>Wallet Transaction posted (credit); Partner Commission accrued at 3%.</li>
+            <li>Notification Sent: <code>RECHARGE_OK</code>.</li>
+          </ul>
+        </li>
+        <li>
+          <strong>Plan Purchase</strong>
+          <ul>
+            <li>Customer selects Product Offering via self-care channel.</li>
+            <li>Wallet debited; Subscription Plan Assignment created.</li>
+            <li>Balance rows created (one per Plan Allowance × RG); Notification Sent: <code>PLAN_ACTIVATED</code>.</li>
+          </ul>
+        </li>
+        <li>
+          <strong>Real-time Charging (the Diameter loop)</strong>
+          <ul>
+            <li><strong>CCR-I</strong> — identify Subscription → check Balance → reserve chunk → CCA <code>2001</code>.</li>
+            <li><strong>CCR-U</strong> — record used quota → decrement Balance → grant next chunk or FUI at zero.</li>
+            <li><strong>CCR-T</strong> — finalize used amount → refund unused reserve → close Charging Session → generate CDR.</li>
+            <li><strong>CCR-E</strong> — single-shot debit for SMS / one-off purchase.</li>
+            <li>Dedup key: <code>(SessionID, RequestNumber)</code>; ordering by timestamp.</li>
+          </ul>
+        </li>
+        <li>
+          <strong>Balance Enforcement &amp; FUI</strong>
+          <ul>
+            <li><code>overage_action = block</code> → CCA <code>4012</code>, <code>fui_action = TERMINATE</code>.</li>
+            <li><code>overage_action = charge_from_wallet</code> → rate from Wallet at Rate Card until empty.</li>
+            <li>Low-balance notifications at 80% / 95% / 100% consumed.</li>
+          </ul>
+        </li>
+        <li>
+          <strong>Plan Expiry</strong>
+          <ul>
+            <li>Allowance depletion or validity expiry (whichever first).</li>
+            <li>Subscription Plan Assignment flipped to expired; auto-renewal attempted if wallet ≥ price.</li>
+            <li>Fallback to PAYG or base plan if stacked.</li>
+          </ul>
+        </li>
+        <li>
+          <strong>Balance Transfer (P2P gifting)</strong>
+          <ul>
+            <li>Validate limits and KYC → debit source wallet → credit destination → log Balance Transfer.</li>
+          </ul>
+        </li>
+        <li>
+          <strong>Churn / Port-Out</strong>
+          <ul>
+            <li>Inactivity suspension after N days → termination after grace → MSISDN quarantined 90 days.</li>
+            <li>Port-out: status flipped, final CDR settled with new operator.</li>
+          </ul>
+        </li>
+        <li>
+          <strong>Partner Settlement</strong>
+          <ul>
+            <li>Periodic aggregation of accrued Partner Commissions → payment → status → settled.</li>
+          </ul>
+        </li>
+        <li>
+          <strong>Automation</strong>
+          <ul>
+            <li>3 workflows: Plan Purchase, Recharge Processing, New Activation.</li>
+            <li>Scheduled: low-balance alerts (15 min), plan expiry (daily), partner settlement (weekly), fraud velocity (15 min).</li>
+            <li>All aggregation via ERPAI rollup / formula / lookup — workflows only for cross-table record creation.</li>
+          </ul>
+        </li>
+      </ol>
+    </div>
+  </section>
+
+  <div class="erd-lightbox" id="erdLightbox" role="dialog" aria-label="Entity Relationship Diagram">
+    <div class="erd-lightbox-inner">
+      <div class="erd-controls">
+        <button class="erd-btn" id="erdZoomOut" title="Zoom out">−</button>
+        <button class="erd-btn" id="erdZoomReset" title="Reset" style="font-size:13px">⤾</button>
+        <button class="erd-btn" id="erdZoomIn" title="Zoom in">+</button>
+        <button class="erd-btn close" id="erdClose" title="Close">×</button>
+      </div>
+      <div class="erd-hint">Drag to pan · scroll / pinch to zoom · double-click to reset</div>
+      <div class="erd-canvas" id="erdCanvas"></div>
+    </div>
+  </div>
+
+  <script>
+    (function(){
+      const lightbox = document.getElementById('erdLightbox');
+      const canvas = document.getElementById('erdCanvas');
+      const btnIn = document.getElementById('erdZoomIn');
+      const btnOut = document.getElementById('erdZoomOut');
+      const btnReset = document.getElementById('erdZoomReset');
+      const btnClose = document.getElementById('erdClose');
+      let scale = 1, tx = 0, ty = 0, svg = null;
+      let dragging = false, startX = 0, startY = 0, startTx = 0, startTy = 0;
+
+      function apply(){ if(svg) svg.style.transform = `translate(${tx}px,${ty}px) scale(${scale})`; }
+      function svgSize(){
+        if(!svg) return {w:0,h:0};
+        const vb = svg.viewBox && svg.viewBox.baseVal;
+        if(vb && vb.width > 0) return {w:vb.width, h:vb.height};
+        const wa = parseFloat(svg.getAttribute('width'));
+        const ha = parseFloat(svg.getAttribute('height'));
+        if(wa > 0 && ha > 0) return {w:wa, h:ha};
+        try { const b = svg.getBBox(); if(b.width > 0) return {w:b.width, h:b.height}; } catch(e){}
+        const r = svg.getBoundingClientRect();
+        return {w:r.width || 800, h:r.height || 600};
+      }
+      function reset(){
+        if(!svg) return;
+        svg.style.transform = 'none';
+        svg.removeAttribute('width');
+        svg.removeAttribute('height');
+        const cr = canvas.getBoundingClientRect();
+        const {w:sw, h:sh} = svgSize();
+        if(sw <= 0 || sh <= 0 || cr.width <= 0){ setTimeout(reset, 50); return; }
+        svg.setAttribute('width', sw);
+        svg.setAttribute('height', sh);
+        scale = Math.min(cr.width / sw, cr.height / sh) * 0.92;
+        tx = (cr.width - sw*scale) / 2;
+        ty = (cr.height - sh*scale) / 2;
+        apply();
+      }
+      function zoomAt(factor, cx, cy){
+        const cr = canvas.getBoundingClientRect();
+        const px = (cx ?? cr.width/2) - cr.left;
+        const py = (cy ?? cr.height/2) - cr.top;
+        const newScale = Math.max(0.1, Math.min(8, scale * factor));
+        tx = px - (px - tx) * (newScale / scale);
+        ty = py - (py - ty) * (newScale / scale);
+        scale = newScale;
+        apply();
+      }
+
+      function open(){
+        const src = document.querySelector('.mermaid svg');
+        if(!src) return;
+        canvas.innerHTML = '';
+        svg = src.cloneNode(true);
+        // preserve viewBox; strip sizing styles that fight our transform
+        svg.style.cssText = 'position:absolute;top:0;left:0;transform-origin:0 0;max-width:none;max-height:none';
+        canvas.appendChild(svg);
+        lightbox.classList.add('open');
+        document.body.style.overflow = 'hidden';
+        setTimeout(reset, 30);
+      }
+      function close(){
+        lightbox.classList.remove('open');
+        document.body.style.overflow = '';
+      }
+
+      document.querySelector('.mermaid').addEventListener('click', open);
+      btnClose.addEventListener('click', close);
+      btnIn.addEventListener('click', () => zoomAt(1.25));
+      btnOut.addEventListener('click', () => zoomAt(0.8));
+      btnReset.addEventListener('click', reset);
+      lightbox.addEventListener('click', (e) => { if(e.target === lightbox) close(); });
+      document.addEventListener('keydown', (e) => { if(e.key === 'Escape' && lightbox.classList.contains('open')) close(); });
+
+      canvas.addEventListener('wheel', (e) => {
+        e.preventDefault();
+        zoomAt(e.deltaY < 0 ? 1.1 : 0.9, e.clientX, e.clientY);
+      }, { passive: false });
+
+      canvas.addEventListener('mousedown', (e) => {
+        dragging = true;
+        canvas.classList.add('dragging');
+        startX = e.clientX; startY = e.clientY; startTx = tx; startTy = ty;
+      });
+      window.addEventListener('mousemove', (e) => {
+        if(!dragging) return;
+        tx = startTx + (e.clientX - startX);
+        ty = startTy + (e.clientY - startY);
+        apply();
+      });
+      window.addEventListener('mouseup', () => { dragging = false; canvas.classList.remove('dragging'); });
+      canvas.addEventListener('dblclick', reset);
+    })();
+  </script>
+</body>
+</html>
