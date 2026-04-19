@@ -1,0 +1,362 @@
+<script>
+window.ERPAI = {
+  token: 'erp_pat_live_REDACTED',
+  baseUrl: 'https://api.erpai.studio',
+  appId: 'afe8c4540708da6ca9e6fe79',
+  orgName: 'Telecom',
+  appName: 'telecom',
+  theme: 'light'
+};
+</script>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Roaming Operations</title>
+  <link rel="stylesheet" href="/runtime/erpai-pages-runtime.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    body { padding: 20px; font-family: 'Geist Sans', system-ui, -apple-system, sans-serif; }
+    .rm-header { margin-bottom: 20px; display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
+    .rm-title { font-size: 18px; font-weight: 600; letter-spacing: -0.02em; margin: 0; color: hsl(var(--foreground)); }
+    .rm-subtitle { font-size: 13px; color: hsl(var(--muted-foreground)); margin-top: 2px; }
+    .rm-btn { display: inline-flex; align-items: center; gap: 6px; padding: 8px 12px; font-size: 13px; font-weight: 500; border-radius: 8px; border: 1px solid hsl(var(--border)); background: hsl(var(--background)); color: hsl(var(--foreground)); cursor: pointer; }
+    .rm-btn:hover { background: hsl(var(--muted) / 0.4); }
+
+    .rm-kpis { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; margin-bottom: 20px; }
+    @media (max-width: 900px) { .rm-kpis { grid-template-columns: repeat(2, 1fr); } }
+    .rm-kpi { background: hsl(var(--card)); border: 1px solid hsl(var(--border)); border-radius: 12px; padding: 14px; }
+    .rm-kpi-label { font-size: 11px; color: hsl(var(--muted-foreground)); text-transform: uppercase; letter-spacing: 0.04em; font-weight: 600; margin-bottom: 6px; }
+    .rm-kpi-val { font-size: 22px; font-weight: 600; font-variant-numeric: tabular-nums; }
+    .rm-kpi-sub { font-size: 11px; color: hsl(var(--muted-foreground)); margin-top: 2px; }
+
+    .rm-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px; }
+    @media (max-width: 900px) { .rm-grid-2 { grid-template-columns: 1fr; } }
+    .rm-card { padding: 16px; background: hsl(var(--card)); border: 1px solid hsl(var(--border)); border-radius: 12px; box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05); }
+    .rm-card-title { font-size: 14px; font-weight: 600; margin: 0 0 12px; color: hsl(var(--foreground)); }
+    .rm-card-chart { position: relative; height: 240px; }
+
+    .rm-section { margin-top: 24px; }
+    .rm-section-head { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; }
+    .rm-section-title { font-size: 14px; font-weight: 600; margin: 0; }
+    .rm-count-chip { font-size: 12px; color: hsl(var(--muted-foreground)); font-weight: 500; background: hsl(var(--muted) / 0.6); padding: 2px 8px; border-radius: 99px; }
+
+    .rm-table { width: 100%; border-collapse: collapse; background: hsl(var(--card)); border: 1px solid hsl(var(--border)); border-radius: 12px; overflow: hidden; }
+    .rm-table thead { background: hsl(var(--muted) / 0.5); }
+    .rm-table th { text-align: left; font-size: 12px; font-weight: 600; color: hsl(var(--muted-foreground)); text-transform: uppercase; letter-spacing: 0.04em; padding: 10px 12px; border-bottom: 1px solid hsl(var(--border)); }
+    .rm-table td { padding: 10px 12px; border-bottom: 1px solid hsl(var(--border)); font-size: 13px; vertical-align: middle; }
+    .rm-table tbody tr:last-child td { border-bottom: none; }
+    .rm-mono { font-family: 'SF Mono', Monaco, monospace; font-size: 12px; font-variant-numeric: tabular-nums; }
+
+    .rm-badge { display: inline-block; font-size: 10px; font-weight: 600; padding: 2px 8px; border-radius: 99px; letter-spacing: 0.02em; }
+    .rm-badge-green { background: #dcfce7; color: #166534; }
+    .rm-badge-amber { background: #fef3c7; color: #92400e; }
+    .rm-badge-red   { background: #fee2e2; color: #991b1b; }
+    .rm-badge-blue  { background: #dbeafe; color: #1e40af; }
+    .rm-badge-gray  { background: #e5e7eb; color: #374151; }
+
+    .rm-empty { padding: 40px; text-align: center; color: hsl(var(--muted-foreground)); font-size: 13px; }
+    .rm-num { text-align: right; font-variant-numeric: tabular-nums; }
+
+    .rm-flag { display: inline-flex; align-items: center; gap: 6px; }
+    .rm-flag-emoji { font-size: 18px; line-height: 1; }
+  </style>
+</head>
+<body>
+  <div class="rm-header">
+    <div>
+      <h1 class="rm-title">Roaming Operations</h1>
+      <p class="rm-subtitle">International roaming — partners, sessions, rate cards, and TAP settlement.</p>
+    </div>
+    <button class="rm-btn" onclick="window.location.reload()">↻ Refresh</button>
+  </div>
+
+  <div class="rm-kpis" id="kpis"></div>
+
+  <div class="rm-grid-2">
+    <div class="rm-card">
+      <h3 class="rm-card-title">Revenue by Partner (all-time)</h3>
+      <div class="rm-card-chart"><canvas id="partnerRevChart"></canvas></div>
+    </div>
+    <div class="rm-card">
+      <h3 class="rm-card-title">Active Roamers by Zone</h3>
+      <div class="rm-card-chart"><canvas id="zoneChart"></canvas></div>
+    </div>
+  </div>
+
+  <div class="rm-section">
+    <div class="rm-section-head">
+      <h3 class="rm-section-title">Active Roamers</h3>
+      <span class="rm-count-chip" id="activeCount">—</span>
+    </div>
+    <table class="rm-table">
+      <thead>
+        <tr>
+          <th>MSISDN</th><th>Country</th><th>Partner</th><th>Entered</th>
+          <th class="rm-num">Data MB</th><th class="rm-num">Voice Min</th><th class="rm-num">SMS</th>
+          <th class="rm-num">Charged</th><th>Bill Shock</th>
+        </tr>
+      </thead>
+      <tbody id="activeBody"></tbody>
+    </table>
+  </div>
+
+  <div class="rm-section">
+    <div class="rm-section-head">
+      <h3 class="rm-section-title">Partner Leaderboard</h3>
+      <span class="rm-count-chip" id="partnerCount">—</span>
+    </div>
+    <table class="rm-table">
+      <thead>
+        <tr>
+          <th>Partner</th><th>Country</th><th>Zone</th><th>Contract</th>
+          <th class="rm-num">Sessions</th><th class="rm-num">Revenue</th>
+          <th class="rm-num">TAP Files</th><th class="rm-num">Settlement</th><th class="rm-num">Rate Cards</th>
+        </tr>
+      </thead>
+      <tbody id="partnerBody"></tbody>
+    </table>
+  </div>
+
+  <div class="rm-section">
+    <div class="rm-section-head">
+      <h3 class="rm-section-title">TAP Settlement Queue</h3>
+      <span class="rm-count-chip" id="tapCount">—</span>
+    </div>
+    <table class="rm-table">
+      <thead>
+        <tr>
+          <th>TAP Code</th><th>Partner</th><th>Period</th>
+          <th class="rm-num">Events</th><th class="rm-num">Amount</th><th>Status</th><th>Received</th>
+        </tr>
+      </thead>
+      <tbody id="tapBody"></tbody>
+    </table>
+  </div>
+
+<script>
+const { token, baseUrl, appId } = window.ERPAI;
+const hdrs = { Authorization: 'Bearer ' + token, 'Content-Type': 'application/json' };
+
+const COUNTRY_FLAG = {
+  'Botswana':'🇧🇼','South Africa':'🇿🇦','Namibia':'🇳🇦','Zimbabwe':'🇿🇼','Zambia':'🇿🇲','Mozambique':'🇲🇿','Lesotho':'🇱🇸','Eswatini':'🇸🇿','Angola':'🇦🇴','Malawi':'🇲🇼','Tanzania':'🇹🇿',
+  'Kenya':'🇰🇪','Nigeria':'🇳🇬','Egypt':'🇪🇬','Ghana':'🇬🇭',
+  'UAE':'🇦🇪','Saudi Arabia':'🇸🇦','Singapore':'🇸🇬','Malaysia':'🇲🇾','Thailand':'🇹🇭',
+  'United Kingdom':'🇬🇧','Germany':'🇩🇪','France':'🇫🇷','United States':'🇺🇸','Australia':'🇦🇺','India':'🇮🇳','China':'🇨🇳'
+};
+
+async function apiGet(url) { const r = await fetch(baseUrl + url, { headers: hdrs }); return r.json(); }
+async function apiPost(url, body) { const r = await fetch(baseUrl + url, { method: 'POST', headers: hdrs, body: JSON.stringify(body) }); return r.json(); }
+
+async function fetchTableByName(name) {
+  const list = await apiGet(`/v1/app-builder/table?appId=${appId}&pageSize=200`);
+  return (list.data || []).find(t => t.name === name);
+}
+async function fetchAllRows(tableId) {
+  const all = [];
+  let page = 1;
+  while (true) {
+    const r = await apiPost(`/v1/app-builder/table/${tableId}/paged-record?pageNo=${page}&pageSize=300`, {});
+    const batch = r.data || [];
+    all.push(...batch);
+    if (batch.length < 300) break;
+    page++;
+  }
+  return all;
+}
+async function schemaCols(tableId) {
+  const r = await apiGet(`/v1/app-builder/table/${tableId}`);
+  return r.columnsMetaData || r.data?.columnsMetaData || [];
+}
+function colByName(cols, name) { return cols.find(c => c.name === name); }
+function resolveSelects(rows, cols) {
+  const map = {};
+  for (const c of cols) {
+    if ((c.type === 'select' || c.type === 'multi-select') && c.options) {
+      map[c.id] = Object.fromEntries(c.options.map(o => { const x = o.value || o; return [x.id, x.name]; }));
+    }
+  }
+  for (const r of rows) {
+    for (const cid of Object.keys(map)) {
+      const v = r.cells[cid];
+      if (v == null) continue;
+      if (Array.isArray(v)) r.cells[cid] = v.map(x => typeof x === 'number' ? map[cid][x] : (typeof x === 'object' ? x.name || x : x)).filter(x => x != null);
+      else if (typeof v === 'number') r.cells[cid] = [map[cid][v]];
+    }
+  }
+}
+
+function fmtMoney(n) { if (n == null) return '—'; return 'P ' + Number(n).toLocaleString('en-BW', { maximumFractionDigits: 0 }); }
+function fmtNum(n) { if (n == null || n === 0) return '—'; return Number(n).toLocaleString('en-BW'); }
+function fmtDate(ms) { if (!ms) return '—'; const d = new Date(typeof ms === 'string' ? ms : Number(ms)); return d.toLocaleDateString('en-BW', { day: '2-digit', month: 'short' }); }
+function daysAgo(ms) { if (!ms) return '—'; const n = Math.round((Date.now() - Number(ms)) / 86400000); if (n === 0) return 'today'; if (n === 1) return '1d ago'; return n + 'd ago'; }
+function val(cell) { if (Array.isArray(cell)) return cell.length ? (typeof cell[0] === 'object' ? cell[0].name || cell[0] : cell[0]) : null; if (cell && typeof cell === 'object' && 'name' in cell) return cell.name; return cell; }
+
+async function load() {
+  const [partnersT, zonesT, rcT, sessionsT, tapT] = await Promise.all([
+    fetchTableByName('Roaming Partners'),
+    fetchTableByName('Roaming Zones'),
+    fetchTableByName('Roaming Rate Cards'),
+    fetchTableByName('Roaming Sessions'),
+    fetchTableByName('TAP Records'),
+  ]);
+
+  const [pCols, zCols, rcCols, sCols, tCols] = await Promise.all([
+    schemaCols(partnersT._id), schemaCols(zonesT._id), schemaCols(rcT._id), schemaCols(sessionsT._id), schemaCols(tapT._id)
+  ]);
+  const [partners, zones, rcs, sessions, taps] = await Promise.all([
+    fetchAllRows(partnersT._id), fetchAllRows(zonesT._id), fetchAllRows(rcT._id),
+    fetchAllRows(sessionsT._id), fetchAllRows(tapT._id)
+  ]);
+
+  resolveSelects(partners, pCols);
+  resolveSelects(zones, zCols);
+  resolveSelects(rcs, rcCols);
+  resolveSelects(sessions, sCols);
+  resolveSelects(taps, tCols);
+
+  const P_NAME = colByName(pCols, 'Partner Name').id;
+  const P_COUNTRY = colByName(pCols, 'Country').id;
+  const P_ZONE = colByName(pCols, 'Zone').id;
+  const P_CONTRACT = colByName(pCols, 'Contract Type').id;
+  const P_REV = colByName(pCols, 'Total Roaming Revenue')?.id;
+  const P_SESS = colByName(pCols, 'Session Count')?.id;
+  const P_TAPC = colByName(pCols, 'TAP File Count')?.id;
+  const P_SET = colByName(pCols, 'Total Settlement')?.id;
+  const P_RCC = colByName(pCols, 'Rate Card Count')?.id;
+  const Z_NAME = colByName(zCols, 'Zone Name').id;
+  const S_CODE = colByName(sCols, 'Session Code').id;
+  const S_MSISDN = colByName(sCols, 'MSISDN')?.id;
+  const S_COUNTRY = colByName(sCols, 'Country').id;
+  const S_PARTNER = colByName(sCols, 'Partner Name')?.id;
+  const S_ZONE = colByName(sCols, 'Zone Name')?.id;
+  const S_ZONE_REF = colByName(sCols, 'Zone').id;
+  const S_STATUS = colByName(sCols, 'Status').id;
+  const S_SHOCK = colByName(sCols, 'Bill Shock Level').id;
+  const S_ENTER = colByName(sCols, 'Entered At').id;
+  const S_DATA = colByName(sCols, 'Data Usage (MB)').id;
+  const S_VOICE = colByName(sCols, 'Voice Usage (min)').id;
+  const S_SMS = colByName(sCols, 'SMS Count').id;
+  const S_CHARGE = colByName(sCols, 'Total Charged').id;
+  const T_CODE = colByName(tCols, 'TAP Code').id;
+  const T_PARTNER = colByName(tCols, 'Partner Name')?.id;
+  const T_START = colByName(tCols, 'Period Start').id;
+  const T_END = colByName(tCols, 'Period End').id;
+  const T_EVENTS = colByName(tCols, 'Total Events').id;
+  const T_AMT = colByName(tCols, 'Total Amount').id;
+  const T_STATUS = colByName(tCols, 'Status').id;
+  const T_RECV = colByName(tCols, 'Received Date').id;
+
+  const zoneById = Object.fromEntries(zones.map(z => [z._id, z.cells[Z_NAME]]));
+
+  const activeSessions = sessions.filter(s => val(s.cells[S_STATUS]) === 'Active');
+  const totalRev = sessions.reduce((a, s) => a + (Number(s.cells[S_CHARGE]) || 0), 0);
+  const highShock = sessions.filter(s => {
+    const sh = val(s.cells[S_SHOCK]);
+    return sh === '50%' || sh === '80%' || sh === '100%' || sh === 'Blocked';
+  }).length;
+
+  // KPIs
+  document.getElementById('kpis').innerHTML = `
+    <div class="rm-kpi"><div class="rm-kpi-label">Active Roamers</div><div class="rm-kpi-val">${activeSessions.length}</div><div class="rm-kpi-sub">currently abroad</div></div>
+    <div class="rm-kpi"><div class="rm-kpi-label">Total Revenue</div><div class="rm-kpi-val">${fmtMoney(totalRev)}</div><div class="rm-kpi-sub">all sessions</div></div>
+    <div class="rm-kpi"><div class="rm-kpi-label">Partners</div><div class="rm-kpi-val">${partners.length}</div><div class="rm-kpi-sub">active agreements</div></div>
+    <div class="rm-kpi"><div class="rm-kpi-label">Bill Shock Alerts</div><div class="rm-kpi-val">${highShock}</div><div class="rm-kpi-sub">50%+ threshold</div></div>
+    <div class="rm-kpi"><div class="rm-kpi-label">Rate Cards</div><div class="rm-kpi-val">${rcs.length}</div><div class="rm-kpi-sub">across ${zones.length} zones</div></div>`;
+
+  // Charts
+  const sortedPartners = partners.slice().sort((a,b) => (Number(b.cells[P_REV])||0) - (Number(a.cells[P_REV])||0)).slice(0, 10);
+  new Chart(document.getElementById('partnerRevChart'), {
+    type: 'bar',
+    data: { labels: sortedPartners.map(p => p.cells[P_NAME]),
+            datasets: [{ data: sortedPartners.map(p => Number(p.cells[P_REV])||0), backgroundColor: '#3b82f6' }] },
+    options: { plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { callback: v => 'P '+v } } }, maintainAspectRatio: false }
+  });
+
+  const zoneCounts = {};
+  for (const s of activeSessions) {
+    const zn = val(s.cells[S_ZONE]) || 'Unknown';
+    zoneCounts[zn] = (zoneCounts[zn] || 0) + 1;
+  }
+  const allZoneCounts = {};
+  for (const s of sessions) {
+    const zn = val(s.cells[S_ZONE]) || zoneById[val(s.cells[S_ZONE_REF])] || 'Unknown';
+    allZoneCounts[zn] = (allZoneCounts[zn] || 0) + 1;
+  }
+  new Chart(document.getElementById('zoneChart'), {
+    type: 'doughnut',
+    data: { labels: Object.keys(allZoneCounts),
+            datasets: [{ data: Object.values(allZoneCounts), backgroundColor: ['#3b82f6','#10b981','#f59e0b','#ef4444','#8b5cf6','#ec4899','#14b8a6','#f97316'] }] },
+    options: { plugins: { legend: { position: 'right', labels: { font: { size: 11 } } } }, maintainAspectRatio: false }
+  });
+
+  // Active roamers table
+  document.getElementById('activeCount').textContent = activeSessions.length;
+  document.getElementById('activeBody').innerHTML = activeSessions.length === 0 ? `<tr><td colspan="9" class="rm-empty">No active roamers</td></tr>` :
+    activeSessions.map(s => {
+      const shock = val(s.cells[S_SHOCK]) || 'None';
+      const shockClass = shock === 'Blocked' || shock === '100%' ? 'rm-badge-red' : shock === '80%' ? 'rm-badge-amber' : shock === '50%' ? 'rm-badge-amber' : 'rm-badge-green';
+      const country = s.cells[S_COUNTRY] || '';
+      const flag = COUNTRY_FLAG[country] || '';
+      return `<tr>
+        <td class="rm-mono">${s.cells[S_MSISDN] || '—'}</td>
+        <td><span class="rm-flag"><span class="rm-flag-emoji">${flag}</span>${country || '—'}</span></td>
+        <td>${s.cells[S_PARTNER] || '—'}</td>
+        <td>${daysAgo(s.cells[S_ENTER])}</td>
+        <td class="rm-num">${fmtNum(s.cells[S_DATA])}</td>
+        <td class="rm-num">${fmtNum(s.cells[S_VOICE])}</td>
+        <td class="rm-num">${fmtNum(s.cells[S_SMS])}</td>
+        <td class="rm-num">${fmtMoney(s.cells[S_CHARGE])}</td>
+        <td><span class="rm-badge ${shockClass}">${shock}</span></td>
+      </tr>`;
+    }).join('');
+
+  // Partner leaderboard
+  document.getElementById('partnerCount').textContent = partners.length;
+  const sortedLead = partners.slice().sort((a,b) => (Number(b.cells[P_REV])||0) - (Number(a.cells[P_REV])||0));
+  document.getElementById('partnerBody').innerHTML = sortedLead.map(p => {
+    const country = p.cells[P_COUNTRY] || '';
+    const flag = COUNTRY_FLAG[country] || '';
+    const zoneId = val(p.cells[P_ZONE]);
+    const contract = val(p.cells[P_CONTRACT]) || '—';
+    return `<tr>
+      <td><strong>${p.cells[P_NAME] || '—'}</strong></td>
+      <td><span class="rm-flag"><span class="rm-flag-emoji">${flag}</span>${country}</span></td>
+      <td>${zoneById[zoneId] || '—'}</td>
+      <td><span class="rm-badge rm-badge-gray">${contract}</span></td>
+      <td class="rm-num">${fmtNum(p.cells[P_SESS])}</td>
+      <td class="rm-num"><strong>${fmtMoney(p.cells[P_REV])}</strong></td>
+      <td class="rm-num">${fmtNum(p.cells[P_TAPC])}</td>
+      <td class="rm-num">${fmtMoney(p.cells[P_SET])}</td>
+      <td class="rm-num">${fmtNum(p.cells[P_RCC])}</td>
+    </tr>`;
+  }).join('');
+
+  // TAP settlement queue
+  document.getElementById('tapCount').textContent = taps.length;
+  const sortedTaps = taps.slice().sort((a,b) => (Number(b.cells[T_RECV])||0) - (Number(a.cells[T_RECV])||0));
+  document.getElementById('tapBody').innerHTML = sortedTaps.map(t => {
+    const status = val(t.cells[T_STATUS]) || '—';
+    const sClass = status === 'Settled' ? 'rm-badge-green' :
+                   status === 'Disputed' || status === 'Rejected' ? 'rm-badge-red' :
+                   status === 'Reconciled' || status === 'Validated' ? 'rm-badge-blue' : 'rm-badge-amber';
+    return `<tr>
+      <td class="rm-mono">${t.cells[T_CODE] || '—'}</td>
+      <td>${t.cells[T_PARTNER] || '—'}</td>
+      <td>${fmtDate(t.cells[T_START])} – ${fmtDate(t.cells[T_END])}</td>
+      <td class="rm-num">${fmtNum(t.cells[T_EVENTS])}</td>
+      <td class="rm-num">${fmtMoney(t.cells[T_AMT])}</td>
+      <td><span class="rm-badge ${sClass}">${status}</span></td>
+      <td>${fmtDate(t.cells[T_RECV])}</td>
+    </tr>`;
+  }).join('');
+}
+
+load().catch(e => {
+  document.body.insertAdjacentHTML('beforeend', `<div class="rm-card" style="color: #991b1b; background:#fef2f2"><strong>Load error:</strong> ${e.message}<pre>${e.stack}</pre></div>`);
+  console.error(e);
+});
+</script>
+</body>
+</html>

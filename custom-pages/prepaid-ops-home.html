@@ -1,0 +1,318 @@
+<script>
+window.ERPAI = {
+  token: 'erp_pat_live_REDACTED',
+  baseUrl: 'https://api.erpai.studio',
+  appId: 'afe8c4540708da6ca9e6fe79',
+  orgName: 'Telecom',
+  appName: 'telecom',
+  theme: 'light'
+};
+</script>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Prepaid Operations Home</title>
+  <link rel="stylesheet" href="/runtime/erpai-pages-runtime.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    body { padding: 20px; font-family: 'Geist Sans', system-ui, -apple-system, sans-serif; }
+    .ph-header { margin-bottom: 20px; display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+    .ph-title { font-size: 20px; font-weight: 600; color: hsl(var(--foreground)); letter-spacing: -0.02em; margin: 0; }
+    .ph-subtitle { font-size: 13px; color: hsl(var(--muted-foreground)); margin-top: 4px; max-width: 720px; }
+    .ph-header-right { display: flex; align-items: center; gap: 10px; }
+    .ph-date { font-size: 13px; color: hsl(var(--muted-foreground)); font-variant-numeric: tabular-nums; }
+    .ph-btn { display: inline-flex; align-items: center; gap: 6px; padding: 8px 12px; font-size: 13px; font-weight: 500; border-radius: 8px; border: 1px solid hsl(var(--border)); background: hsl(var(--background)); color: hsl(var(--foreground)); cursor: pointer; }
+    .ph-btn:hover { background: hsl(var(--muted) / 0.4); }
+
+    .ph-kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 24px; }
+    @media (max-width: 900px) { .ph-kpis { grid-template-columns: repeat(2, 1fr); } }
+    .ph-kpi { background: hsl(var(--card)); border: 1px solid hsl(var(--border)); border-radius: 12px; padding: 14px; box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05); }
+    .ph-kpi-label { font-size: 11px; color: hsl(var(--muted-foreground)); text-transform: uppercase; letter-spacing: 0.04em; font-weight: 600; margin-bottom: 6px; display: flex; align-items: center; gap: 6px; }
+    .ph-kpi-val { font-size: 24px; font-weight: 600; font-variant-numeric: tabular-nums; color: hsl(var(--foreground)); line-height: 1.1; }
+    .ph-kpi-sub { font-size: 11px; color: hsl(var(--muted-foreground)); margin-top: 4px; }
+    .ph-kpi.alert { border-color: #ef4444; background: rgba(239, 68, 68, 0.05); }
+    .ph-kpi.alert .ph-kpi-val { color: #ef4444; }
+    .ph-kpi.alert .ph-kpi-label { color: #ef4444; }
+
+    .ph-section-head { display: flex; align-items: center; gap: 8px; margin: 24px 0 12px; }
+    .ph-section-title { font-size: 14px; font-weight: 600; margin: 0; color: hsl(var(--foreground)); }
+    .ph-section-sub { font-size: 12px; color: hsl(var(--muted-foreground)); font-weight: 500; }
+
+    .ph-feed { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 24px; }
+    @media (max-width: 900px) { .ph-feed { grid-template-columns: 1fr; } }
+    .ph-feed-card { background: hsl(var(--card)); border: 1px solid hsl(var(--border)); border-radius: 12px; overflow: hidden; box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05); }
+    .ph-feed-head { padding: 12px 14px; border-bottom: 1px solid hsl(var(--border)); display: flex; align-items: center; gap: 8px; background: hsl(var(--muted) / 0.3); }
+    .ph-feed-head h3 { font-size: 13px; font-weight: 600; margin: 0; color: hsl(var(--foreground)); }
+    .ph-feed-head .ph-feed-count { margin-left: auto; font-size: 11px; color: hsl(var(--muted-foreground)); }
+
+    .ph-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+    .ph-table th { text-align: left; font-size: 10px; font-weight: 600; color: hsl(var(--muted-foreground)); text-transform: uppercase; letter-spacing: 0.04em; padding: 8px 12px; border-bottom: 1px solid hsl(var(--border)); background: hsl(var(--muted) / 0.2); }
+    .ph-table td { padding: 8px 12px; border-bottom: 1px solid hsl(var(--border)); color: hsl(var(--foreground)); vertical-align: middle; font-variant-numeric: tabular-nums; }
+    .ph-table tbody tr { transition: background 0.12s; }
+    .ph-table tbody tr:hover { background: hsl(var(--muted) / 0.4); }
+    .ph-table tbody tr:last-child td { border-bottom: none; }
+    .ph-mono { font-family: 'SF Mono', Monaco, Menlo, monospace; font-size: 11px; color: hsl(var(--muted-foreground)); }
+    .ph-amount { font-weight: 600; }
+    .ph-muted { color: hsl(var(--muted-foreground)); }
+    .ph-empty { padding: 24px 12px; text-align: center; color: hsl(var(--muted-foreground)); font-size: 12px; }
+
+    .ph-cat { margin-bottom: 20px; }
+    .ph-cat-head { font-size: 11px; font-weight: 600; color: hsl(var(--muted-foreground)); text-transform: uppercase; letter-spacing: 0.06em; margin: 0 0 10px 2px; }
+    .ph-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+    @media (max-width: 1200px) { .ph-grid { grid-template-columns: repeat(3, 1fr); } }
+    @media (max-width: 900px) { .ph-grid { grid-template-columns: repeat(2, 1fr); } }
+    @media (max-width: 600px) { .ph-grid { grid-template-columns: 1fr; } }
+
+    .ph-card { display: flex; flex-direction: column; gap: 8px; padding: 14px; background: hsl(var(--card)); border: 1px solid hsl(var(--border)); border-radius: 12px; text-decoration: none; color: inherit; box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05); transition: border-color 0.15s, box-shadow 0.15s, transform 0.15s; min-height: 110px; }
+    .ph-card:hover { border-color: hsl(var(--primary)); box-shadow: 0 4px 10px -4px rgb(0 0 0 / 0.12); transform: translateY(-1px); }
+    .ph-card-icon { display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 32px; border-radius: 8px; background: hsl(var(--primary) / 0.1); color: hsl(var(--primary)); }
+    .ph-card-name { font-size: 13px; font-weight: 600; color: hsl(var(--foreground)); margin: 0; }
+    .ph-card-desc { font-size: 11.5px; color: hsl(var(--muted-foreground)); margin: 0; line-height: 1.4; }
+
+    .ph-footer { margin-top: 28px; padding-top: 14px; border-top: 1px solid hsl(var(--border)); font-size: 11px; color: hsl(var(--muted-foreground)); display: flex; justify-content: space-between; align-items: center; }
+
+    .ph-loading { padding: 10px 0; color: hsl(var(--muted-foreground)); font-size: 12px; }
+  </style>
+</head>
+<body>
+  <div class="ph-header">
+    <div>
+      <h1 class="ph-title">Prepaid Operations Home</h1>
+      <p class="ph-subtitle">Command center for the prepaid BSS — real-time KPIs across customers, charging, wallet, retail, and risk.</p>
+    </div>
+    <div class="ph-header-right">
+      <span class="ph-date" id="ph-today"></span>
+      <button class="ph-btn" onclick="window.location.reload()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M3 21v-5h5"/></svg>
+        Refresh
+      </button>
+    </div>
+  </div>
+
+  <div class="ph-section-head">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="color: hsl(var(--primary));"><path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/></svg>
+    <h2 class="ph-section-title">Headline KPIs</h2>
+    <span class="ph-section-sub" id="ph-kpi-sub">Loading…</span>
+  </div>
+
+  <div class="ph-kpis" id="ph-kpis"></div>
+
+  <div class="ph-section-head">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="color: hsl(var(--primary));"><path d="M12 8V4H8"/><rect width="16" height="12" x="4" y="8" rx="2"/><path d="M2 14h2"/><path d="M20 14h2"/><path d="M15 13v2"/><path d="M9 13v2"/></svg>
+    <h2 class="ph-section-title">Live Activity</h2>
+    <span class="ph-section-sub">Latest 10 events</span>
+  </div>
+
+  <div class="ph-feed">
+    <div class="ph-feed-card">
+      <div class="ph-feed-head">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="color: #10b981;"><path d="m3 11 18-5v12L3 14v-3z"/><path d="M11.6 16.8a3 3 0 1 1-5.8-1.6"/></svg>
+        <h3>Latest Recharges</h3>
+        <span class="ph-feed-count" id="ph-rch-count"></span>
+      </div>
+      <div id="ph-recharges"><div class="ph-loading" style="padding: 16px;">Loading…</div></div>
+    </div>
+    <div class="ph-feed-card">
+      <div class="ph-feed-head">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="color: #8b5cf6;"><path d="M12 2v4"/><path d="m16.2 7.8 2.9-2.9"/><path d="M18 12h4"/><path d="m16.2 16.2 2.9 2.9"/><path d="M12 18v4"/><path d="m4.9 19.1 2.9-2.9"/><path d="M2 12h4"/><path d="m4.9 4.9 2.9 2.9"/></svg>
+        <h3>Latest Agent Actions</h3>
+        <span class="ph-feed-count" id="ph-act-count"></span>
+      </div>
+      <div id="ph-actions"><div class="ph-loading" style="padding: 16px;">Loading…</div></div>
+    </div>
+  </div>
+
+  <div class="ph-section-head">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="color: hsl(var(--primary));"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+    <h2 class="ph-section-title">Modules</h2>
+    <span class="ph-section-sub">12 dashboards</span>
+  </div>
+
+  <div id="ph-modules"><div class="ph-loading">Loading modules…</div></div>
+
+  <div class="ph-footer">
+    <span id="ph-refresh">Last refresh: —</span>
+    <span>Data source: ERPAI live ClickHouse views</span>
+  </div>
+
+  <script src="/runtime/erpai-pages-runtime.js"></script>
+  <script>
+    // ---- Dashboard grouping ----
+    const CATEGORIES = [
+      { title: 'Customer & Catalog', slugs: ['prepaid-customer-balances', 'customer-360', 'system-plan'] },
+      { title: 'Network & Charging', slugs: ['cdr-settlement', 'usage-heatmap', 'mnp-dashboard', 'roaming-dashboard', 'device-monitor'] },
+      { title: 'Growth & Retention', slugs: ['loyalty-overview', 'campaign-attribution'] },
+      { title: 'Risk & Finance', slugs: ['fraud-ops', 'commission-ledger'] },
+    ];
+
+    // ---- Lucide-ish inline SVG icon map ----
+    const ICON_SVG = {
+      BarChart3: '<path d="M3 3v18h18"/><path d="M7 16V9"/><path d="M11 16V5"/><path d="M15 16v-9"/><path d="M19 16v-5"/>',
+      UserSearch: '<circle cx="10" cy="7" r="4"/><path d="M10.3 15H7a4 4 0 0 0-4 4v2"/><circle cx="17" cy="17" r="3"/><path d="m21 21-1.9-1.9"/>',
+      BookOpen: '<path d="M12 7v14"/><path d="M3 18a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h5a4 4 0 0 1 4 4 4 4 0 0 1 4-4h5a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1h-6a3 3 0 0 0-3 3 3 3 0 0 0-3-3z"/>',
+      FileSpreadsheet: '<path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M8 13h2"/><path d="M14 13h2"/><path d="M8 17h2"/><path d="M14 17h2"/>',
+      Activity: '<path d="M22 12h-2.48a2 2 0 0 0-1.93 1.46l-2.35 8.36a.5.5 0 0 1-.96 0L9.24 2.18a.5.5 0 0 0-.96 0l-2.35 8.36A2 2 0 0 1 4 12H2"/>',
+      ArrowLeftRight: '<path d="m16 3 4 4-4 4"/><path d="M20 7H4"/><path d="m8 21-4-4 4-4"/><path d="M4 17h16"/>',
+      Plane: '<path d="M17.8 19.2 16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-.9.1-1.1.5l-.3.5c-.2.5-.1 1 .3 1.3L9 12l-2 3H4l-1 1 3 2 2 3 1-1v-3l3-2 3.5 5.3c.3.4.8.5 1.3.3l.5-.2c.4-.3.6-.7.5-1.2z"/>',
+      Smartphone: '<rect width="14" height="20" x="5" y="2" rx="2" ry="2"/><path d="M12 18h.01"/>',
+      Award: '<path d="m15.477 12.89 1.515 8.526a.5.5 0 0 1-.81.47l-3.58-2.687a1 1 0 0 0-1.197 0l-3.586 2.686a.5.5 0 0 1-.81-.469l1.514-8.526"/><circle cx="12" cy="8" r="6"/>',
+      Megaphone: '<path d="m3 11 18-5v12L3 14v-3z"/><path d="M11.6 16.8a3 3 0 1 1-5.8-1.6"/>',
+      ShieldAlert: '<path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="M12 8v4"/><path d="M12 16h.01"/>',
+      BadgeDollarSign: '<path d="M3.85 8.62a4 4 0 0 1 4.78-4.77 4 4 0 0 1 6.74 0 4 4 0 0 1 4.78 4.78 4 4 0 0 1 0 6.74 4 4 0 0 1-4.77 4.78 4 4 0 0 1-6.75 0 4 4 0 0 1-4.78-4.77 4 4 0 0 1 0-6.76Z"/><path d="M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8"/><path d="M12 18V6"/>',
+      LayoutDashboard: '<rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/>',
+    };
+    function iconSvg(name) {
+      const path = ICON_SVG[name] || ICON_SVG.LayoutDashboard;
+      return `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${path}</svg>`;
+    }
+
+    // ---- Utils ----
+    const fmtInt = (n) => { if (n == null || isNaN(n)) return '—'; return Number(n).toLocaleString(); };
+    const fmtMoney = (n) => { if (n == null || isNaN(n)) return '—'; return '$' + Number(n).toLocaleString(undefined, { maximumFractionDigits: 0 }); };
+    const fmtDateTime = (ts) => { if (!ts) return '—'; const d = new Date(ts.replace(' ', 'T') + 'Z'); if (isNaN(d)) return ts; return d.toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }); };
+    const esc = (s) => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+
+    const ACTION_TYPES = {
+      '[1]': 'Create', '[2]': 'Read', '[3]': 'Update', '[4]': 'Delete',
+      '[5]': 'Login', '[6]': 'Logout', '[7]': 'Export', '[8]': 'Import',
+      '[9]': 'Auth', '[10]': 'Other',
+    };
+
+    async function runSql(sql) {
+      try {
+        const r = await erpai.api('POST', '/v1/agent/app/sql/execute', { appId: window.ERPAI.appId, sqlQuery: sql, limit: 100 });
+        return r?.data?.rows || r?.rows || [];
+      } catch (e) {
+        console.warn('SQL fail:', sql, e);
+        return null;
+      }
+    }
+
+    async function loadKpis() {
+      const queries = [
+        { key: 'customers', label: 'Active Customers', sub: 'Status = active', sql: "SELECT count() AS v FROM a1776271424351_customers WHERE _deleted=0 AND status='[1]'" },
+        { key: 'subs', label: 'Active Subscriptions', sub: 'Live MSISDNs', sql: "SELECT count() AS v FROM a1776271424351_subscriptions WHERE _deleted=0 AND status='[1]'" },
+        { key: 'wallet', label: 'Wallet Balance', sub: 'Sum across all wallets', sql: "SELECT sum(current_balance) AS v FROM a1776271424351_wallets WHERE _deleted=0", money: true },
+        { key: 'recharges', label: 'Recharges Today', sub: 'Today so far', sql: "SELECT count() AS v FROM a1776271424351_recharges WHERE _deleted=0 AND toDate(timestamp)=today()" },
+        { key: 'usage', label: 'Usage Events (24h)', sub: 'Last 24 hours', sql: "SELECT count() AS v FROM a1776271424351_usage_transactions WHERE _deleted=0 AND timestamp > now() - INTERVAL 1 DAY" },
+        { key: 'fraud', label: 'Open Fraud Alerts', sub: 'Needs review', sql: "SELECT count() AS v FROM a1776271424351_fraud_alerts WHERE _deleted=0", alertIfGt: 0 },
+        { key: 'commissions', label: 'Pending Commissions', sub: 'Awaiting settlement', sql: "SELECT count() AS v FROM a1776271424351_partner_commissions WHERE _deleted=0 AND (status='[1]' OR status='[2]')" },
+        { key: 'loyalty', label: 'Loyalty Points', sub: 'Outstanding balance', sql: "SELECT sum(loyalty_points) AS v FROM a1776271424351_customers WHERE _deleted=0" },
+      ];
+
+      const results = await Promise.all(queries.map(q => runSql(q.sql)));
+
+      const html = queries.map((q, i) => {
+        const rows = results[i];
+        let raw = null;
+        if (rows && rows.length) raw = rows[0].v ?? rows[0].V ?? Object.values(rows[0])[0];
+        let display = '—';
+        if (raw != null && raw !== '') {
+          const n = Number(raw);
+          if (!isNaN(n)) display = q.money ? fmtMoney(n) : fmtInt(n);
+        }
+        const isAlert = q.alertIfGt != null && raw != null && Number(raw) > q.alertIfGt;
+        return `
+          <div class="ph-kpi ${isAlert ? 'alert' : ''}">
+            <div class="ph-kpi-label">${esc(q.label)}</div>
+            <div class="ph-kpi-val">${display}</div>
+            <div class="ph-kpi-sub">${esc(q.sub)}</div>
+          </div>`;
+      }).join('');
+      document.getElementById('ph-kpis').innerHTML = html;
+      document.getElementById('ph-kpi-sub').textContent = 'Refreshed just now';
+    }
+
+    async function loadRecharges() {
+      const rows = await runSql("SELECT recharge_code, amount, timestamp, wallet FROM a1776271424351_recharges WHERE _deleted=0 ORDER BY timestamp DESC LIMIT 10");
+      const el = document.getElementById('ph-recharges');
+      const countEl = document.getElementById('ph-rch-count');
+      if (!rows) { el.innerHTML = `<div class="ph-empty">Unable to load recharges.</div>`; return; }
+      if (!rows.length) { el.innerHTML = `<div class="ph-empty">No recharges yet.</div>`; return; }
+      countEl.textContent = `${rows.length} shown`;
+      el.innerHTML = `
+        <table class="ph-table">
+          <thead><tr>
+            <th>Code</th><th>Amount</th><th>Wallet</th><th>Time</th>
+          </tr></thead>
+          <tbody>${rows.map(r => `
+            <tr>
+              <td><span class="ph-mono">${esc(r.recharge_code || '—')}</span></td>
+              <td class="ph-amount">${r.amount != null ? fmtMoney(Number(r.amount)) : '—'}</td>
+              <td><span class="ph-mono">${esc((r.wallet || '').toString().slice(0, 10)) || '—'}</span></td>
+              <td class="ph-muted">${fmtDateTime(r.timestamp)}</td>
+            </tr>`).join('')}
+          </tbody>
+        </table>`;
+    }
+
+    async function loadActions() {
+      const rows = await runSql("SELECT action_code, actor_name, action_type, target_table, diff_summary, timestamp FROM a1776271424351_agent_actions WHERE _deleted=0 ORDER BY timestamp DESC LIMIT 10");
+      const el = document.getElementById('ph-actions');
+      const countEl = document.getElementById('ph-act-count');
+      if (!rows) { el.innerHTML = `<div class="ph-empty">Unable to load actions.</div>`; return; }
+      if (!rows.length) { el.innerHTML = `<div class="ph-empty">No agent actions yet.</div>`; return; }
+      countEl.textContent = `${rows.length} shown`;
+      el.innerHTML = `
+        <table class="ph-table">
+          <thead><tr>
+            <th>Actor</th><th>Action</th><th>Target</th><th>Summary</th><th>Time</th>
+          </tr></thead>
+          <tbody>${rows.map(r => `
+            <tr>
+              <td>${esc((r.actor_name || '—').split('@')[0])}</td>
+              <td>${esc(ACTION_TYPES[r.action_type] || r.action_type || '—')}</td>
+              <td class="ph-muted">${esc(r.target_table || '—')}</td>
+              <td class="ph-muted" style="max-width: 220px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${esc(r.diff_summary || '')}">${esc(r.diff_summary || '—')}</td>
+              <td class="ph-muted">${fmtDateTime(r.timestamp)}</td>
+            </tr>`).join('')}
+          </tbody>
+        </table>`;
+    }
+
+    async function loadModules() {
+      let pages = [];
+      try {
+        const r = await erpai.api('GET', `/v1/agent/app/custom-pages?appId=${window.ERPAI.appId}`);
+        pages = r?.data || r?.response?.data || [];
+      } catch (e) {
+        console.warn('pages fail', e);
+      }
+      const bySlug = new Map(pages.map(p => [p.slug, p]));
+
+      const html = CATEGORIES.map(cat => {
+        const cards = cat.slugs.map(slug => {
+          const p = bySlug.get(slug) || { slug, name: slug, icon: 'LayoutDashboard', description: '' };
+          return `
+            <a class="ph-card" href="/custom-pages/${encodeURIComponent(slug)}">
+              <div class="ph-card-icon">${iconSvg(p.icon)}</div>
+              <h3 class="ph-card-name">${esc(p.name || slug)}</h3>
+              <p class="ph-card-desc">${esc(p.description || '')}</p>
+            </a>`;
+        }).join('');
+        return `
+          <div class="ph-cat">
+            <h4 class="ph-cat-head">${esc(cat.title)}</h4>
+            <div class="ph-grid">${cards}</div>
+          </div>`;
+      }).join('');
+      document.getElementById('ph-modules').innerHTML = html;
+    }
+
+    function setDate() {
+      const now = new Date();
+      document.getElementById('ph-today').textContent = now.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
+      document.getElementById('ph-refresh').textContent = `Last refresh: ${now.toLocaleTimeString()}`;
+    }
+
+    async function main() {
+      setDate();
+      await Promise.all([loadKpis(), loadRecharges(), loadActions(), loadModules()]);
+      setDate();
+    }
+    main();
+  </script>
+</body>
+</html>

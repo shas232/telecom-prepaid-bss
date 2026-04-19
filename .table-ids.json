@@ -52,5 +52,12 @@
   "MNP Requests": "b817142cde40d063b12db472",
   "Number Recycling Rules": "d65c19e8fea90719de3cc937",
   "Number Auctions": "614268405f3f1442540a95c5",
-  "Number Change Events": "87cd7a747b33e2a281040c33"
+  "Number Change Events": "87cd7a747b33e2a281040c33",
+  "Payments": "951b74cacf102cb405ce1dca",
+  "Quotes": "d76615f9d9ed44ce7b95a7cf",
+  "Quote Items": "cf7fa740288863d1a9d12f6c",
+  "Number Prefix Tariffs": "78495af9c5022f2ce52558a8",
+  "CPE Inventory": "ccb449b08db31f95e41d88fc",
+  "Erasure Requests": "717889431f981ffb2b53d293",
+  "Report Subscriptions": "836f64cc093cc97dde58fa73"
 }

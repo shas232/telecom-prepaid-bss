@@ -1,0 +1,263 @@
+<script>
+window.ERPAI = {
+  token: 'erp_pat_live_REDACTED',
+  baseUrl: 'https://api.erpai.studio',
+  appId: 'afe8c4540708da6ca9e6fe79',
+  orgName: 'Telecom',
+  appName: 'telecom',
+  theme: 'light'
+};
+</script>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dealer Portal</title>
+  <link rel="stylesheet" href="/runtime/erpai-pages-runtime.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    body { padding: 20px; font-family: 'Geist Sans', system-ui, -apple-system, sans-serif; }
+    .cb-header { margin-bottom: 20px; display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+    .cb-title { font-size: 20px; font-weight: 600; color: hsl(var(--foreground)); letter-spacing: -0.02em; margin: 0; }
+    .cb-subtitle { font-size: 13px; color: hsl(var(--muted-foreground)); margin-top: 4px; max-width: 720px; }
+    .cb-header-right { display: flex; align-items: center; gap: 10px; }
+    .cb-date { font-size: 13px; color: hsl(var(--muted-foreground)); font-variant-numeric: tabular-nums; }
+    .cb-btn { display: inline-flex; align-items: center; gap: 6px; padding: 8px 12px; font-size: 13px; font-weight: 500; border-radius: 8px; border: 1px solid hsl(var(--border)); background: hsl(var(--background)); color: hsl(var(--foreground)); cursor: pointer; }
+    .cb-btn:hover { background: hsl(var(--muted) / 0.4); }
+
+    .cb-kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 24px; }
+    @media (max-width: 900px) { .cb-kpis { grid-template-columns: repeat(2, 1fr); } }
+    .cb-kpi { background: hsl(var(--card)); border: 1px solid hsl(var(--border)); border-radius: 12px; padding: 14px; box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05); }
+    .cb-kpi-label { font-size: 11px; color: hsl(var(--muted-foreground)); text-transform: uppercase; letter-spacing: 0.04em; font-weight: 600; margin-bottom: 6px; }
+    .cb-kpi-val { font-size: 24px; font-weight: 600; font-variant-numeric: tabular-nums; color: hsl(var(--foreground)); line-height: 1.1; }
+    .cb-kpi-sub { font-size: 11px; color: hsl(var(--muted-foreground)); margin-top: 4px; }
+
+    .cb-section-head { display: flex; align-items: center; gap: 8px; margin: 24px 0 12px; }
+    .cb-section-title { font-size: 14px; font-weight: 600; margin: 0; color: hsl(var(--foreground)); }
+    .cb-section-sub { font-size: 12px; color: hsl(var(--muted-foreground)); font-weight: 500; }
+
+    .cb-charts { display: grid; grid-template-columns: 1fr; gap: 16px; margin-bottom: 24px; }
+    .cb-chart-card { background: hsl(var(--card)); border: 1px solid hsl(var(--border)); border-radius: 12px; padding: 14px; box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05); }
+    .cb-chart-card h3 { margin: 0 0 10px; font-size: 13px; font-weight: 600; color: hsl(var(--foreground)); }
+    .cb-chart-wrap { position: relative; height: 220px; }
+
+    .cb-feed { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 24px; }
+    @media (max-width: 900px) { .cb-feed { grid-template-columns: 1fr; } }
+    .cb-feed-card { background: hsl(var(--card)); border: 1px solid hsl(var(--border)); border-radius: 12px; overflow: hidden; box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05); }
+    .cb-feed-head { padding: 12px 14px; border-bottom: 1px solid hsl(var(--border)); display: flex; align-items: center; gap: 8px; background: hsl(var(--muted) / 0.3); }
+    .cb-feed-head h3 { font-size: 13px; font-weight: 600; margin: 0; }
+    .cb-feed-head .cb-feed-count { margin-left: auto; font-size: 11px; color: hsl(var(--muted-foreground)); }
+
+    .cb-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+    .cb-table th { text-align: left; font-size: 10px; font-weight: 600; color: hsl(var(--muted-foreground)); text-transform: uppercase; letter-spacing: 0.04em; padding: 8px 12px; border-bottom: 1px solid hsl(var(--border)); background: hsl(var(--muted) / 0.2); }
+    .cb-table td { padding: 8px 12px; border-bottom: 1px solid hsl(var(--border)); color: hsl(var(--foreground)); vertical-align: middle; font-variant-numeric: tabular-nums; }
+    .cb-table tbody tr:hover { background: hsl(var(--muted) / 0.4); }
+    .cb-table tbody tr:last-child td { border-bottom: none; }
+    .cb-mono { font-family: 'SF Mono', Monaco, Menlo, monospace; font-size: 11px; color: hsl(var(--muted-foreground)); }
+    .cb-muted { color: hsl(var(--muted-foreground)); }
+    .cb-amount { font-weight: 600; }
+    .cb-empty { padding: 24px 12px; text-align: center; color: hsl(var(--muted-foreground)); font-size: 12px; }
+    .cb-loading { padding: 16px; color: hsl(var(--muted-foreground)); font-size: 12px; }
+    .cb-pill { display: inline-block; padding: 2px 8px; font-size: 10px; font-weight: 600; border-radius: 9999px; text-transform: uppercase; letter-spacing: 0.04em; background: hsl(var(--muted) / 0.5); color: hsl(var(--foreground)); }
+
+    .cb-quick-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 24px; }
+    @media (max-width: 700px) { .cb-quick-grid { grid-template-columns: 1fr; } }
+    .cb-quick-btn { padding: 14px; border: 1px dashed hsl(var(--border)); border-radius: 10px; background: hsl(var(--card)); text-align: left; cursor: pointer; font-family: inherit; color: hsl(var(--foreground)); transition: border-color 0.15s, background 0.15s; }
+    .cb-quick-btn:hover { border-color: hsl(var(--primary)); background: hsl(var(--muted) / 0.3); }
+    .cb-quick-title { font-size: 13px; font-weight: 600; margin: 0 0 4px; }
+    .cb-quick-desc { font-size: 11px; color: hsl(var(--muted-foreground)); margin: 0; }
+
+    .cb-footer { margin-top: 28px; padding-top: 14px; border-top: 1px solid hsl(var(--border)); font-size: 11px; color: hsl(var(--muted-foreground)); display: flex; justify-content: space-between; align-items: center; }
+  </style>
+</head>
+<body>
+  <div class="cb-header">
+    <div>
+      <h1 class="cb-title">Dealer Portal <span style="color: hsl(var(--muted-foreground)); font-weight: 400;">·</span> <span id="cb-partner-name">Your Store</span></h1>
+      <p class="cb-subtitle">Commissions, activations, inventory — and quick actions to keep things moving.</p>
+    </div>
+    <div class="cb-header-right">
+      <span class="cb-date" id="cb-today"></span>
+      <button class="cb-btn" onclick="window.location.reload()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M3 21v-5h5"/></svg>
+        Refresh
+      </button>
+    </div>
+  </div>
+
+  <div class="cb-section-head">
+    <h2 class="cb-section-title">My Performance</h2>
+    <span class="cb-section-sub" id="cb-kpi-sub">Loading…</span>
+  </div>
+  <div class="cb-kpis" id="cb-kpis"></div>
+
+  <div class="cb-section-head">
+    <h2 class="cb-section-title">Quick Actions</h2>
+  </div>
+  <div class="cb-quick-grid">
+    <button class="cb-quick-btn" onclick="alert('Activate New SIM — stub')">
+      <p class="cb-quick-title">Activate New SIM</p>
+      <p class="cb-quick-desc">Register a fresh ICCID to a subscriber.</p>
+    </button>
+    <button class="cb-quick-btn" onclick="alert('Process Recharge — stub')">
+      <p class="cb-quick-title">Process Recharge</p>
+      <p class="cb-quick-desc">Top up a customer wallet via voucher.</p>
+    </button>
+    <button class="cb-quick-btn" onclick="alert('Request Stock — stub')">
+      <p class="cb-quick-title">Request Stock</p>
+      <p class="cb-quick-desc">Ask the warehouse for SIM replenishment.</p>
+    </button>
+  </div>
+
+  <div class="cb-charts">
+    <div class="cb-chart-card">
+      <h3>Daily Activations — last 30 days</h3>
+      <div class="cb-chart-wrap"><canvas id="cb-chart-act"></canvas></div>
+    </div>
+  </div>
+
+  <div class="cb-feed">
+    <div class="cb-feed-card">
+      <div class="cb-feed-head"><h3>Recent Recharges Processed</h3><span class="cb-feed-count" id="cb-rch-count"></span></div>
+      <div id="cb-recharges"><div class="cb-loading">Loading…</div></div>
+    </div>
+    <div class="cb-feed-card">
+      <div class="cb-feed-head"><h3>My Settled Commissions (30d)</h3><span class="cb-feed-count" id="cb-comm-count"></span></div>
+      <div id="cb-comms"><div class="cb-loading">Loading…</div></div>
+    </div>
+  </div>
+
+  <div class="cb-footer">
+    <span id="cb-refresh">Last refresh: —</span>
+    <span>Data source: ERPAI live ClickHouse views</span>
+  </div>
+
+  <script src="/runtime/erpai-pages-runtime.js"></script>
+  <script>
+    const COMM_STATUS = { '[1]': 'Accrued', '[2]': 'Pending', '[3]': 'Settled', '[4]': 'Reversed' };
+    const RCH_STATUS = { '[1]': 'Pending', '[2]': 'Success', '[3]': 'Failed', '[4]': 'Reversed' };
+
+    const fmtInt = n => n == null || isNaN(n) ? '—' : Number(n).toLocaleString();
+    const fmtMoney = n => n == null || isNaN(n) ? '—' : '$' + Number(n).toLocaleString(undefined, { maximumFractionDigits: 0 });
+    const fmtDateTime = ts => { if (!ts || ts.startsWith('1970')) return '—'; const d = new Date(ts.replace(' ', 'T') + 'Z'); if (isNaN(d)) return ts; return d.toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }); };
+    const fmtDate = ts => { if (!ts || ts.startsWith('1970')) return '—'; const d = new Date(ts.replace(' ', 'T') + 'Z'); if (isNaN(d)) return ts; return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' }); };
+    const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+    async function runSql(sql, limit = 200) {
+      try {
+        const r = await erpai.api('POST', '/v1/agent/app/sql/execute', { appId: window.ERPAI.appId, sqlQuery: sql, limit });
+        return r?.data?.rows || r?.rows || [];
+      } catch (e) { console.warn('SQL fail:', sql, e); return null; }
+    }
+
+    let PARTNER_ID = null;
+    let PARTNER_NAME = null;
+
+    async function resolvePartner() {
+      // Placeholder: pick the first partner as "my" partner
+      const rows = await runSql("SELECT _id, partner_name FROM a1776271424351_distribution_partners WHERE _deleted=0 ORDER BY created_at DESC LIMIT 1");
+      if (rows && rows.length) {
+        PARTNER_ID = rows[0]._id;
+        PARTNER_NAME = rows[0].partner_name;
+        document.getElementById('cb-partner-name').textContent = PARTNER_NAME || 'My Store';
+      } else {
+        document.getElementById('cb-partner-name').textContent = '(no dealer linked)';
+      }
+    }
+
+    async function loadKpis() {
+      if (!PARTNER_ID) await resolvePartner();
+      const pid = PARTNER_ID || '';
+      const queries = [
+        { label: 'Commissions YTD', sub: `${PARTNER_NAME || 'My'} earnings`, sql: `SELECT round(sum(commission_amount), 0) AS v FROM a1776271424351_partner_commissions WHERE _deleted=0 AND partner='${pid}' AND toYear(accrued_date)=toYear(now())`, money: true },
+        { label: 'Float Balance', sub: 'Wallet balance on record', sql: `SELECT argMax(wallet_balance, _version) AS v FROM a1776271424351_distribution_partners WHERE _deleted=0 AND _id='${pid}' GROUP BY _id`, money: true },
+        { label: 'Activations Today', sub: 'Recharges I processed today', sql: `SELECT count() AS v FROM a1776271424351_recharges WHERE _deleted=0 AND distribution_partner='${pid}' AND toDate(timestamp)=today()` },
+        { label: 'Inventory', sub: 'SIMs allocated to me', sql: `SELECT count() AS v FROM a1776271424351_sim_inventory WHERE _deleted=0 AND allocated_to_partner='${pid}' AND (status='[1]' OR status='[2]')` },
+      ];
+      const results = await Promise.all(queries.map(q => runSql(q.sql)));
+      document.getElementById('cb-kpis').innerHTML = queries.map((q, i) => {
+        const rows = results[i]; let raw = null;
+        if (rows && rows.length) raw = rows[0].v ?? Object.values(rows[0])[0];
+        let display = '—';
+        if (raw != null && raw !== '') { const n = Number(raw); if (!isNaN(n)) display = q.money ? fmtMoney(n) : fmtInt(n); }
+        return `<div class="cb-kpi">
+          <div class="cb-kpi-label">${esc(q.label)}</div>
+          <div class="cb-kpi-val">${display}</div>
+          <div class="cb-kpi-sub">${esc(q.sub)}</div>
+        </div>`;
+      }).join('');
+      document.getElementById('cb-kpi-sub').textContent = 'Refreshed just now';
+    }
+
+    async function loadRecharges() {
+      if (!PARTNER_ID) await resolvePartner();
+      const pid = PARTNER_ID || '';
+      const rows = await runSql(`SELECT recharge_code, amount, status, timestamp FROM a1776271424351_recharges WHERE _deleted=0 AND distribution_partner='${pid}' ORDER BY timestamp DESC LIMIT 20`);
+      const el = document.getElementById('cb-recharges');
+      const cnt = document.getElementById('cb-rch-count');
+      if (!rows) { el.innerHTML = `<div class="cb-empty">Unable to load.</div>`; return; }
+      if (!rows.length) { el.innerHTML = `<div class="cb-empty">No recharges yet.</div>`; return; }
+      cnt.textContent = `${rows.length} shown`;
+      el.innerHTML = `<table class="cb-table">
+        <thead><tr><th>Code</th><th>Amount</th><th>Status</th><th>Time</th></tr></thead>
+        <tbody>${rows.map(r => `<tr>
+          <td><span class="cb-mono">${esc(r.recharge_code || '—')}</span></td>
+          <td class="cb-amount">${fmtMoney(Number(r.amount))}</td>
+          <td><span class="cb-pill">${esc(RCH_STATUS[r.status] || r.status || '—')}</span></td>
+          <td class="cb-muted">${fmtDateTime(r.timestamp)}</td>
+        </tr>`).join('')}</tbody>
+      </table>`;
+    }
+
+    async function loadCommissions() {
+      if (!PARTNER_ID) await resolvePartner();
+      const pid = PARTNER_ID || '';
+      const rows = await runSql(`SELECT commission_type, base_amount, commission_amount, settled_date, status FROM a1776271424351_partner_commissions WHERE _deleted=0 AND partner='${pid}' AND status='[3]' AND settled_date > now() - INTERVAL 30 DAY ORDER BY settled_date DESC LIMIT 20`);
+      const el = document.getElementById('cb-comms');
+      const cnt = document.getElementById('cb-comm-count');
+      if (!rows) { el.innerHTML = `<div class="cb-empty">Unable to load.</div>`; return; }
+      if (!rows.length) { el.innerHTML = `<div class="cb-empty">No settlements in the last 30 days.</div>`; return; }
+      cnt.textContent = `${rows.length} shown`;
+      el.innerHTML = `<table class="cb-table">
+        <thead><tr><th>Type</th><th>Base</th><th>Commission</th><th>Settled</th></tr></thead>
+        <tbody>${rows.map(r => `<tr>
+          <td class="cb-muted">${esc(r.commission_type || '—')}</td>
+          <td>${fmtMoney(Number(r.base_amount))}</td>
+          <td class="cb-amount">${fmtMoney(Number(r.commission_amount))}</td>
+          <td class="cb-muted">${fmtDate(r.settled_date)}</td>
+        </tr>`).join('')}</tbody>
+      </table>`;
+    }
+
+    async function loadActivationsChart() {
+      if (!PARTNER_ID) await resolvePartner();
+      const pid = PARTNER_ID || '';
+      const rows = await runSql(`SELECT toDate(timestamp) AS d, count() AS c FROM a1776271424351_recharges WHERE _deleted=0 AND distribution_partner='${pid}' AND timestamp > now() - INTERVAL 30 DAY GROUP BY d ORDER BY d ASC`);
+      const ctx = document.getElementById('cb-chart-act');
+      if (!rows || !rows.length) { ctx.parentElement.innerHTML = '<div class="cb-empty">No activations in the last 30 days.</div>'; return; }
+      const labels = rows.map(r => { const d = new Date((r.d || '').toString() + 'T00:00:00Z'); return isNaN(d) ? r.d : d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' }); });
+      const data = rows.map(r => Number(r.c));
+      new Chart(ctx, {
+        type: 'bar',
+        data: { labels, datasets: [{ label: 'Activations', data, backgroundColor: '#6366f1' }] },
+        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { precision: 0 } } } }
+      });
+    }
+
+    function setDate() {
+      const now = new Date();
+      document.getElementById('cb-today').textContent = now.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
+      document.getElementById('cb-refresh').textContent = `Last refresh: ${now.toLocaleTimeString()}`;
+    }
+
+    async function main() {
+      setDate();
+      await resolvePartner();
+      await Promise.all([loadKpis(), loadRecharges(), loadCommissions(), loadActivationsChart()]);
+      setDate();
+    }
+    main();
+  </script>
+</body>
+</html>

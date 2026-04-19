@@ -1,0 +1,600 @@
+<script>
+window.ERPAI = {
+  token: 'erp_pat_live_REDACTED',
+  baseUrl: 'https://api.erpai.studio',
+  appId: 'afe8c4540708da6ca9e6fe79',
+  orgName: 'Telecom',
+  appName: 'telecom',
+  theme: 'light'
+};
+</script>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Customer 360 View</title>
+  <link rel="stylesheet" href="/runtime/erpai-pages-runtime.css">
+  <style>
+    body { padding: 20px; font-family: 'Geist Sans', system-ui, -apple-system, sans-serif; }
+    .c360-header { margin-bottom: 20px; }
+    .c360-title { font-size: 18px; font-weight: 600; letter-spacing: -0.02em; margin: 0; color: hsl(var(--foreground)); }
+    .c360-subtitle { font-size: 13px; color: hsl(var(--muted-foreground)); margin-top: 2px; }
+
+    .c360-picker-wrap { display: flex; align-items: center; gap: 12px; max-width: 520px; margin-bottom: 20px; }
+    .c360-picker-wrap label { font-size: 13px; color: hsl(var(--muted-foreground)); font-weight: 500; display: flex; align-items: center; gap: 6px; white-space: nowrap; }
+    .c360-picker-wrap select { flex: 1; padding: 9px 14px; font-size: 14px; background: hsl(var(--background)); border: 1px solid hsl(var(--border)); border-radius: 8px; color: hsl(var(--foreground)); cursor: pointer; font-family: inherit; appearance: none; -webkit-appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23666' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 12px center; padding-right: 36px; }
+    .c360-picker-wrap select:focus { outline: none; border-color: hsl(var(--primary)); box-shadow: 0 0 0 3px hsl(var(--primary) / 0.1); }
+
+    .c360-profile { display: grid; grid-template-columns: 300px 1fr; gap: 20px; }
+    @media (max-width: 900px) { .c360-profile { grid-template-columns: 1fr; } }
+
+    .c360-card { background: hsl(var(--card)); border: 1px solid hsl(var(--border)); border-radius: 12px; padding: 16px; box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05); }
+    .c360-card h3 { margin: 0 0 12px; font-size: 14px; font-weight: 600; display: flex; align-items: center; gap: 8px; color: hsl(var(--foreground)); }
+    .c360-card h3 .sub-count { margin-left: auto; font-size: 12px; color: hsl(var(--muted-foreground)); font-weight: 500; }
+
+    .c360-kv { display: grid; grid-template-columns: auto 1fr; gap: 8px 12px; font-size: 13px; }
+    .c360-kv dt { color: hsl(var(--muted-foreground)); font-weight: 500; }
+    .c360-kv dd { margin: 0; color: hsl(var(--foreground)); font-variant-numeric: tabular-nums; word-break: break-all; }
+
+    .c360-badge { display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; font-size: 11px; font-weight: 600; border-radius: 999px; text-transform: uppercase; letter-spacing: 0.04em; }
+    .c360-badge.green { background: #10b98133; color: #059669; }
+    .c360-badge.amber { background: #f59e0b33; color: #d97706; }
+    .c360-badge.red   { background: #ef444433; color: #dc2626; }
+    .c360-badge.gray  { background: hsl(var(--muted)); color: hsl(var(--muted-foreground)); }
+
+    .c360-sub-tab { display: flex; gap: 4px; border-bottom: 1px solid hsl(var(--border)); margin-bottom: 12px; overflow-x: auto; }
+    .c360-sub-tab button { background: transparent; border: none; padding: 8px 14px; font-size: 13px; color: hsl(var(--muted-foreground)); cursor: pointer; border-bottom: 2px solid transparent; white-space: nowrap; font-weight: 500; }
+    .c360-sub-tab button.active { color: hsl(var(--foreground)); border-bottom-color: hsl(var(--primary)); }
+    .c360-sub-tab button:hover { color: hsl(var(--foreground)); }
+
+    .c360-sub-detail { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin-bottom: 16px; }
+    @media (max-width: 768px) { .c360-sub-detail { grid-template-columns: 1fr; } }
+
+    .c360-bucket { padding: 12px; background: hsl(var(--muted) / 0.3); border: 1px solid hsl(var(--border)); border-radius: 8px; }
+    .c360-bucket-label { font-size: 11px; color: hsl(var(--muted-foreground)); text-transform: uppercase; letter-spacing: 0.04em; font-weight: 600; margin-bottom: 6px; }
+    .c360-bucket-val { font-size: 18px; font-weight: 600; color: hsl(var(--foreground)); font-variant-numeric: tabular-nums; }
+    .c360-bucket-total { font-size: 11px; color: hsl(var(--muted-foreground)); margin-bottom: 6px; }
+    .c360-bucket-bar { height: 6px; border-radius: 999px; background: hsl(var(--muted)); overflow: hidden; margin-top: 6px; }
+    .c360-bucket-fill { height: 100%; border-radius: 999px; transition: width 0.4s; }
+    .c360-bucket-fill.data { background: #3b82f6; }
+    .c360-bucket-fill.voice { background: #10b981; }
+    .c360-bucket-fill.sms { background: #f59e0b; }
+    .c360-bucket-fill.low { background: #ef4444; }
+
+    .c360-section { margin-bottom: 16px; }
+    .c360-section-title { font-size: 13px; font-weight: 600; margin: 0 0 8px; display: flex; align-items: center; gap: 6px; color: hsl(var(--foreground)); }
+    .c360-section-title .count { margin-left: auto; font-size: 12px; color: hsl(var(--muted-foreground)); font-weight: 500; }
+
+    .c360-list { display: flex; flex-direction: column; gap: 4px; max-height: 260px; overflow-y: auto; }
+    .c360-row { display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; background: hsl(var(--card)); border: 1px solid hsl(var(--border)); border-radius: 6px; font-size: 12px; }
+    .c360-row-main { font-weight: 500; color: hsl(var(--foreground)); font-variant-numeric: tabular-nums; }
+    .c360-row-meta { display: flex; align-items: center; gap: 8px; color: hsl(var(--muted-foreground)); font-variant-numeric: tabular-nums; font-size: 11px; }
+
+    .c360-empty { padding: 20px; text-align: center; color: hsl(var(--muted-foreground)); font-size: 12px; }
+    .c360-initial-hint { padding: 40px; text-align: center; color: hsl(var(--muted-foreground)); font-size: 13px; border: 1px dashed hsl(var(--border)); border-radius: 12px; }
+  </style>
+</head>
+<body>
+  <div class="c360-header">
+    <h1 class="c360-title">Customer 360</h1>
+    <p class="c360-subtitle">Complete profile of any customer — subscriptions, plans, balances, wallet, recent activity, and support history.</p>
+  </div>
+
+  <div class="c360-picker-wrap">
+    <label>
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+      Customer:
+    </label>
+    <select id="customer-picker"></select>
+  </div>
+
+  <div id="profile">
+    <div class="c360-initial-hint">Loading…</div>
+  </div>
+
+  <script src="/runtime/erpai-pages-runtime.js"></script>
+  <script>
+    // ========================================================================
+    // Table IDs
+    // ========================================================================
+    const T = {
+      customers: 'aed243e6c13b8f5194724d76',
+      subscriptions: '495e7f2e36663583722c8ec8',
+      balances: '9daeb0991b806538ceab887f',
+      tariffs: 'f2e797515f347f862e71a641',
+      usageTxns: '5d81244b8bef791c68fdbb49',
+      sessions: 'a12c328f7b9c5df56d12ec6c',
+      wallets: '1ec21f333aa5965f9d9be874',
+      walletTxns: 'd9a7f5779835c59a75d837c3',
+      recharges: '4f5d0c07bc1db0dcef8e2c02',
+      cases: 'abb4445bc9dfd2ccd9b8eb5a',
+      lifecycle: '739318075af795fcbfe7dd11',
+      interactions: '9fff9ed319640e1c7da735c7',
+      kyc: 'a72888205d8f8fdf5b40e162',
+    };
+
+    // ========================================================================
+    // Data loading (using records API — SQL view is stale on new ref cols)
+    // ========================================================================
+    const STATE = { allCustomers: [], selectedCust: null, cache: {} };
+
+    async function fetchAll(tableId, pageSize = 300) {
+      const all = [];
+      let page = 1;
+      while (true) {
+        const resp = await erpai.api('POST', `/v1/app-builder/table/${tableId}/paged-record?pageNo=${page}&pageSize=${pageSize}`, {});
+        const batch = resp?.data || [];
+        all.push(...batch);
+        if (batch.length < pageSize) break;
+        page++;
+      }
+      return all;
+    }
+
+    async function loadColMap(tableId) {
+      if (STATE.cache[`cm_${tableId}`]) return STATE.cache[`cm_${tableId}`];
+      const resp = await erpai.api('GET', `/v1/app-builder/table/${tableId}`);
+      const cols = resp?.columnsMetaData || [];
+      const m = {};
+      for (const c of cols) m[c.name] = c.id;
+      STATE.cache[`cm_${tableId}`] = m;
+      return m;
+    }
+
+    async function initSearch() {
+      const customers = await fetchAll(T.customers);
+      const subs = await fetchAll(T.subscriptions);
+      const mCust = await loadColMap(T.customers);
+      const mSub = await loadColMap(T.subscriptions);
+
+      // Index each customer with their subscriptions for search
+      const subsByCust = new Map();
+      for (const s of subs) {
+        const cid = s.cells[mSub['Customer']]?.[0];
+        if (!cid) continue;
+        if (!subsByCust.has(cid)) subsByCust.set(cid, []);
+        subsByCust.get(cid).push(s);
+      }
+
+      STATE.allCustomers = customers.map(c => ({
+        id: c._id,
+        name: c.cells[mCust['Name']] || '—',
+        email: c.cells[mCust['Email']] || '',
+        phone: c.cells[mCust['Phone']] || '',
+        segment: c.cells[mCust['Segment']],
+        status: c.cells[mCust['Status']],
+        kycStatus: c.cells[mCust['KYC Status']],
+        onboarded: c.cells[mCust['Onboarded Date']],
+        language: c.cells[mCust['Language']],
+        rawCust: c,
+        subs: subsByCust.get(c._id) || [],
+      }));
+      STATE.mCust = mCust;
+      STATE.mSub = mSub;
+    }
+
+    function populateDropdown() {
+      const sel = document.getElementById('customer-picker');
+      // Sort by activity (most CCR events first, then alphabetical)
+      const sorted = STATE.allCustomers.slice().sort((a, b) => {
+        if (b.activity !== a.activity) return b.activity - a.activity;
+        return a.name.localeCompare(b.name);
+      });
+      sel.innerHTML = sorted.map(c => {
+        const primaryMsisdn = c.subs[0]?.cells[STATE.mSub['MSISDN']] || '';
+        const suffix = c.subs.length > 1 ? ` (+${c.subs.length - 1} more)` : '';
+        return `<option value="${c.id}">${erpai.esc(c.name)}${primaryMsisdn ? ' — ' + primaryMsisdn : ''}${suffix}</option>`;
+      }).join('');
+      sel.addEventListener('change', (e) => selectCustomer(e.target.value));
+    }
+
+    window.selectCustomer = async function(custId) {
+      const cust = STATE.allCustomers.find(c => c.id === custId);
+      if (!cust) return;
+      STATE.selectedCust = cust;
+      document.getElementById('customer-picker').value = custId;
+      await renderProfile(cust);
+    };
+
+    // ========================================================================
+    // Profile render
+    // ========================================================================
+    async function renderProfile(cust) {
+      const el = document.getElementById('profile');
+      el.innerHTML = `<div class="c360-empty">Loading ${erpai.esc(cust.name)}…</div>`;
+
+      // Fetch ALL the data we need in parallel
+      const [balances, tariffs, wallets, walletTxns, recharges, sessions, utxs, cases, lifecycle, interactions, kycDocs] = await Promise.all([
+        fetchAll(T.balances), fetchAll(T.tariffs), fetchAll(T.wallets), fetchAll(T.walletTxns),
+        fetchAll(T.recharges), fetchAll(T.sessions), fetchAll(T.usageTxns), fetchAll(T.cases),
+        fetchAll(T.lifecycle), fetchAll(T.interactions), fetchAll(T.kyc),
+      ]);
+
+      const [mBal, mTariff, mWlt, mWtx, mRech, mSess, mUtx, mCase, mLife, mInt, mKyc] = await Promise.all([
+        loadColMap(T.balances), loadColMap(T.tariffs), loadColMap(T.wallets), loadColMap(T.walletTxns),
+        loadColMap(T.recharges), loadColMap(T.sessions), loadColMap(T.usageTxns), loadColMap(T.cases),
+        loadColMap(T.lifecycle), loadColMap(T.interactions), loadColMap(T.kyc),
+      ]);
+
+      // Filter to this customer's data
+      const mySubs = cust.subs;
+      const subIds = new Set(mySubs.map(s => s._id));
+      const myBalances = balances.filter(b => subIds.has(b.cells[mBal['Subscription']]?.[0]));
+      const myWallets = wallets.filter(w => w.cells[mWlt['Customer']]?.[0] === cust.id);
+      const walletIds = new Set(myWallets.map(w => w._id));
+      const myWalletTxns = walletTxns.filter(wt => walletIds.has(wt.cells[mWtx['Wallet']]?.[0]));
+      const myRecharges = recharges.filter(r => walletIds.has(r.cells[mRech['Wallet']]?.[0]));
+      const mySessions = sessions.filter(s => subIds.has(s.cells[mSess['Subscription']]?.[0]));
+      const myUtxs = utxs.filter(u => subIds.has(u.cells[mUtx['Subscription']]?.[0]));
+      const myCases = cases.filter(c => c.cells[mCase['Customer']]?.[0] === cust.id);
+      const myLifecycle = lifecycle.filter(l => l.cells[mLife['Customer']]?.[0] === cust.id);
+      const myInteractions = interactions.filter(i => i.cells[mInt['Customer']]?.[0] === cust.id);
+      const myKyc = kycDocs.filter(k => k.cells[mKyc['Customer']]?.[0] === cust.id);
+
+      // Index tariff by id
+      const tariffById = new Map(tariffs.map(t => [t._id, t]));
+
+      // Compute Used per Balance from Usage Transactions
+      const usedByBalance = new Map();
+      for (const u of utxs) {
+        const balRef = u.cells[mUtx['Balance']]?.[0];
+        if (!balRef) continue;
+        const used = Number(u.cells[mUtx['Used Amount']]) || 0;
+        usedByBalance.set(balRef, (usedByBalance.get(balRef) || 0) + used);
+      }
+
+      // LEFT panel: customer summary. RIGHT panel: subscription-level tabs.
+      const wallet = myWallets[0];
+      const kyc = myKyc[0];
+
+      const STATUS_MAP = { '[1]':'Active', '[2]':'Suspended', '[3]':'Churned', '[4]':'Pending KYC' };
+      const KYC_MAP = { '[1]':'Unverified', '[2]':'In Progress', '[3]':'Verified', '[4]':'Rejected' };
+      const SEG_MAP = { '[1]':'Prepaid Consumer', '[2]':'Prepaid Business', '[3]':'Student', '[4]':'Senior', '[5]':'Youth' };
+      const LANG_MAP = { '[1]':'English', '[2]':'Setswana', '[3]':'Afrikaans', '[4]':'Portuguese', '[5]':'French' };
+
+      const statusRaw = JSON.stringify(cust.status);
+      const statusText = STATUS_MAP[statusRaw] || '—';
+      const kycRaw = JSON.stringify(cust.kycStatus);
+      const kycText = KYC_MAP[kycRaw] || '—';
+      const kycBadgeCls = kycText === 'Verified' ? 'green' : kycText === 'Rejected' ? 'red' : 'amber';
+
+      const leftPanel = `
+        <div class="c360-card">
+          <h3>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="color: hsl(var(--primary));"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+            ${erpai.esc(cust.name)}
+          </h3>
+          <dl class="c360-kv">
+            <dt>Phone</dt><dd>${erpai.esc(cust.phone || '—')}</dd>
+            <dt>Email</dt><dd>${erpai.esc(cust.email || '—')}</dd>
+            <dt>Segment</dt><dd>${SEG_MAP[JSON.stringify(cust.segment)] || '—'}</dd>
+            <dt>Language</dt><dd>${LANG_MAP[JSON.stringify(cust.language)] || '—'}</dd>
+            <dt>Status</dt><dd><span class="c360-badge ${statusText === 'Active' ? 'green' : 'gray'}">${statusText}</span></dd>
+            <dt>KYC</dt><dd><span class="c360-badge ${kycBadgeCls}">${kycText}</span></dd>
+            <dt>Onboarded</dt><dd>${fmtDate(cust.onboarded)}</dd>
+          </dl>
+
+          <h3 style="margin-top: 20px;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="color: #10b981;"><rect x="3" y="6" width="18" height="13" rx="2"/><line x1="3" x2="21" y1="10" y2="10"/><path d="M7 15h.01"/><path d="M11 15h2"/></svg>
+            Wallet
+          </h3>
+          ${wallet ? `
+            <dl class="c360-kv">
+              <dt>Balance</dt><dd style="font-weight:600; font-size: 16px; color: hsl(var(--foreground));">$${fmtNum(wallet.cells[mWlt['Current Balance']])}</dd>
+              <dt>Lifetime In</dt><dd>$${fmtNum(wallet.cells[mWlt['Lifetime Recharge']])}</dd>
+              <dt>Lifetime Out</dt><dd>$${fmtNum(wallet.cells[mWlt['Lifetime Spend']])}</dd>
+              <dt>Last Recharge</dt><dd>${fmtDate(wallet.cells[mWlt['Last Recharge Date']])}</dd>
+            </dl>` : '<div class="c360-empty">No wallet</div>'}
+
+          <h3 style="margin-top: 20px;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="color: #f59e0b;"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2Z"/><polyline points="14 2 14 8 20 8"/></svg>
+            KYC
+          </h3>
+          ${kyc ? `
+            <dl class="c360-kv">
+              <dt>Type</dt><dd>${idTypeName(kyc.cells[mKyc['ID Type']])}</dd>
+              <dt>Number</dt><dd>${erpai.esc(kyc.cells[mKyc['ID Number']] || '—')}</dd>
+              <dt>Verified</dt><dd>${kyc.cells[mKyc['Verified']] ? '✓ Yes' : '✗ No'}</dd>
+              <dt>Expires</dt><dd>${fmtDate(kyc.cells[mKyc['Expiry Date']])}</dd>
+            </dl>` : '<div class="c360-empty">No KYC</div>'}
+        </div>
+      `;
+
+      // RIGHT panel: subscription tabs + details
+      let tabsHTML = '';
+      if (!mySubs.length) {
+        tabsHTML = `<div class="c360-card"><div class="c360-empty">No subscriptions for this customer.</div></div>`;
+      } else {
+        tabsHTML = `
+          <div class="c360-card">
+            <div class="c360-sub-tab" id="sub-tabs">
+              ${mySubs.map((s, i) => `<button class="${i===0?'active':''}" onclick="showSub('${s._id}')" data-sid="${s._id}">${erpai.esc(s.cells[STATE.mSub['MSISDN']] || 'Sub '+(i+1))}</button>`).join('')}
+            </div>
+            <div id="sub-body"></div>
+          </div>
+
+          <div class="c360-card" style="margin-top: 16px;">
+            <h3>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="color: #8b5cf6;"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+              Recent Activity
+              <span class="sub-count">last 10 across all SIMs</span>
+            </h3>
+            <div class="c360-list" id="recent-activity"></div>
+          </div>
+
+          <div class="c360-card" style="margin-top: 16px; display:grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+            <div>
+              <h3>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="color: #10b981;"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+                Recharges <span class="sub-count">${myRecharges.length}</span>
+              </h3>
+              <div class="c360-list" id="recharge-list"></div>
+            </div>
+            <div>
+              <h3>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="color: #f59e0b;"><rect width="8" height="4" x="8" y="2" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="M12 11h4M12 16h4M8 11h.01M8 16h.01"/></svg>
+                Cases <span class="sub-count">${myCases.length}</span>
+              </h3>
+              <div class="c360-list" id="case-list"></div>
+            </div>
+          </div>
+
+          <div class="c360-card" style="margin-top: 16px;">
+            <h3>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+              Lifecycle Events <span class="sub-count">${myLifecycle.length}</span>
+            </h3>
+            <div class="c360-list" id="lifecycle-list"></div>
+          </div>
+        `;
+      }
+
+      el.innerHTML = `<div class="c360-profile">${leftPanel}<div>${tabsHTML}</div></div>`;
+
+      // Wire up events for the right panel
+      STATE.profileData = { mySubs, myBalances, mySessions, myUtxs, myCases, myLifecycle, myRecharges, myInteractions, mWlt, mBal, mTariff, mSess, mUtx, mCase, mLife, mRech, mWtx, mInt, tariffById, usedByBalance };
+      if (mySubs.length) showSub(mySubs[0]._id);
+      renderRecentActivity();
+      renderRecharges();
+      renderCases();
+      renderLifecycle();
+    }
+
+    window.showSub = function(subId) {
+      document.querySelectorAll('#sub-tabs button').forEach(b => b.classList.toggle('active', b.dataset.sid === subId));
+      const { mySubs, myBalances, mySessions, myUtxs, mBal, mSess, mUtx, tariffById, usedByBalance } = STATE.profileData;
+      const mTariff = STATE.cache[`cm_${T.tariffs}`];
+      const sub = mySubs.find(s => s._id === subId);
+      if (!sub) return;
+
+      const subBalances = myBalances.filter(b => b.cells[mBal['Subscription']]?.[0] === subId);
+      const subSessions = mySessions.filter(s => s.cells[mSess['Subscription']]?.[0] === subId);
+      const subUtxs = myUtxs.filter(u => u.cells[mUtx['Subscription']]?.[0] === subId);
+
+      // Find the base plan (tariff via Balance.tariff_plan with priority 10)
+      let basePlan = null;
+      for (const b of subBalances) {
+        const tpId = b.cells[mBal['Tariff Plan']]?.[0];
+        if (!tpId) continue;
+        const tp = tariffById.get(tpId);
+        if (!tp) continue;
+        const prio = Number(tp.cells[mTariff['Priority On Charge']]) || 10;
+        if (prio === 10) { basePlan = tp; break; }
+      }
+
+      // Aggregate balances per rating group family (data / voice / sms)
+      let dataInit = 0, dataUsed = 0, voiceInit = 0, voiceUsed = 0, smsInit = 0, smsUsed = 0;
+      for (const b of subBalances) {
+        const rg = Number(b.cells[mBal['Rating Group']]) || 0;
+        const init = Number(b.cells[mBal['Initial Amount']]) || 0;
+        const used = usedByBalance.get(b._id) || 0;
+        if (rg >= 10 && rg < 100) { dataInit += init; dataUsed += used; }
+        else if (rg >= 100 && rg < 200) { voiceInit += init; voiceUsed += used; }
+        else if (rg >= 200 && rg < 300) { smsInit += init; smsUsed += used; }
+      }
+
+      const SUB_STATUS = { '[1]':'Active', '[2]':'Suspended', '[3]':'Terminated', '[4]':'Port Out' };
+      const statusText = SUB_STATUS[JSON.stringify(sub.cells[STATE.mSub['Status']])] || '—';
+
+      document.getElementById('sub-body').innerHTML = `
+        <dl class="c360-kv" style="margin-bottom: 16px;">
+          <dt>MSISDN</dt><dd style="font-family: 'SF Mono',monospace;">${erpai.esc(sub.cells[STATE.mSub['MSISDN']] || '—')}</dd>
+          <dt>IMSI</dt><dd style="font-family: 'SF Mono',monospace; font-size: 11px;">${erpai.esc(sub.cells[STATE.mSub['IMSI']] || '—')}</dd>
+          <dt>APN</dt><dd>${erpai.esc(sub.cells[STATE.mSub['APN']] || '—')}</dd>
+          <dt>Status</dt><dd><span class="c360-badge ${statusText==='Active'?'green':'gray'}">${statusText}</span></dd>
+          <dt>Current Plan</dt><dd style="font-weight:500;">${basePlan ? erpai.esc(basePlan.cells[mTariff['Plan Name']]) : '—'}</dd>
+          <dt>Plan Price</dt><dd>${basePlan ? '$'+Number(basePlan.cells[mTariff['Price']]).toFixed(2) : '—'}</dd>
+          <dt>Activated</dt><dd>${fmtDate(sub.cells[STATE.mSub['Activation Date']])}</dd>
+        </dl>
+
+        <div class="c360-sub-detail">
+          ${renderBucket('DATA', dataUsed, dataInit, 'data', 'MB')}
+          ${renderBucket('VOICE', voiceUsed, voiceInit, 'voice', 'min')}
+          ${renderBucket('SMS', smsUsed, smsInit, 'sms', '')}
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+          <div class="c360-section">
+            <div class="c360-section-title">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+              Recent Sessions
+              <span class="count">${subSessions.length}</span>
+            </div>
+            <div class="c360-list">
+              ${subSessions.length === 0 ? '<div class="c360-empty">None</div>' : subSessions.slice(-5).reverse().map(s => `
+                <div class="c360-row">
+                  <div>
+                    <div class="c360-row-main">${serviceTypeLabel(s.cells[mSess['Service Type']])}</div>
+                    <div class="c360-row-meta">${fmtDateTime(s.cells[mSess['Started At']])}</div>
+                  </div>
+                  <div class="c360-row-meta">${Number(s.cells[mSess['Total Used Amount']] || 0).toFixed(1)}</div>
+                </div>
+              `).join('')}
+            </div>
+          </div>
+
+          <div class="c360-section">
+            <div class="c360-section-title">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+              Last CCR Events
+              <span class="count">${subUtxs.length}</span>
+            </div>
+            <div class="c360-list">
+              ${subUtxs.length === 0 ? '<div class="c360-empty">None</div>' : subUtxs.slice(-10).reverse().map(u => {
+                const mt = JSON.stringify(u.cells[mUtx['Message Type']]);
+                const mtLabel = { '[1]':'CCR-I','[2]':'CCR-U','[3]':'CCR-T','[4]':'CCR-E' }[mt] || '?';
+                const rc = Number(u.cells[mUtx['Result Code']]);
+                return `
+                <div class="c360-row">
+                  <div class="c360-row-main">${mtLabel} <span style="color: hsl(var(--muted-foreground)); font-weight: 400;">${rgLabel(u.cells[mUtx['Rating Group']])}</span></div>
+                  <div class="c360-row-meta">
+                    <span>${Number(u.cells[mUtx['Used Amount']] || 0).toFixed(1)}</span>
+                    <span style="color:${rc === 2001 ? '#10b981' : '#ef4444'}; font-weight: 600;">${rc}</span>
+                  </div>
+                </div>
+              `;}).join('')}
+            </div>
+          </div>
+        </div>
+      `;
+    };
+
+    function renderRecentActivity() {
+      const { myInteractions, mInt } = STATE.profileData;
+      const el = document.getElementById('recent-activity');
+      if (!myInteractions.length) { el.innerHTML = '<div class="c360-empty">No interactions logged</div>'; return; }
+      const INT_TYPE = { '[1]':'Balance Check','[2]':'Recharge','[3]':'Plan Purchase','[4]':'Complaint','[5]':'Query','[6]':'Status Update','[7]':'Self Care' };
+      el.innerHTML = myInteractions.slice(-10).reverse().map(i => `
+        <div class="c360-row">
+          <div>
+            <div class="c360-row-main">${INT_TYPE[JSON.stringify(i.cells[mInt['Interaction Type']])] || 'Interaction'}</div>
+            <div class="c360-row-meta">${fmtDateTime(i.cells[mInt['Timestamp']])} · ${i.cells[mInt['Duration Seconds']]}s</div>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function renderRecharges() {
+      const { myRecharges, mRech } = STATE.profileData;
+      const el = document.getElementById('recharge-list');
+      if (!myRecharges.length) { el.innerHTML = '<div class="c360-empty">No recharges</div>'; return; }
+      const CH = { '[1]':'Voucher','[2]':'USSD','[3]':'App','[4]':'Retail','[5]':'IVR','[6]':'Online','[7]':'Bank' };
+      el.innerHTML = myRecharges.slice(-8).reverse().map(r => `
+        <div class="c360-row">
+          <div>
+            <div class="c360-row-main">$${Number(r.cells[mRech['Amount']] || 0).toFixed(2)}</div>
+            <div class="c360-row-meta">${fmtDateTime(r.cells[mRech['Timestamp']])}</div>
+          </div>
+          <div class="c360-row-meta"><span class="c360-badge gray">${CH[JSON.stringify(r.cells[mRech['Channel']])] || '?'}</span></div>
+        </div>
+      `).join('');
+    }
+
+    function renderCases() {
+      const { myCases, mCase } = STATE.profileData;
+      const el = document.getElementById('case-list');
+      if (!myCases.length) { el.innerHTML = '<div class="c360-empty">No cases</div>'; return; }
+      const CAT = { '[1]':'Billing','[2]':'Technical','[3]':'Service','[4]':'Complaint','[5]':'Fraud','[6]':'Other' };
+      const STATUS = { '[1]':'Open','[2]':'In Progress','[3]':'Resolved','[4]':'Closed','[5]':'Reopened' };
+      const PRI = { '[1]':'Low','[2]':'Med','[3]':'High','[4]':'Critical' };
+      el.innerHTML = myCases.slice(-8).reverse().map(c => {
+        const stat = STATUS[JSON.stringify(c.cells[mCase['Status']])] || '?';
+        const statCls = stat === 'Resolved' || stat === 'Closed' ? 'green' : stat === 'Open' ? 'amber' : 'gray';
+        return `
+        <div class="c360-row">
+          <div style="min-width: 0; flex: 1;">
+            <div class="c360-row-main" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${erpai.esc(c.cells[mCase['Subject']] || '—')}</div>
+            <div class="c360-row-meta">${CAT[JSON.stringify(c.cells[mCase['Category']])] || '?'} · ${PRI[JSON.stringify(c.cells[mCase['Priority']])] || '?'}</div>
+          </div>
+          <span class="c360-badge ${statCls}">${stat}</span>
+        </div>
+      `;}).join('');
+    }
+
+    function renderLifecycle() {
+      const { myLifecycle, mLife } = STATE.profileData;
+      const el = document.getElementById('lifecycle-list');
+      if (!myLifecycle.length) { el.innerHTML = '<div class="c360-empty">No events</div>'; return; }
+      const EVT = { '[1]':'Activated','[2]':'Suspended','[3]':'Reactivated','[4]':'Churned','[5]':'Reinstated','[6]':'Merged','[7]':'KYC Updated' };
+      el.innerHTML = myLifecycle.slice().reverse().map(l => `
+        <div class="c360-row">
+          <div>
+            <div class="c360-row-main">${EVT[JSON.stringify(l.cells[mLife['Event Type']])] || 'Event'}</div>
+            <div class="c360-row-meta">${erpai.esc(l.cells[mLife['Reason']] || '')}</div>
+          </div>
+          <div class="c360-row-meta">${fmtDate(l.cells[mLife['Event Date']])}</div>
+        </div>
+      `).join('');
+    }
+
+    // ========================================================================
+    // Helpers
+    // ========================================================================
+    function renderBucket(label, used, total, cls, unit) {
+      if (total > 99999) {
+        return `
+          <div class="c360-bucket">
+            <div class="c360-bucket-label">${label}</div>
+            <div class="c360-bucket-val">Unlimited</div>
+            <div class="c360-bucket-total">used: ${Math.round(used)} ${unit}</div>
+          </div>`;
+      }
+      const remaining = Math.max(0, total - used);
+      const pct = total > 0 ? Math.min(100, Math.max(0, Math.round((remaining / total) * 100))) : 0;
+      const low = pct > 0 && pct < 20 ? ' low' : '';
+      const displayRem = cls === 'data' && remaining > 1024 ? `${(remaining/1024).toFixed(2)} GB` : `${Math.round(remaining)} ${unit}`;
+      const displayTotal = cls === 'data' && total > 1024 ? `${(total/1024).toFixed(2)} GB` : `${Math.round(total)} ${unit}`;
+      return `
+        <div class="c360-bucket">
+          <div class="c360-bucket-label">${label}</div>
+          <div class="c360-bucket-val">${displayRem}</div>
+          <div class="c360-bucket-total">of ${displayTotal}</div>
+          <div class="c360-bucket-bar"><div class="c360-bucket-fill ${cls}${low}" style="width:${pct}%"></div></div>
+        </div>`;
+    }
+
+    function serviceTypeLabel(raw) {
+      const MAP = { '[1]':'Data','[2]':'Voice On-net','[3]':'Voice Off-net','[4]':'Voice Intl','[5]':'SMS Dom','[6]':'SMS Intl','[7]':'MMS' };
+      return MAP[JSON.stringify(raw)] || '—';
+    }
+    function rgLabel(rg) {
+      const MAP = { 10:'Data',100:'Voice',101:'Voice-Off',200:'SMS',201:'SMS-Intl' };
+      return MAP[Number(rg)] || 'RG' + rg;
+    }
+    function idTypeName(raw) {
+      const MAP = { '[1]':'Passport','[2]':'National ID','[3]':'Driver License','[4]':'Voter ID','[5]':'Aadhaar' };
+      return MAP[JSON.stringify(raw)] || '—';
+    }
+    function fmtDate(d) { if (!d) return '—'; const x = new Date(d); return isNaN(x) ? '—' : x.toLocaleDateString(undefined,{month:'short',day:'numeric',year:'numeric'}); }
+    function fmtDateTime(d) { if (!d) return '—'; const x = new Date(d); return isNaN(x) ? '—' : x.toLocaleString(undefined,{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'}); }
+    function fmtNum(n) { return Number(n || 0).toFixed(2); }
+
+    // ========================================================================
+    // Boot
+    // ========================================================================
+    (async () => {
+      await initSearch();
+      if (!STATE.allCustomers.length) return;
+
+      // Compute activity per customer (CCR events against their subs)
+      const utxs = await fetchAll(T.usageTxns, 500);
+      const mUtx = await loadColMap(T.usageTxns);
+      const utxCountBySub = new Map();
+      for (const u of utxs) {
+        const sid = u.cells[mUtx['Subscription']]?.[0];
+        if (sid) utxCountBySub.set(sid, (utxCountBySub.get(sid) || 0) + 1);
+      }
+      for (const c of STATE.allCustomers) {
+        c.activity = c.subs.reduce((s, sub) => s + (utxCountBySub.get(sub._id) || 0), 0);
+      }
+
+      populateDropdown();
+
+      // Auto-select the most active customer
+      const top = STATE.allCustomers.slice().sort((a, b) => b.activity - a.activity)[0];
+      if (top) selectCustomer(top.id);
+    })();
+  </script>
+</body>
+</html>

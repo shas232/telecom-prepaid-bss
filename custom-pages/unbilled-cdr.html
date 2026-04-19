@@ -1,0 +1,191 @@
+<script>
+window.ERPAI = {
+  token: 'erp_pat_live_REDACTED',
+  baseUrl: 'https://api.erpai.studio',
+  appId: 'afe8c4540708da6ca9e6fe79',
+  orgName: 'Telecom',
+  appName: 'telecom',
+  theme: 'light'
+};
+</script>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Unbilled CDRs</title>
+  <link rel="stylesheet" href="/runtime/erpai-pages-runtime.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    body { padding: 20px; font-family: 'Geist Sans', system-ui, -apple-system, sans-serif; }
+    .cb-header { margin-bottom: 20px; display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+    .cb-title { font-size: 20px; font-weight: 600; color: hsl(var(--foreground)); letter-spacing: -0.02em; margin: 0; }
+    .cb-subtitle { font-size: 13px; color: hsl(var(--muted-foreground)); margin-top: 4px; max-width: 760px; }
+    .cb-btn { display: inline-flex; align-items: center; gap: 6px; padding: 8px 12px; font-size: 13px; font-weight: 500; border-radius: 8px; border: 1px solid hsl(var(--border)); background: hsl(var(--background)); color: hsl(var(--foreground)); cursor: pointer; }
+
+    .cb-stats { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; margin-bottom: 20px; }
+    @media (max-width: 1100px) { .cb-stats { grid-template-columns: repeat(3, 1fr); } }
+    @media (max-width: 700px)  { .cb-stats { grid-template-columns: repeat(2, 1fr); } }
+    .cb-stat { background: hsl(var(--card)); border: 1px solid hsl(var(--border)); border-radius: 12px; padding: 14px; box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05); }
+    .cb-stat-label { font-size: 11px; color: hsl(var(--muted-foreground)); text-transform: uppercase; letter-spacing: 0.04em; font-weight: 600; margin-bottom: 6px; }
+    .cb-stat-val { font-size: 22px; font-weight: 600; font-variant-numeric: tabular-nums; line-height: 1.1; }
+    .cb-stat-sub { font-size: 11px; color: hsl(var(--muted-foreground)); margin-top: 4px; }
+    .cb-stat.alert { border-color: #ef4444; background: rgba(239, 68, 68, 0.05); }
+    .cb-stat.alert .cb-stat-val { color: #ef4444; }
+
+    .cb-section-head { display: flex; align-items: center; gap: 8px; margin: 24px 0 12px; }
+    .cb-section-title { font-size: 14px; font-weight: 600; margin: 0; }
+    .cb-section-sub { font-size: 12px; color: hsl(var(--muted-foreground)); font-weight: 500; }
+
+    .cb-chart-row { display: grid; grid-template-columns: 1fr 2fr; gap: 16px; margin-bottom: 20px; }
+    @media (max-width: 900px) { .cb-chart-row { grid-template-columns: 1fr; } }
+    .cb-chart-card { padding: 16px; background: hsl(var(--card)); border: 1px solid hsl(var(--border)); border-radius: 12px; box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05); }
+    .cb-chart-title { font-size: 13px; font-weight: 600; margin: 0 0 12px 0; }
+    .cb-chart-canvas-wrap { position: relative; height: 260px; }
+
+    .cb-table { width: 100%; border-collapse: collapse; background: hsl(var(--card)); border: 1px solid hsl(var(--border)); border-radius: 12px; overflow: hidden; }
+    .cb-table thead { background: hsl(var(--muted) / 0.5); }
+    .cb-table th { text-align: left; font-size: 11px; font-weight: 600; color: hsl(var(--muted-foreground)); text-transform: uppercase; letter-spacing: 0.04em; padding: 10px 12px; border-bottom: 1px solid hsl(var(--border)); }
+    .cb-table td { padding: 10px 12px; border-bottom: 1px solid hsl(var(--border)); font-size: 13px; vertical-align: middle; }
+    .cb-table tbody tr:last-child td { border-bottom: none; }
+    .cb-table tbody tr:hover { background: hsl(var(--muted) / 0.4); }
+
+    .cb-empty { padding: 32px 16px; text-align: center; color: hsl(var(--muted-foreground)); font-size: 13px; background: hsl(var(--card)); border: 1px dashed hsl(var(--border)); border-radius: 12px; }
+    .cb-code { font-family: 'SF Mono', Monaco, Menlo, monospace; font-size: 12px; }
+    .cb-muted { color: hsl(var(--muted-foreground)); }
+    .cb-pill { display: inline-flex; align-items: center; padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 600; }
+    .cb-pill-ok { background: #dcfce7; color: #166534; }
+    .cb-pill-warn { background: #fef9c3; color: #854d0e; }
+    .cb-pill-bad { background: #fee2e2; color: #b91c1c; }
+  </style>
+</head>
+<body>
+  <div class="cb-header">
+    <div>
+      <h1 class="cb-title">Unbilled CDRs</h1>
+      <p class="cb-subtitle">Reconciliation health for call detail records flowing from mediation into billing — spot stuck batches, lag, and stranded revenue.</p>
+    </div>
+    <button class="cb-btn" onclick="window.location.reload()">Refresh</button>
+  </div>
+
+  <div class="cb-section-head"><h2 class="cb-section-title">KPIs</h2><span class="cb-section-sub" id="cb-kpi-sub">Loading…</span></div>
+  <div class="cb-stats" id="cb-stats"></div>
+
+  <div class="cb-section-head"><h2 class="cb-section-title">Breakdown</h2></div>
+  <div class="cb-chart-row">
+    <div class="cb-chart-card">
+      <h3 class="cb-chart-title">Unbilled by Service Type</h3>
+      <div class="cb-chart-canvas-wrap"><canvas id="ch-service"></canvas></div>
+    </div>
+    <div class="cb-chart-card">
+      <h3 class="cb-chart-title">Daily Reconciliation Rate (last 30d)</h3>
+      <div class="cb-chart-canvas-wrap"><canvas id="ch-rec"></canvas></div>
+    </div>
+  </div>
+
+  <div class="cb-section-head"><h2 class="cb-section-title">Top 50 Unreconciled CDRs</h2><span class="cb-section-sub" id="cb-t-count">—</span></div>
+  <div id="cb-table-wrap"><div class="cb-empty">Loading…</div></div>
+
+  <script src="/runtime/erpai-pages-runtime.js"></script>
+  <script>
+    let TBL = 'a1776271424351_call_detail_records';
+
+    const esc = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+    const fmtInt = n => n == null || isNaN(n) ? '—' : Number(n).toLocaleString();
+    const fmtMoney = n => n == null || isNaN(n) ? '—' : '$' + Number(n).toLocaleString(undefined, { maximumFractionDigits: 2 });
+    const fmtDT = ts => { if (!ts || String(ts).startsWith('1970')) return '—'; const d = new Date(String(ts).replace(' ','T')+'Z'); return isNaN(d) ? ts : d.toLocaleString(undefined,{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'}); };
+
+    async function sql(q) {
+      try {
+        const r = await fetch(`${window.ERPAI.baseUrl}/v1/agent/app/sql/execute`, {
+          method:'POST',
+          headers:{'Authorization':`Bearer ${window.ERPAI.token}`,'Content-Type':'application/json'},
+          body: JSON.stringify({ appId: window.ERPAI.appId, sqlQuery: q, limit: 500 })
+        });
+        const j = await r.json();
+        if (!j.success) {
+          if (j.message && /Unknown table/i.test(j.message) && !q.includes(TBL+'_1')) {
+            const retry = q.replaceAll(TBL, TBL+'_1'); TBL = TBL+'_1'; return sql(retry);
+          }
+          console.warn('SQL fail:', j.message); return null;
+        }
+        return j.data.rows;
+      } catch (e) { console.warn(e); return null; }
+    }
+
+    const SERVICE_MAP = { '[1]':'Data','[2]':'Voice','[3]':'SMS','[4]':'MMS','[5]':'Roaming','[6]':'VAS','[7]':'Other' };
+
+    async function loadKpis() {
+      const unbilled = await sql(`SELECT count() AS v FROM (SELECT argMax(is_reconciled,_version) AS rec FROM ${TBL} WHERE _deleted=0 AND started_at > now() - INTERVAL 7 DAY GROUP BY _id) WHERE rec=0`);
+      const unbilledVal = await sql(`SELECT sum(charge) AS v FROM (SELECT argMax(total_charged,_version) AS charge, argMax(is_reconciled,_version) AS rec FROM ${TBL} WHERE _deleted=0 AND started_at > now() - INTERVAL 7 DAY GROUP BY _id) WHERE rec=0`);
+      const recRate = await sql(`SELECT countIf(rec=1)*100.0/count() AS v FROM (SELECT argMax(is_reconciled,_version) AS rec FROM ${TBL} WHERE _deleted=0 AND started_at > now() - INTERVAL 7 DAY GROUP BY _id)`);
+      const lag = await sql(`SELECT avg(lag) AS v FROM (SELECT argMax(processing_lag_seconds,_version) AS lag FROM ${TBL} WHERE _deleted=0 AND started_at > now() - INTERVAL 7 DAY GROUP BY _id) WHERE lag>0`);
+      const oldest = await sql(`SELECT min(s) AS v FROM (SELECT argMax(started_at,_version) AS s, argMax(is_reconciled,_version) AS rec FROM ${TBL} WHERE _deleted=0 GROUP BY _id) WHERE rec=0`);
+
+      const unbilledN = unbilled && unbilled[0] ? Number(unbilled[0].v) : 0;
+      const valN = unbilledVal && unbilledVal[0] ? Number(unbilledVal[0].v) : 0;
+      const rateN = recRate && recRate[0] && recRate[0].v != null ? Number(recRate[0].v) : null;
+      const lagN = lag && lag[0] && lag[0].v != null ? Number(lag[0].v) : null;
+      const oldestV = oldest && oldest[0] ? oldest[0].v : null;
+
+      const kpis = [
+        { label:'Unbilled (7d)', val: fmtInt(unbilledN), alert: unbilledN > 0 },
+        { label:'Unbilled Value', val: fmtMoney(valN) },
+        { label:'Reconciled %', val: rateN == null ? '—' : rateN.toFixed(1) + '%' },
+        { label:'Avg Lag', val: lagN == null ? '—' : lagN.toFixed(0) + 's' },
+        { label:'Oldest Unbilled', val: fmtDT(oldestV) }
+      ];
+      document.getElementById('cb-stats').innerHTML = kpis.map(k => `<div class="cb-stat ${k.alert?'alert':''}"><div class="cb-stat-label">${k.label}</div><div class="cb-stat-val">${k.val}</div></div>`).join('');
+      document.getElementById('cb-kpi-sub').textContent = 'Rolling 7-day window';
+    }
+
+    async function loadServiceChart() {
+      const rows = await sql(`SELECT svc, count() AS n FROM (SELECT argMax(service_type,_version) AS svc, argMax(is_reconciled,_version) AS rec FROM ${TBL} WHERE _deleted=0 AND started_at > now() - INTERVAL 30 DAY GROUP BY _id) WHERE rec=0 GROUP BY svc ORDER BY n DESC`);
+      const el = document.getElementById('ch-service').parentElement;
+      if (!rows || !rows.length) { el.innerHTML = '<div class="cb-empty" style="height:260px;display:flex;align-items:center;justify-content:center;">No unbilled CDRs</div>'; return; }
+      new Chart(document.getElementById('ch-service'), {
+        type:'bar',
+        data:{ labels: rows.map(r=>SERVICE_MAP[r.svc]||r.svc||'—'), datasets:[{ label:'Unbilled', data: rows.map(r=>Number(r.n)), backgroundColor:'#f59e0b' }]},
+        options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}}, scales:{y:{beginAtZero:true}} }
+      });
+    }
+
+    async function loadRecChart() {
+      const rows = await sql(`SELECT d, countIf(rec=1)*100.0/count() AS pct FROM (SELECT toDate(argMax(started_at,_version)) AS d, argMax(is_reconciled,_version) AS rec FROM ${TBL} WHERE _deleted=0 AND started_at > now() - INTERVAL 30 DAY GROUP BY _id) GROUP BY d ORDER BY d`);
+      const el = document.getElementById('ch-rec').parentElement;
+      if (!rows || !rows.length) { el.innerHTML = '<div class="cb-empty" style="height:260px;display:flex;align-items:center;justify-content:center;">No data</div>'; return; }
+      new Chart(document.getElementById('ch-rec'), {
+        type:'line',
+        data:{ labels: rows.map(r=>r.d), datasets:[{ label:'Reconciled %', data: rows.map(r=>Number(r.pct)), borderColor:'#10b981', backgroundColor:'rgba(16,185,129,0.15)', tension:0.3, fill:true }]},
+        options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}}, scales:{y:{beginAtZero:true, max:100}} }
+      });
+    }
+
+    async function loadTable() {
+      const rows = await sql(`SELECT _id, argMax(cdr_code,_version) AS cdr_code, argMax(service_type,_version) AS svc, argMax(msisdn,_version) AS msisdn, argMax(started_at,_version) AS started, argMax(total_units,_version) AS units, argMax(is_reconciled,_version) AS rec, argMax(reconciliation_batch_id,_version) AS batch FROM ${TBL} WHERE _deleted=0 GROUP BY _id HAVING rec=0 ORDER BY started DESC LIMIT 50`);
+      const el = document.getElementById('cb-table-wrap');
+      const c = document.getElementById('cb-t-count');
+      if (rows == null) { el.innerHTML = '<div class="cb-empty">Unable to load CDRs.</div>'; return; }
+      if (!rows.length) { el.innerHTML = '<div class="cb-empty">All CDRs reconciled — nothing pending.</div>'; c.textContent = '0'; return; }
+      c.textContent = `${rows.length} shown`;
+      el.innerHTML = `<table class="cb-table"><thead><tr>
+        <th>CDR Code</th><th>Service</th><th>MSISDN</th><th>Started</th><th>Units</th><th>Status</th><th>Batch</th>
+      </tr></thead><tbody>${rows.map(r=>`<tr>
+        <td><span class="cb-code">${esc(r.cdr_code||'—')}</span></td>
+        <td>${esc(SERVICE_MAP[r.svc]||r.svc||'—')}</td>
+        <td class="cb-code">${esc(r.msisdn||'—')}</td>
+        <td class="cb-muted">${fmtDT(r.started)}</td>
+        <td>${fmtInt(r.units)}</td>
+        <td><span class="cb-pill cb-pill-bad">Unreconciled</span></td>
+        <td class="cb-muted">${esc(r.batch||'—')}</td>
+      </tr>`).join('')}</tbody></table>`;
+    }
+
+    async function main() {
+      await loadKpis();
+      await Promise.all([loadServiceChart(), loadRecChart(), loadTable()]);
+    }
+    main();
+  </script>
+</body>
+</html>

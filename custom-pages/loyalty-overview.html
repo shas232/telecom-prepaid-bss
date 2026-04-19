@@ -1,0 +1,353 @@
+<script>
+window.ERPAI = {
+  token: 'erp_pat_live_REDACTED',
+  baseUrl: 'https://api.erpai.studio',
+  appId: 'afe8c4540708da6ca9e6fe79',
+  orgName: 'Telecom',
+  appName: 'telecom',
+  theme: 'light'
+};
+</script>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Loyalty Program</title>
+  <link rel="stylesheet" href="/runtime/erpai-pages-runtime.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    body { padding: 20px; font-family: 'Geist Sans', system-ui, -apple-system, sans-serif; }
+    .cb-header { margin-bottom: 20px; display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
+    .cb-title { font-size: 18px; font-weight: 600; color: hsl(var(--foreground)); letter-spacing: -0.02em; margin: 0; }
+    .cb-subtitle { font-size: 13px; color: hsl(var(--muted-foreground)); margin-top: 2px; }
+    .cb-btn { display: inline-flex; align-items: center; gap: 6px; padding: 8px 12px; font-size: 13px; font-weight: 500; border-radius: 8px; border: 1px solid hsl(var(--border)); background: hsl(var(--background)); color: hsl(var(--foreground)); cursor: pointer; }
+    .cb-btn:hover { background: hsl(var(--muted) / 0.4); }
+
+    .cb-stats { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; margin-bottom: 20px; }
+    @media (max-width: 900px) { .cb-stats { grid-template-columns: repeat(2, 1fr); } }
+    .cb-stat { background: hsl(var(--card)); border: 1px solid hsl(var(--border)); border-radius: 12px; padding: 14px; box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05); }
+    .cb-stat-label { font-size: 11px; color: hsl(var(--muted-foreground)); text-transform: uppercase; letter-spacing: 0.04em; font-weight: 600; margin-bottom: 6px; display: flex; align-items: center; gap: 6px; }
+    .cb-stat-val { font-size: 22px; font-weight: 600; font-variant-numeric: tabular-nums; }
+
+    .cb-chart-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px; }
+    @media (max-width: 900px) { .cb-chart-row { grid-template-columns: 1fr; } }
+    .cb-chart-card { padding: 16px; background: hsl(var(--card)); border: 1px solid hsl(var(--border)); border-radius: 12px; box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05); }
+    .cb-chart-head { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; }
+    .cb-chart-title { font-size: 14px; font-weight: 600; margin: 0; color: hsl(var(--foreground)); }
+    .cb-chart-canvas-wrap { position: relative; height: 280px; }
+
+    .cb-section-head { display: flex; align-items: center; gap: 8px; margin: 20px 0 12px; }
+    .cb-section-title { font-size: 14px; font-weight: 600; margin: 0; color: hsl(var(--foreground)); }
+    .cb-section-count { font-size: 12px; color: hsl(var(--muted-foreground)); font-weight: 500; }
+
+    .cb-grid-tables { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; align-items: start; }
+    @media (max-width: 1100px) { .cb-grid-tables { grid-template-columns: 1fr; } }
+
+    .cb-table { width: 100%; border-collapse: collapse; background: hsl(var(--card)); border: 1px solid hsl(var(--border)); border-radius: 12px; overflow: hidden; box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05); }
+    .cb-table thead { background: hsl(var(--muted) / 0.5); }
+    .cb-table th { text-align: left; font-size: 12px; font-weight: 600; color: hsl(var(--muted-foreground)); text-transform: uppercase; letter-spacing: 0.04em; padding: 10px 12px; border-bottom: 1px solid hsl(var(--border)); }
+    .cb-table td { padding: 10px 12px; border-bottom: 1px solid hsl(var(--border)); font-size: 13px; color: hsl(var(--foreground)); vertical-align: middle; }
+    .cb-table tbody tr:last-child td { border-bottom: none; }
+    .cb-table tbody tr { transition: background 0.12s; }
+    .cb-table tbody tr:hover { background: hsl(var(--muted) / 0.4); }
+
+    .cb-empty { padding: 32px 16px; text-align: center; color: hsl(var(--muted-foreground)); font-size: 13px; }
+    .cb-code { font-family: 'SF Mono', Monaco, Menlo, monospace; font-size: 12px; font-weight: 500; }
+
+    .cb-pill { display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 600; line-height: 1.6; }
+    .cb-pill-active { background: #dcfce7; color: #166534; }
+    .cb-pill-inactive { background: #f3f4f6; color: #6b7280; }
+    .cb-pill-oos { background: #fee2e2; color: #b91c1c; }
+    .cb-pill-scheduled { background: #dbeafe; color: #1d4ed8; }
+    .cb-pill-retired { background: #f3f4f6; color: #6b7280; }
+
+    .cb-tier-bronze   { background: #fef3c7; color: #92400e; }
+    .cb-tier-silver   { background: #f1f5f9; color: #475569; }
+    .cb-tier-gold     { background: #fef9c3; color: #854d0e; }
+    .cb-tier-platinum { background: #ede9fe; color: #5b21b6; }
+    .cb-tier-diamond  { background: #cffafe; color: #155e75; }
+
+    .cb-points { font-variant-numeric: tabular-nums; font-weight: 600; }
+  </style>
+</head>
+<body>
+  <div class="cb-header">
+    <div>
+      <h1 class="cb-title">Loyalty Program</h1>
+      <p class="cb-subtitle">Tier distribution, points economy, and redemption activity</p>
+    </div>
+    <button class="cb-btn" onclick="window.location.reload()">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M3 21v-5h5"/></svg>
+      Refresh
+    </button>
+  </div>
+
+  <div class="cb-stats" id="stats"></div>
+
+  <div class="cb-chart-row">
+    <div class="cb-chart-card">
+      <div class="cb-chart-head">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="color: hsl(var(--primary));"><circle cx="12" cy="8" r="7"/><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"/></svg>
+        <h2 class="cb-chart-title">Customers by Tier</h2>
+      </div>
+      <div class="cb-chart-canvas-wrap"><canvas id="tierChart"></canvas></div>
+    </div>
+    <div class="cb-chart-card">
+      <div class="cb-chart-head">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="color: hsl(var(--primary));"><line x1="12" x2="12" y1="20" y2="10"/><line x1="18" x2="18" y1="20" y2="4"/><line x1="6" x2="6" y1="20" y2="16"/></svg>
+        <h2 class="cb-chart-title">Points Flow — Last 30 Days</h2>
+      </div>
+      <div class="cb-chart-canvas-wrap"><canvas id="flowChart"></canvas></div>
+    </div>
+  </div>
+
+  <div class="cb-grid-tables">
+    <div>
+      <div class="cb-section-head">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="color: hsl(var(--primary));"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+        <h2 class="cb-section-title">Top 10 by Points Earned</h2>
+        <span class="cb-section-count" id="top-count"></span>
+      </div>
+      <div id="top-wrap"></div>
+    </div>
+
+    <div>
+      <div class="cb-section-head">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="color: hsl(var(--primary));"><polyline points="20 12 20 22 4 22 4 12"/><rect x="2" y="7" width="20" height="5"/><line x1="12" x2="12" y1="22" y2="7"/><path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"/><path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"/></svg>
+        <h2 class="cb-section-title">Rewards Catalog</h2>
+        <span class="cb-section-count" id="reward-count"></span>
+      </div>
+      <div id="rewards-wrap"></div>
+    </div>
+  </div>
+
+  <script>
+    const TIER_MAP = { 1: 'Bronze', 2: 'Silver', 3: 'Gold', 4: 'Platinum', 5: 'Diamond' };
+    const TIER_COLOR = { 1: '#a16207', 2: '#94a3b8', 3: '#eab308', 4: '#8b5cf6', 5: '#06b6d4' };
+    const TIER_PILL = { 1: 'cb-tier-bronze', 2: 'cb-tier-silver', 3: 'cb-tier-gold', 4: 'cb-tier-platinum', 5: 'cb-tier-diamond' };
+    const TXN_TYPE_MAP = { 1: 'Earn', 2: 'Redeem', 3: 'Expire', 4: 'Adjustment', 5: 'Transfer In', 6: 'Transfer Out' };
+    const REWARD_TYPE_MAP = { 1: 'Data Bundle', 2: 'Voice Minutes', 3: 'SMS Pack', 4: 'Discount Voucher', 5: 'Device', 6: 'Merchandise', 7: 'Subscription', 8: 'Partner Voucher' };
+    const REWARD_STATUS_MAP = { 1: 'Active', 2: 'Out of Stock', 3: 'Scheduled', 4: 'Retired' };
+    const REWARD_STATUS_PILL = { 1: 'cb-pill-active', 2: 'cb-pill-oos', 3: 'cb-pill-scheduled', 4: 'cb-pill-retired' };
+
+    function esc(s) { if (s === null || s === undefined) return ''; return String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
+    function asArrayFirst(v) {
+      if (v === null || v === undefined || v === '') return null;
+      if (Array.isArray(v)) return v[0] ?? null;
+      const s = String(v).trim();
+      if (s.startsWith('[') && s.endsWith(']')) {
+        const inner = s.slice(1, -1).trim();
+        if (!inner) return null;
+        return Number(inner.split(',')[0]) || inner.split(',')[0];
+      }
+      const n = Number(s);
+      return Number.isFinite(n) ? n : s;
+    }
+    function fmtNum(n) { return (Number(n) || 0).toLocaleString(); }
+
+    async function sql(q) {
+      const r = await fetch(`${window.ERPAI.baseUrl}/v1/agent/app/sql/execute`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${window.ERPAI.token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ appId: window.ERPAI.appId, sqlQuery: q, limit: 500 })
+      });
+      const j = await r.json();
+      if (!j.success) { console.warn('SQL failed:', q, j); return []; }
+      return j.data?.rows || [];
+    }
+
+    function renderStats(s) {
+      const stat = (label, value, icon, color) => `
+        <div class="cb-stat">
+          <div class="cb-stat-label" style="color:${color}">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${icon}</svg>
+            ${label}
+          </div>
+          <div class="cb-stat-val" style="color:${color}">${value}</div>
+        </div>`;
+      document.getElementById('stats').innerHTML = [
+        stat('Points Outstanding', fmtNum(s.outstanding), '<circle cx="12" cy="12" r="10"/><path d="M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8"/><path d="M12 18V6"/>', '#8b5cf6'),
+        stat('Active Members', fmtNum(s.activeMembers), '<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/>', 'hsl(var(--primary))'),
+        stat('Redemptions (30d)', fmtNum(s.redemptions30), '<polyline points="20 12 20 22 4 22 4 12"/><rect x="2" y="7" width="20" height="5"/><line x1="12" x2="12" y1="22" y2="7"/>', '#f97316'),
+        stat('Points Earned (30d)', fmtNum(s.earned30), '<polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/>', '#10b981'),
+        stat('Avg Points / Customer', fmtNum(Math.round(s.avgPoints)), '<line x1="12" x2="12" y1="20" y2="10"/><line x1="18" x2="18" y1="20" y2="4"/><line x1="6" x2="6" y1="20" y2="16"/>', '#3b82f6'),
+      ].join('');
+    }
+
+    function renderTierChart(tierCounts) {
+      const labels = [1, 2, 3, 4, 5].map(i => TIER_MAP[i]);
+      const data = [1, 2, 3, 4, 5].map(i => tierCounts[i] || 0);
+      const colors = [1, 2, 3, 4, 5].map(i => TIER_COLOR[i]);
+      new Chart(document.getElementById('tierChart'), {
+        type: 'bar',
+        data: { labels, datasets: [{ data, backgroundColor: colors, borderRadius: 6 }] },
+        options: {
+          indexAxis: 'y',
+          responsive: true, maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: {
+            x: { beginAtZero: true, ticks: { color: '#6b7280', font: { size: 11 }, precision: 0 }, grid: { color: 'rgba(0,0,0,0.05)' } },
+            y: { grid: { display: false }, ticks: { color: '#6b7280', font: { size: 11 } } }
+          }
+        }
+      });
+    }
+
+    function renderFlow(flowRows) {
+      const labels = [];
+      const earnByDay = new Map();
+      const redeemByDay = new Map();
+      const expireByDay = new Map();
+      for (const r of flowRows) {
+        const day = String(r.d).slice(0, 10);
+        const t = asArrayFirst(r.t);
+        const p = Number(r.p) || 0;
+        if (t == 1) earnByDay.set(day, (earnByDay.get(day) || 0) + p);
+        else if (t == 2) redeemByDay.set(day, (redeemByDay.get(day) || 0) + p);
+        else if (t == 3) expireByDay.set(day, (expireByDay.get(day) || 0) + p);
+      }
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const earn = [], redeem = [], expire = [];
+      for (let i = 29; i >= 0; i--) {
+        const d = new Date(today);
+        d.setDate(d.getDate() - i);
+        const k = d.toISOString().slice(0, 10);
+        labels.push(k.slice(5));
+        earn.push(earnByDay.get(k) || 0);
+        redeem.push(redeemByDay.get(k) || 0);
+        expire.push(expireByDay.get(k) || 0);
+      }
+      new Chart(document.getElementById('flowChart'), {
+        type: 'bar',
+        data: {
+          labels,
+          datasets: [
+            { label: 'Earn', data: earn, backgroundColor: '#10b981', stack: 's' },
+            { label: 'Redeem', data: redeem, backgroundColor: '#f97316', stack: 's' },
+            { label: 'Expire', data: expire, backgroundColor: '#94a3b8', stack: 's' }
+          ]
+        },
+        options: {
+          responsive: true, maintainAspectRatio: false,
+          plugins: { legend: { position: 'bottom', labels: { font: { size: 11 }, boxWidth: 10 } } },
+          scales: {
+            x: { stacked: true, grid: { display: false }, ticks: { color: '#6b7280', font: { size: 10 }, maxRotation: 0, autoSkip: true, maxTicksLimit: 10 } },
+            y: { stacked: true, beginAtZero: true, ticks: { color: '#6b7280', font: { size: 11 } }, grid: { color: 'rgba(0,0,0,0.05)' } }
+          }
+        }
+      });
+    }
+
+    function renderTop(topRows) {
+      document.getElementById('top-count').textContent = `${topRows.length} customers`;
+      if (!topRows.length) {
+        document.getElementById('top-wrap').innerHTML = `<div class="cb-chart-card"><div class="cb-empty">No points transactions yet. Top earners will appear here once customers start earning.</div></div>`;
+        return;
+      }
+      const rows = topRows.map((r, i) => {
+        const tier = asArrayFirst(r.loyalty_tier);
+        const tierCls = TIER_PILL[tier] || 'cb-pill-inactive';
+        const tierLabel = TIER_MAP[tier] || '—';
+        return `<tr>
+          <td>${i + 1}</td>
+          <td style="font-weight: 500;">${esc(r.name || '—')}</td>
+          <td><span class="cb-pill ${tierCls}">${esc(tierLabel)}</span></td>
+          <td class="cb-points">${fmtNum(r.earned)}</td>
+        </tr>`;
+      }).join('');
+      document.getElementById('top-wrap').innerHTML = `
+        <table class="cb-table">
+          <thead><tr><th>#</th><th>Customer</th><th>Tier</th><th>Points Earned</th></tr></thead>
+          <tbody>${rows}</tbody>
+        </table>`;
+    }
+
+    function renderRewards(rewards) {
+      document.getElementById('reward-count').textContent = `${rewards.length} rewards`;
+      if (!rewards.length) {
+        document.getElementById('rewards-wrap').innerHTML = `<div class="cb-chart-card"><div class="cb-empty">No rewards in the catalog yet.</div></div>`;
+        return;
+      }
+      const rows = rewards.map(r => {
+        const type = asArrayFirst(r.reward_type);
+        const status = asArrayFirst(r.status);
+        const statusLabel = REWARD_STATUS_MAP[status] || '—';
+        const statusCls = REWARD_STATUS_PILL[status] || 'cb-pill-inactive';
+        return `<tr>
+          <td style="font-weight: 500;">${esc(r.reward_name || '—')}</td>
+          <td class="cb-points">${fmtNum(r.points_cost)}</td>
+          <td>${esc(REWARD_TYPE_MAP[type] || '—')}</td>
+          <td>${r.stock !== undefined && r.stock !== null && r.stock !== '' ? esc(r.stock) : '—'}</td>
+          <td>${fmtNum(r.redemption_count)}</td>
+          <td><span class="cb-pill ${statusCls}">${esc(statusLabel)}</span></td>
+        </tr>`;
+      }).join('');
+      document.getElementById('rewards-wrap').innerHTML = `
+        <table class="cb-table">
+          <thead><tr>
+            <th>Reward</th><th>Points</th><th>Type</th>
+            <th>Stock</th><th>Redeemed</th><th>Status</th>
+          </tr></thead>
+          <tbody>${rows}</tbody>
+        </table>`;
+    }
+
+    async function main() {
+      document.getElementById('stats').innerHTML = '<div class="cb-stat">Loading…</div>';
+
+      const [
+        earnedTotalRows, redeemedTotalRows,
+        activeMembersRows, redemptions30Rows, earned30Rows,
+        avgPointsRows, tierRows, flowRows,
+        topRows, rewards
+      ] = await Promise.all([
+        sql(`SELECT sum(points) AS s FROM a1776271424351_loyalty_points_transactions WHERE _deleted=0 AND type = '[1]'`),
+        sql(`SELECT sum(points) AS s FROM a1776271424351_loyalty_points_transactions WHERE _deleted=0 AND type = '[2]'`),
+        sql(`SELECT count() AS c FROM a1776271424351_customers WHERE _deleted=0 AND status = '[1]'`),
+        sql(`SELECT count() AS c FROM a1776271424351_loyalty_points_transactions WHERE _deleted=0 AND type = '[2]' AND timestamp >= now() - INTERVAL 30 DAY`),
+        sql(`SELECT sum(points) AS s FROM a1776271424351_loyalty_points_transactions WHERE _deleted=0 AND type = '[1]' AND timestamp >= now() - INTERVAL 30 DAY`),
+        sql(`SELECT avg(loyalty_points) AS a FROM a1776271424351_customers WHERE _deleted=0`),
+        sql(`SELECT loyalty_tier AS t, count() AS c FROM a1776271424351_customers WHERE _deleted=0 GROUP BY loyalty_tier`),
+        sql(`SELECT toDate(timestamp) AS d, type AS t, sum(points) AS p FROM a1776271424351_loyalty_points_transactions WHERE _deleted=0 AND timestamp >= now() - INTERVAL 30 DAY GROUP BY d, type ORDER BY d`),
+        sql(`
+          SELECT c._id AS id, c.name AS name, c.loyalty_tier AS loyalty_tier, sum(t.points) AS earned
+          FROM a1776271424351_customers c
+          INNER JOIN a1776271424351_loyalty_points_transactions t ON t.customer = c._id
+          WHERE c._deleted=0 AND t._deleted=0 AND t.type = '[1]'
+          GROUP BY c._id, c.name, c.loyalty_tier
+          ORDER BY earned DESC
+          LIMIT 10
+        `),
+        sql(`SELECT reward_name, points_cost, reward_type, stock, redemption_count, status FROM a1776271424351_rewards_catalog WHERE _deleted=0 ORDER BY points_cost ASC LIMIT 100`),
+      ]);
+
+      const tierCounts = {};
+      for (const r of tierRows) {
+        const k = asArrayFirst(r.t);
+        if (k != null) tierCounts[k] = (tierCounts[k] || 0) + (Number(r.c) || 0);
+      }
+      const earnedTotal = Number(earnedTotalRows[0]?.s) || 0;
+      const redeemedTotal = Number(redeemedTotalRows[0]?.s) || 0;
+
+      renderStats({
+        outstanding: Math.max(0, earnedTotal - redeemedTotal),
+        activeMembers: Number(activeMembersRows[0]?.c) || 0,
+        redemptions30: Number(redemptions30Rows[0]?.c) || 0,
+        earned30: Number(earned30Rows[0]?.s) || 0,
+        avgPoints: Number(avgPointsRows[0]?.a) || 0,
+      });
+      renderTierChart(tierCounts);
+      renderFlow(flowRows);
+      renderTop(topRows);
+      renderRewards(rewards);
+    }
+
+    main().catch(err => {
+      console.error(err);
+      document.getElementById('stats').innerHTML = `<div class="cb-stat" style="color:#ef4444;">Error: ${String(err.message || err)}</div>`;
+    });
+  </script>
+</body>
+</html>

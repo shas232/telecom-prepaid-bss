@@ -1,0 +1,383 @@
+<script>
+window.ERPAI = {
+  token: 'erp_pat_live_REDACTED',
+  baseUrl: 'https://api.erpai.studio',
+  appId: 'afe8c4540708da6ca9e6fe79',
+  orgName: 'Telecom',
+  appName: 'telecom',
+  theme: 'light'
+};
+</script>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Number Portability &amp; Auctions</title>
+  <link rel="stylesheet" href="/runtime/erpai-pages-runtime.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    body { padding: 20px; font-family: 'Geist Sans', system-ui, -apple-system, sans-serif; }
+    .mn-header { margin-bottom: 20px; display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; }
+    .mn-title { font-size: 18px; font-weight: 600; margin: 0; letter-spacing: -0.02em; }
+    .mn-subtitle { font-size: 13px; color: hsl(var(--muted-foreground)); margin-top: 2px; }
+    .mn-btn { display: inline-flex; align-items: center; gap: 6px; padding: 8px 12px; font-size: 13px; font-weight: 500; border-radius: 8px; border: 1px solid hsl(var(--border)); background: hsl(var(--background)); color: hsl(var(--foreground)); cursor: pointer; }
+    .mn-btn:hover { background: hsl(var(--muted) / 0.4); }
+
+    .mn-kpis { display: grid; grid-template-columns: repeat(6, 1fr); gap: 12px; margin-bottom: 20px; }
+    @media (max-width: 900px) { .mn-kpis { grid-template-columns: repeat(2, 1fr); } }
+    .mn-kpi { background: hsl(var(--card)); border: 1px solid hsl(var(--border)); border-radius: 12px; padding: 14px; }
+    .mn-kpi-label { font-size: 11px; color: hsl(var(--muted-foreground)); text-transform: uppercase; letter-spacing: 0.04em; font-weight: 600; margin-bottom: 6px; }
+    .mn-kpi-val { font-size: 22px; font-weight: 600; font-variant-numeric: tabular-nums; }
+    .mn-kpi-sub { font-size: 11px; color: hsl(var(--muted-foreground)); margin-top: 2px; }
+    .mn-kpi.win .mn-kpi-val { color: #166534; }
+    .mn-kpi.hot .mn-kpi-val { color: #b45309; }
+
+    .mn-section { margin-top: 24px; }
+    .mn-section-head { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; }
+    .mn-section-title { font-size: 14px; font-weight: 600; margin: 0; }
+    .mn-count-chip { font-size: 12px; color: hsl(var(--muted-foreground)); font-weight: 500; background: hsl(var(--muted) / 0.6); padding: 2px 8px; border-radius: 99px; }
+
+    .mn-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    @media (max-width: 900px) { .mn-grid-2 { grid-template-columns: 1fr; } }
+    .mn-card { padding: 16px; background: hsl(var(--card)); border: 1px solid hsl(var(--border)); border-radius: 12px; }
+    .mn-card-title { font-size: 14px; font-weight: 600; margin: 0 0 12px; }
+    .mn-card-chart { position: relative; height: 240px; }
+
+    .mn-table { width: 100%; border-collapse: collapse; background: hsl(var(--card)); border: 1px solid hsl(var(--border)); border-radius: 12px; overflow: hidden; }
+    .mn-table thead { background: hsl(var(--muted) / 0.5); }
+    .mn-table th { text-align: left; font-size: 12px; font-weight: 600; color: hsl(var(--muted-foreground)); text-transform: uppercase; letter-spacing: 0.04em; padding: 10px 12px; border-bottom: 1px solid hsl(var(--border)); }
+    .mn-table td { padding: 10px 12px; border-bottom: 1px solid hsl(var(--border)); font-size: 13px; vertical-align: middle; }
+    .mn-table tbody tr:last-child td { border-bottom: none; }
+    .mn-mono { font-family: 'SF Mono', Monaco, monospace; font-size: 12px; }
+    .mn-num { text-align: right; font-variant-numeric: tabular-nums; }
+
+    .mn-badge { display: inline-block; font-size: 10px; font-weight: 600; padding: 2px 8px; border-radius: 99px; }
+    .mn-badge-green { background: #dcfce7; color: #166534; }
+    .mn-badge-amber { background: #fef3c7; color: #92400e; }
+    .mn-badge-red   { background: #fee2e2; color: #991b1b; }
+    .mn-badge-blue  { background: #dbeafe; color: #1e40af; }
+    .mn-badge-gray  { background: #e5e7eb; color: #374151; }
+    .mn-badge-purple{ background: #ede9fe; color: #6d28d9; }
+
+    .mn-tabs { display: inline-flex; border: 1px solid hsl(var(--border)); border-radius: 8px; overflow: hidden; margin-bottom: 12px; }
+    .mn-tab { padding: 6px 14px; font-size: 13px; font-weight: 500; background: hsl(var(--background)); border: none; cursor: pointer; color: hsl(var(--foreground)); border-right: 1px solid hsl(var(--border)); }
+    .mn-tab:last-child { border-right: none; }
+    .mn-tab.active { background: hsl(var(--primary) / 0.1); color: hsl(var(--primary)); }
+    .mn-tab-hidden { display: none; }
+
+    .mn-progress { height: 4px; background: hsl(var(--muted)); border-radius: 99px; overflow: hidden; margin-top: 4px; }
+    .mn-progress-fill { height: 100%; background: #3b82f6; }
+
+    .mn-empty { padding: 40px; text-align: center; color: hsl(var(--muted-foreground)); font-size: 13px; }
+
+    .mn-vanity { font-weight: 700; font-size: 14px; color: #7c2d12; letter-spacing: 0.04em; }
+  </style>
+</head>
+<body>
+  <div class="mn-header">
+    <div>
+      <h1 class="mn-title">Number Portability &amp; Auctions</h1>
+      <p class="mn-subtitle">MNP request queue, vanity number auctions, and recycling rules.</p>
+    </div>
+    <button class="mn-btn" onclick="window.location.reload()">↻ Refresh</button>
+  </div>
+
+  <div style="padding: 12px 16px; margin-bottom: 20px; border: 1px solid #fcd34d; background: #fffbeb; border-radius: 10px; display: flex; gap: 12px; align-items: flex-start;">
+    <div style="font-size: 18px; line-height: 1;">⚠️</div>
+    <div style="flex: 1;">
+      <div style="font-size: 13px; font-weight: 600; color: #92400e; margin-bottom: 2px;">Regulatory Notice — MNP shelved in Botswana (BOCRA, April 2021)</div>
+      <div style="font-size: 12px; color: #78350f; line-height: 1.5;">
+        Mobile Number Portability is currently <strong>out of regulatory scope</strong> in Botswana — BOCRA shelved the 2013 directive following a 2021 market-readiness review. The MNP tables below are retained in the schema for <strong>future re-enablement</strong>. Cancelled records are reference scenarios.
+        Vanity number auctions and recycling rules remain fully active.
+      </div>
+    </div>
+  </div>
+
+  <div class="mn-kpis" id="kpis"></div>
+
+  <div class="mn-grid-2" style="margin-bottom: 20px;">
+    <div class="mn-card">
+      <h3 class="mn-card-title">MNP Requests by Status</h3>
+      <div class="mn-card-chart"><canvas id="statusChart"></canvas></div>
+    </div>
+    <div class="mn-card">
+      <h3 class="mn-card-title">Change Events — Last 30 days</h3>
+      <div class="mn-card-chart"><canvas id="chgChart"></canvas></div>
+    </div>
+  </div>
+
+  <div class="mn-section">
+    <div class="mn-section-head">
+      <h3 class="mn-section-title">MNP Request Queue</h3>
+      <span class="mn-count-chip" id="mnpCount">—</span>
+    </div>
+    <div class="mn-tabs">
+      <button class="mn-tab active" data-tab="active">In Progress</button>
+      <button class="mn-tab" data-tab="complete">Complete</button>
+      <button class="mn-tab" data-tab="rejected">Rejected / Cancelled</button>
+    </div>
+    <table class="mn-table">
+      <thead>
+        <tr><th>MNP Code</th><th>Type</th><th>MSISDN</th><th>Counterparty</th><th>UPC</th><th>Requested</th><th>Scheduled</th><th class="mn-num">SLA</th><th>Status</th></tr>
+      </thead>
+      <tbody id="mnpBody"></tbody>
+    </table>
+  </div>
+
+  <div class="mn-section">
+    <div class="mn-section-head">
+      <h3 class="mn-section-title">Vanity Number Auctions</h3>
+      <span class="mn-count-chip" id="auctionCount">—</span>
+    </div>
+    <table class="mn-table">
+      <thead>
+        <tr><th>MSISDN</th><th>Tier</th><th class="mn-num">Reserve</th><th class="mn-num">Current Bid</th><th class="mn-num">Premium %</th><th class="mn-num">Bids</th><th>Ends</th><th>Status</th><th>Winner</th></tr>
+      </thead>
+      <tbody id="auctionBody"></tbody>
+    </table>
+  </div>
+
+  <div class="mn-section">
+    <div class="mn-section-head">
+      <h3 class="mn-section-title">Number Change Events (recent 15)</h3>
+      <span class="mn-count-chip" id="chgCount">—</span>
+    </div>
+    <table class="mn-table">
+      <thead>
+        <tr><th>Event</th><th>MSISDN</th><th>Change Type</th><th>When</th><th>By</th><th>Reason</th></tr>
+      </thead>
+      <tbody id="chgBody"></tbody>
+    </table>
+  </div>
+
+  <div class="mn-section">
+    <div class="mn-section-head">
+      <h3 class="mn-section-title">Recycling Rules</h3>
+    </div>
+    <table class="mn-table">
+      <thead>
+        <tr><th>Rule</th><th>Tier</th><th class="mn-num">Quarantine Days</th><th class="mn-num">Reactivation Fee</th><th>Regulator Ref</th><th>Status</th></tr>
+      </thead>
+      <tbody id="ruleBody"></tbody>
+    </table>
+  </div>
+
+<script>
+const { token, baseUrl, appId } = window.ERPAI;
+const hdrs = { Authorization: 'Bearer ' + token, 'Content-Type': 'application/json' };
+
+async function apiGet(url) { return (await fetch(baseUrl + url, { headers: hdrs })).json(); }
+async function apiPost(url, body) { return (await fetch(baseUrl + url, { method: 'POST', headers: hdrs, body: JSON.stringify(body) })).json(); }
+async function fetchTableByName(name) { const list = await apiGet(`/v1/app-builder/table?appId=${appId}&pageSize=200`); return (list.data || []).find(t => t.name === name); }
+async function fetchAllRows(id) { const all = []; let p = 1; while (true) { const r = await apiPost(`/v1/app-builder/table/${id}/paged-record?pageNo=${p}&pageSize=300`, {}); const b = r.data || []; all.push(...b); if (b.length < 300) break; p++; } return all; }
+async function schemaCols(id) { const r = await apiGet(`/v1/app-builder/table/${id}`); return r.columnsMetaData || r.data?.columnsMetaData || []; }
+const val = c => Array.isArray(c) ? (c.length ? (typeof c[0] === 'object' ? c[0].name || c[0] : c[0]) : null) : (c && typeof c === 'object' && 'name' in c ? c.name : c);
+// Resolve select cell IDs → option names in place, using schema metadata.
+function resolveSelects(rows, cols) {
+  const map = {};
+  for (const c of cols) {
+    if ((c.type === 'select' || c.type === 'multi-select') && c.options) {
+      map[c.id] = Object.fromEntries(c.options.map(o => { const x = o.value || o; return [x.id, x.name]; }));
+    }
+  }
+  for (const r of rows) {
+    for (const cid of Object.keys(map)) {
+      const v = r.cells[cid];
+      if (v == null) continue;
+      if (Array.isArray(v)) r.cells[cid] = v.map(x => typeof x === 'number' ? map[cid][x] : (typeof x === 'object' ? x.name || x : x)).filter(x => x != null);
+      else if (typeof v === 'number') r.cells[cid] = [map[cid][v]];
+    }
+  }
+}
+const fmtMoney = n => n == null ? '—' : 'P ' + Number(n).toLocaleString('en-BW', { maximumFractionDigits: 0 });
+const fmtDate = ms => !ms ? '—' : new Date(typeof ms === 'string' ? ms : Number(ms)).toLocaleDateString('en-BW', { day:'2-digit', month:'short', year:'numeric' });
+const daysAgo = ms => { if(!ms) return '—'; const n = Math.round((Date.now() - Number(ms))/86400000); return n <= 0 ? 'today' : n + 'd ago'; };
+const daysTo = ms => { if(!ms) return '—'; const n = Math.round((Number(ms) - Date.now())/86400000); if (n < 0) return 'ended'; if (n === 0) return 'today'; return 'in ' + n + 'd'; };
+
+const IN_PROGRESS = new Set(['Requested','UPC Validation','Donor Approved','Scheduled','In Cutover']);
+const COMPLETE = new Set(['Complete']);
+const REJECTED = new Set(['Rejected','Cancelled']);
+
+let mnpData = [];
+function renderMnp(tab, cols) {
+  const M = cols;
+  let list;
+  if (tab === 'active') list = mnpData.filter(m => IN_PROGRESS.has(val(m.cells[M['Status']])));
+  else if (tab === 'complete') list = mnpData.filter(m => COMPLETE.has(val(m.cells[M['Status']])));
+  else list = mnpData.filter(m => REJECTED.has(val(m.cells[M['Status']])));
+
+  document.getElementById('mnpCount').textContent = list.length;
+  document.getElementById('mnpBody').innerHTML = list.length === 0 ? `<tr><td colspan="9" class="mn-empty">No requests in this bucket</td></tr>` :
+    list.map(m => {
+      const type = val(m.cells[M['Type']]);
+      const typeClass = type === 'Port In' ? 'mn-badge-green' : 'mn-badge-purple';
+      const counterparty = m.cells[M['Donor Operator']] || m.cells[M['Recipient Operator']] || '—';
+      const status = val(m.cells[M['Status']]) || '—';
+      const sClass = status === 'Complete' ? 'mn-badge-green' :
+                     status === 'Rejected' || status === 'Cancelled' ? 'mn-badge-red' :
+                     status === 'In Cutover' ? 'mn-badge-amber' : 'mn-badge-blue';
+      const sla = Number(m.cells[M['SLA Days Remaining']] || 0);
+      return `<tr>
+        <td class="mn-mono">${m.cells[M['MNP Code']] || '—'}</td>
+        <td><span class="mn-badge ${typeClass}">${type}</span></td>
+        <td class="mn-mono">${m.cells[M['MSISDN']] || '—'}</td>
+        <td>${counterparty}</td>
+        <td class="mn-mono">${m.cells[M['UPC Code']] || '—'}</td>
+        <td>${daysAgo(m.cells[M['Requested At']])}</td>
+        <td>${m.cells[M['Scheduled Cutover']] ? fmtDate(m.cells[M['Scheduled Cutover']]) : '—'}</td>
+        <td class="mn-num">${sla > 0 ? sla + 'd' : sla === 0 ? '<span style="color:#991b1b">today</span>' : '—'}</td>
+        <td><span class="mn-badge ${sClass}">${status}</span></td>
+      </tr>`;
+    }).join('');
+}
+
+async function load() {
+  const [mnpT, auctionT, chgT, ruleT] = await Promise.all([
+    fetchTableByName('MNP Requests'), fetchTableByName('Number Auctions'),
+    fetchTableByName('Number Change Events'), fetchTableByName('Number Recycling Rules')
+  ]);
+  const [mnpCols, aCols, cCols, rCols] = await Promise.all([
+    schemaCols(mnpT._id), schemaCols(auctionT._id), schemaCols(chgT._id), schemaCols(ruleT._id)
+  ]);
+  const [mnps, auctions, changes, rules] = await Promise.all([
+    fetchAllRows(mnpT._id), fetchAllRows(auctionT._id), fetchAllRows(chgT._id), fetchAllRows(ruleT._id)
+  ]);
+
+  resolveSelects(mnps, mnpCols);
+  resolveSelects(auctions, aCols);
+  resolveSelects(changes, cCols);
+  resolveSelects(rules, rCols);
+
+  const M = Object.fromEntries(mnpCols.map(c => [c.name, c.id]));
+  const A = Object.fromEntries(aCols.map(c => [c.name, c.id]));
+  const C = Object.fromEntries(cCols.map(c => [c.name, c.id]));
+  const R = Object.fromEntries(rCols.map(c => [c.name, c.id]));
+
+  mnpData = mnps;
+
+  const activeIn = mnps.filter(m => val(m.cells[M['Type']]) === 'Port In' && IN_PROGRESS.has(val(m.cells[M['Status']])));
+  const activeOut = mnps.filter(m => val(m.cells[M['Type']]) === 'Port Out' && IN_PROGRESS.has(val(m.cells[M['Status']])));
+  const complete30 = mnps.filter(m => COMPLETE.has(val(m.cells[M['Status']])) && (Date.now() - Number(m.cells[M['Requested At']])) < 30*86400000);
+  const rejected = mnps.filter(m => REJECTED.has(val(m.cells[M['Status']])));
+  const rejectionRate = mnps.length ? ((rejected.length / mnps.length) * 100).toFixed(0) : 0;
+  const openAuctions = auctions.filter(a => val(a.cells[A['Status']]) === 'Open');
+  const auctionRev = auctions.filter(a => val(a.cells[A['Status']]) === 'Sold').reduce((s,a) => s + (Number(a.cells[A['Sold Price']])||0), 0);
+
+  document.getElementById('kpis').innerHTML = `
+    <div class="mn-kpi"><div class="mn-kpi-label">Port-In Active</div><div class="mn-kpi-val">${activeIn.length}</div><div class="mn-kpi-sub">inbound requests</div></div>
+    <div class="mn-kpi"><div class="mn-kpi-label">Port-Out Active</div><div class="mn-kpi-val">${activeOut.length}</div><div class="mn-kpi-sub">outbound requests</div></div>
+    <div class="mn-kpi win"><div class="mn-kpi-label">Complete 30d</div><div class="mn-kpi-val">${complete30.length}</div><div class="mn-kpi-sub">last month</div></div>
+    <div class="mn-kpi hot"><div class="mn-kpi-label">Rejection Rate</div><div class="mn-kpi-val">${rejectionRate}%</div><div class="mn-kpi-sub">${rejected.length} of ${mnps.length}</div></div>
+    <div class="mn-kpi"><div class="mn-kpi-label">Open Auctions</div><div class="mn-kpi-val">${openAuctions.length}</div><div class="mn-kpi-sub">vanity MSISDNs</div></div>
+    <div class="mn-kpi win"><div class="mn-kpi-label">Auction Revenue</div><div class="mn-kpi-val">${fmtMoney(auctionRev)}</div><div class="mn-kpi-sub">sold all-time</div></div>`;
+
+  // Chart: MNP by status
+  const statusCounts = {};
+  for (const m of mnps) {
+    const st = val(m.cells[M['Status']]) || '—';
+    statusCounts[st] = (statusCounts[st] || 0) + 1;
+  }
+  new Chart(document.getElementById('statusChart'), {
+    type: 'bar',
+    data: { labels: Object.keys(statusCounts),
+            datasets: [{ data: Object.values(statusCounts),
+              backgroundColor: Object.keys(statusCounts).map(k => k === 'Complete' ? '#10b981' : k === 'Rejected' || k === 'Cancelled' ? '#ef4444' : '#3b82f6') }] },
+    options: { plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } }, maintainAspectRatio: false, indexAxis: 'y' }
+  });
+
+  // Chart: change events last 30d (by day)
+  const last30 = {};
+  for (let i = 29; i >= 0; i--) { const d = new Date(Date.now() - i*86400000); last30[d.toISOString().slice(5,10)] = 0; }
+  for (const e of changes) {
+    const ms = Number(e.cells[C['Changed At']]);
+    if (!ms || Date.now() - ms > 30*86400000) continue;
+    const key = new Date(ms).toISOString().slice(5,10);
+    if (key in last30) last30[key]++;
+  }
+  new Chart(document.getElementById('chgChart'), {
+    type: 'line',
+    data: { labels: Object.keys(last30),
+            datasets: [{ data: Object.values(last30), borderColor: '#8b5cf6', backgroundColor: 'rgba(139,92,246,0.1)', tension: 0.3, fill: true, pointRadius: 2 }] },
+    options: { plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } }, maintainAspectRatio: false }
+  });
+
+  // Tabs
+  renderMnp('active', M);
+  for (const tab of document.querySelectorAll('.mn-tab')) {
+    tab.addEventListener('click', () => {
+      for (const t of document.querySelectorAll('.mn-tab')) t.classList.remove('active');
+      tab.classList.add('active');
+      renderMnp(tab.dataset.tab, M);
+    });
+  }
+
+  // Auctions
+  document.getElementById('auctionCount').textContent = auctions.length;
+  const sortedA = auctions.slice().sort((a,b) => {
+    const aOpen = val(a.cells[A['Status']]) === 'Open' ? 0 : 1;
+    const bOpen = val(b.cells[A['Status']]) === 'Open' ? 0 : 1;
+    if (aOpen !== bOpen) return aOpen - bOpen;
+    return (Number(b.cells[A['Current Bid']])||0) - (Number(a.cells[A['Current Bid']])||0);
+  });
+  document.getElementById('auctionBody').innerHTML = auctions.length === 0 ? `<tr><td colspan="9" class="mn-empty">No auctions</td></tr>` :
+    sortedA.map(a => {
+      const status = val(a.cells[A['Status']]) || '—';
+      const sClass = status === 'Open' ? 'mn-badge-blue' : status === 'Sold' ? 'mn-badge-green' : status === 'Withdrawn' ? 'mn-badge-gray' : 'mn-badge-amber';
+      const tier = val(a.cells[A['Tier']]) || '—';
+      const tClass = tier === 'Platinum' ? 'mn-badge-purple' : tier === 'Vanity' ? 'mn-badge-red' : 'mn-badge-amber';
+      const premium = Number(a.cells[A['Bid Premium %']] || 0);
+      const premiumFmt = premium > 0 ? `+${premium.toFixed(0)}%` : '—';
+      return `<tr>
+        <td class="mn-vanity">${a.cells[A['MSISDN']] || '—'}</td>
+        <td><span class="mn-badge ${tClass}">${tier}</span></td>
+        <td class="mn-num">${fmtMoney(a.cells[A['Reserve Price']])}</td>
+        <td class="mn-num"><strong>${fmtMoney(a.cells[A['Current Bid']])}</strong></td>
+        <td class="mn-num">${premiumFmt}</td>
+        <td class="mn-num">${a.cells[A['Bid Count']] || 0}</td>
+        <td>${status === 'Open' ? daysTo(a.cells[A['End Date']]) : fmtDate(a.cells[A['End Date']])}</td>
+        <td><span class="mn-badge ${sClass}">${status}</span></td>
+        <td>${a.cells[A['Winner Name']] || '—'}</td>
+      </tr>`;
+    }).join('');
+
+  // Change events (recent 15)
+  const recentChg = changes.slice().sort((a,b) => (Number(b.cells[C['Changed At']])||0) - (Number(a.cells[C['Changed At']])||0)).slice(0, 15);
+  document.getElementById('chgCount').textContent = recentChg.length + ' of ' + changes.length;
+  document.getElementById('chgBody').innerHTML = recentChg.map(e => {
+    const type = val(e.cells[C['Change Type']]) || '—';
+    const tClass = type === 'Port In' ? 'mn-badge-green' : type === 'Port Out' ? 'mn-badge-purple' :
+                   type === 'Recycle' ? 'mn-badge-amber' : type === 'Release' ? 'mn-badge-gray' :
+                   type === 'Swap' ? 'mn-badge-blue' : 'mn-badge-gray';
+    return `<tr>
+      <td class="mn-mono">${e.cells[C['Event Code']] || '—'}</td>
+      <td class="mn-mono">${e.cells[C['MSISDN']] || '—'}</td>
+      <td><span class="mn-badge ${tClass}">${type}</span></td>
+      <td>${daysAgo(e.cells[C['Changed At']])}</td>
+      <td>${e.cells[C['Changed By']] || '—'}</td>
+      <td>${e.cells[C['Reason']] || '—'}</td>
+    </tr>`;
+  }).join('');
+
+  // Rules
+  document.getElementById('ruleBody').innerHTML = rules.map(r => {
+    const status = val(r.cells[R['Status']]) || '—';
+    const sClass = status === 'Active' ? 'mn-badge-green' : status === 'Draft' ? 'mn-badge-amber' : 'mn-badge-gray';
+    return `<tr>
+      <td class="mn-mono">${r.cells[R['Rule Code']] || '—'}</td>
+      <td><strong>${val(r.cells[R['Tier']]) || '—'}</strong></td>
+      <td class="mn-num">${r.cells[R['Quarantine Days']] || 0}</td>
+      <td class="mn-num">${fmtMoney(r.cells[R['Reactivation Fee']])}</td>
+      <td>${r.cells[R['Regulator Reference']] || '—'}</td>
+      <td><span class="mn-badge ${sClass}">${status}</span></td>
+    </tr>`;
+  }).join('');
+}
+
+load().catch(e => {
+  document.body.insertAdjacentHTML('beforeend', `<div class="mn-card" style="color:#991b1b; background:#fef2f2"><strong>Load error:</strong> ${e.message}<pre>${e.stack}</pre></div>`);
+  console.error(e);
+});
+</script>
+</body>
+</html>

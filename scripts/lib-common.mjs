@@ -24,7 +24,7 @@ export function saveTableIds(obj) {
 }
 
 export async function api(method, url, body) {
-  const opts = { method, headers: { Authorization: `Bearer ${TOKEN}`, 'Content-Type': 'application/json' } };
+  const opts = { method, headers: { Authorization: `Bearer ${TOKEN}`, 'Content-Type': 'application/json', 'User-Agent': 'Mozilla/5.0' } };
   if (body) opts.body = JSON.stringify(body);
   for (let i = 0; i < 5; i++) {
     const res = await fetch(BASE_URL + url, opts);

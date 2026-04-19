@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "dashboard",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": ["http-server", "custom-pages", "-p", "3479", "-c-1", "--cors"],
+      "port": 3479
+    }
+  ]
+}

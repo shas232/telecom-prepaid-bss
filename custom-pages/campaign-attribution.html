@@ -1,0 +1,392 @@
+<script>
+window.ERPAI = {
+  token: 'erp_pat_live_REDACTED',
+  baseUrl: 'https://api.erpai.studio',
+  appId: 'afe8c4540708da6ca9e6fe79',
+  orgName: 'Telecom',
+  appName: 'telecom',
+  theme: 'light'
+};
+</script>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Campaign Attribution</title>
+  <link rel="stylesheet" href="/runtime/erpai-pages-runtime.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    body { padding: 20px; font-family: 'Geist Sans', system-ui, -apple-system, sans-serif; }
+    .cb-header { margin-bottom: 20px; display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
+    .cb-title { font-size: 18px; font-weight: 600; color: hsl(var(--foreground)); letter-spacing: -0.02em; margin: 0; }
+    .cb-subtitle { font-size: 13px; color: hsl(var(--muted-foreground)); margin-top: 2px; }
+    .cb-btn { display: inline-flex; align-items: center; gap: 6px; padding: 8px 12px; font-size: 13px; font-weight: 500; border-radius: 8px; border: 1px solid hsl(var(--border)); background: hsl(var(--background)); color: hsl(var(--foreground)); cursor: pointer; }
+    .cb-btn:hover { background: hsl(var(--muted) / 0.4); }
+
+    .cb-stats { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; margin-bottom: 20px; }
+    @media (max-width: 1100px) { .cb-stats { grid-template-columns: repeat(3, 1fr); } }
+    @media (max-width: 700px) { .cb-stats { grid-template-columns: repeat(2, 1fr); } }
+    .cb-stat { background: hsl(var(--card)); border: 1px solid hsl(var(--border)); border-radius: 12px; padding: 14px; box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05); }
+    .cb-stat-label { font-size: 11px; color: hsl(var(--muted-foreground)); text-transform: uppercase; letter-spacing: 0.04em; font-weight: 600; margin-bottom: 6px; display: flex; align-items: center; gap: 6px; }
+    .cb-stat-val { font-size: 22px; font-weight: 600; font-variant-numeric: tabular-nums; }
+
+    .cb-chart-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px; }
+    @media (max-width: 900px) { .cb-chart-grid { grid-template-columns: 1fr; } }
+    .cb-chart-card { padding: 16px; background: hsl(var(--card)); border: 1px solid hsl(var(--border)); border-radius: 12px; box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05); }
+    .cb-chart-head { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; }
+    .cb-chart-title { font-size: 14px; font-weight: 600; margin: 0; color: hsl(var(--foreground)); }
+    .cb-chart-sub { font-size: 12px; color: hsl(var(--muted-foreground)); margin-left: auto; }
+    .cb-chart-canvas-wrap { position: relative; height: 300px; }
+
+    .cb-section-head { display: flex; align-items: center; gap: 8px; margin: 24px 0 12px; }
+    .cb-section-title { font-size: 14px; font-weight: 600; margin: 0; color: hsl(var(--foreground)); }
+    .cb-section-count { font-size: 12px; color: hsl(var(--muted-foreground)); font-weight: 500; }
+
+    .cb-table { width: 100%; border-collapse: collapse; background: hsl(var(--card)); border: 1px solid hsl(var(--border)); border-radius: 12px; overflow: hidden; box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05); }
+    .cb-table thead { background: hsl(var(--muted) / 0.5); }
+    .cb-table th { text-align: left; font-size: 12px; font-weight: 600; color: hsl(var(--muted-foreground)); text-transform: uppercase; letter-spacing: 0.04em; padding: 10px 12px; border-bottom: 1px solid hsl(var(--border)); }
+    .cb-table td { padding: 10px 12px; border-bottom: 1px solid hsl(var(--border)); font-size: 13px; color: hsl(var(--foreground)); vertical-align: middle; }
+    .cb-table tbody tr:last-child td { border-bottom: none; }
+    .cb-table .num { text-align: right; font-variant-numeric: tabular-nums; }
+
+    .cb-badge { display: inline-flex; align-items: center; padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 600; }
+    .cb-badge-running { background: #d1fae5; color: #065f46; }
+    .cb-badge-draft { background: #f3f4f6; color: #4b5563; }
+    .cb-badge-paused { background: #fef3c7; color: #92400e; }
+    .cb-badge-completed { background: #dbeafe; color: #1e40af; }
+    .cb-badge-cancelled { background: #fee2e2; color: #991b1b; }
+    .cb-badge-neutral { background: hsl(var(--muted) / 0.6); color: hsl(var(--foreground)); }
+
+    .cb-empty { padding: 32px 20px; text-align: center; font-size: 13px; color: hsl(var(--muted-foreground)); background: hsl(var(--card)); border: 1px dashed hsl(var(--border)); border-radius: 12px; }
+
+    .cb-chips { display: flex; flex-wrap: wrap; gap: 4px; }
+  </style>
+</head>
+<body>
+  <div class="cb-header">
+    <div>
+      <h1 class="cb-title">Campaign Attribution</h1>
+      <p class="cb-subtitle">Dispatch, engagement, and conversion funnel per campaign</p>
+    </div>
+    <button class="cb-btn" onclick="window.location.reload()">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M3 21v-5h5"/></svg>
+      Refresh
+    </button>
+  </div>
+
+  <div class="cb-stats" id="stats"></div>
+
+  <div class="cb-chart-grid">
+    <div class="cb-chart-card">
+      <div class="cb-chart-head">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="color: hsl(var(--primary));"><path d="M3 3h18v4H3z"/><path d="M5 7h14v4H5z"/><path d="M7 11h10v4H7z"/><path d="M9 15h6v4H9z"/><path d="M11 19h2v2h-2z"/></svg>
+        <h2 class="cb-chart-title">Conversion Funnel (All Running Campaigns)</h2>
+      </div>
+      <div class="cb-chart-canvas-wrap"><canvas id="chartFunnel"></canvas></div>
+    </div>
+    <div class="cb-chart-card">
+      <div class="cb-chart-head">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="color: hsl(var(--primary));"><circle cx="12" cy="12" r="10"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10"/><path d="M2 12h20"/></svg>
+        <h2 class="cb-chart-title">Campaigns by Objective</h2>
+      </div>
+      <div class="cb-chart-canvas-wrap"><canvas id="chartObjective"></canvas></div>
+    </div>
+  </div>
+
+  <div class="cb-chart-card" style="margin-bottom:20px;">
+    <div class="cb-chart-head">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="color: hsl(var(--primary));"><line x1="18" x2="18" y1="20" y2="10"/><line x1="12" x2="12" y1="20" y2="4"/><line x1="6" x2="6" y1="20" y2="14"/></svg>
+      <h2 class="cb-chart-title">Channel Effectiveness — Delivered vs Converted</h2>
+    </div>
+    <div class="cb-chart-canvas-wrap"><canvas id="chartChannel"></canvas></div>
+  </div>
+
+  <div class="cb-section-head">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="color: hsl(var(--primary));"><path d="m3 11 18-5v12L3 14v-3z"/><path d="M11.6 16.8a3 3 0 1 1-5.8-1.6"/></svg>
+    <h2 class="cb-section-title">All Campaigns</h2>
+    <span class="cb-section-count" id="campaignsCount"></span>
+  </div>
+  <div id="campaignsTable"></div>
+
+  <div class="cb-section-head">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="color: hsl(var(--primary));"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/></svg>
+    <h2 class="cb-section-title">Campaign Segments</h2>
+    <span class="cb-section-count" id="segmentsCount"></span>
+  </div>
+  <div id="segmentsTable"></div>
+
+  <script>
+    const API = { base: window.ERPAI.baseUrl, token: window.ERPAI.token, appId: window.ERPAI.appId };
+
+    const STATUS_LABELS = { 1: 'Draft', 2: 'Scheduled', 3: 'Running', 4: 'Paused', 5: 'Completed', 6: 'Cancelled' };
+    const OBJ_LABELS = { 1: 'Acquisition', 2: 'Retention', 3: 'Upsell', 4: 'Reactivation', 5: 'Winback', 6: 'Awareness', 7: 'Cross-sell' };
+    const CHANNEL_LABELS = { 1: 'SMS', 2: 'Email', 3: 'Push', 4: 'WhatsApp', 5: 'IVR', 6: 'In-App' };
+    const SEG_TYPE_LABELS = { 1: 'Static', 2: 'Dynamic', 3: 'Behavioral', 4: 'Predictive', 5: 'Rule-based' };
+    const SEG_STATUS_LABELS = { 1: 'Active', 2: 'Computing', 3: 'Stale', 4: 'Archived' };
+    const ELIGIBLE_LABELS = { 1: 'Campaigns', 2: 'Promotions', 3: 'A/B Tests', 4: 'Lookalikes' };
+
+    function esc(s) { return String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+    function fmt(n) { return (Number(n) || 0).toLocaleString('en-IN'); }
+    function fmtCurrency(n) { return '₹' + (Number(n) || 0).toLocaleString('en-IN', { maximumFractionDigits: 2 }); }
+    function fmtPct(n) { return (Number(n) || 0).toFixed(1) + '%'; }
+    function fmtDate(s) { if (!s || String(s).startsWith('1970')) return '—'; const d = new Date(s); if (isNaN(d)) return '—'; return d.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }); }
+    function fmtDateTime(s) { if (!s || String(s).startsWith('1970')) return '—'; const d = new Date(s); if (isNaN(d)) return '—'; return d.toLocaleString('en-IN', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }); }
+
+    function parseArr(v) {
+      if (v == null || v === '') return null;
+      if (typeof v === 'number') return v;
+      const s = String(v).trim();
+      const m = s.match(/\d+/);
+      return m ? Number(m[0]) : null;
+    }
+    function parseArrAll(v) {
+      if (v == null || v === '') return [];
+      if (Array.isArray(v)) return v.map(x => Number(x)).filter(n => !isNaN(n));
+      const s = String(v);
+      return [...s.matchAll(/\d+/g)].map(m => Number(m[0]));
+    }
+    function decodeStatus(v) { const n = parseArr(v); return n != null ? STATUS_LABELS[n] || `Status ${n}` : '—'; }
+    function decodeObj(v) { const n = parseArr(v); return n != null ? OBJ_LABELS[n] || `Obj ${n}` : '—'; }
+    function decodeChannels(v) { return parseArrAll(v).map(n => CHANNEL_LABELS[n] || `Ch${n}`); }
+    function decodeSegType(v) { const n = parseArr(v); return n != null ? SEG_TYPE_LABELS[n] || `Type ${n}` : '—'; }
+    function decodeSegStatus(v) { const n = parseArr(v); return n != null ? SEG_STATUS_LABELS[n] || `Status ${n}` : '—'; }
+    function decodeEligible(v) { return parseArrAll(v).map(n => ELIGIBLE_LABELS[n] || `E${n}`); }
+
+    function statusBadge(v) {
+      const n = parseArr(v);
+      const label = STATUS_LABELS[n] || '—';
+      const cls = n === 3 ? 'cb-badge-running' : n === 1 ? 'cb-badge-draft' : n === 4 ? 'cb-badge-paused' : n === 5 ? 'cb-badge-completed' : n === 6 ? 'cb-badge-cancelled' : 'cb-badge-draft';
+      return `<span class="cb-badge ${cls}">${esc(label)}</span>`;
+    }
+    function segStatusBadge(v) {
+      const n = parseArr(v);
+      const label = SEG_STATUS_LABELS[n] || '—';
+      const cls = n === 1 ? 'cb-badge-running' : n === 2 ? 'cb-badge-paused' : n === 3 ? 'cb-badge-cancelled' : n === 4 ? 'cb-badge-draft' : 'cb-badge-draft';
+      return `<span class="cb-badge ${cls}">${esc(label)}</span>`;
+    }
+
+    async function sql(query) {
+      const r = await fetch(`${API.base}/v1/agent/app/sql/execute`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${API.token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ appId: API.appId, sqlQuery: query, limit: 500 })
+      });
+      const j = await r.json();
+      if (!j.success) { console.error('SQL error:', j.message, '\nQuery:', query); return []; }
+      return j.data?.rows || [];
+    }
+
+    function renderStats(s) {
+      const el = document.getElementById('stats');
+      const stat = (label, value, icon, color) => `
+        <div class="cb-stat">
+          <div class="cb-stat-label" style="color:${color}">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${icon}</svg>
+            ${label}
+          </div>
+          <div class="cb-stat-val" style="color:${color}">${value}</div>
+        </div>`;
+      el.innerHTML = [
+        stat('Active Campaigns', fmt(s.active), '<path d="m3 11 18-5v12L3 14v-3z"/><path d="M11.6 16.8a3 3 0 1 1-5.8-1.6"/>', 'hsl(var(--primary))'),
+        stat('Dispatched (30d)', fmt(s.dispatched30), '<path d="M22 2 11 13"/><path d="M22 2 15 22 11 13 2 9 22 2z"/>', '#3b82f6'),
+        stat('Delivery Rate', fmtPct(s.deliveryRate), '<polyline points="20 6 9 17 4 12"/>', '#10b981'),
+        stat('Click-Through Rate', fmtPct(s.ctr), '<path d="M9 11l3 3 4-4"/><path d="M12 2a10 10 0 1 0 10 10"/>', '#f59e0b'),
+        stat('Conversion Value (30d)', fmtCurrency(s.convValue30), '<line x1="12" x2="12" y1="2" y2="22"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>', '#8b5cf6'),
+      ].join('');
+    }
+
+    function emptyTable(msg) { return `<div class="cb-empty">${esc(msg)}</div>`; }
+
+    function drawFunnel(f) {
+      const ctx = document.getElementById('chartFunnel');
+      const labels = ['Target', 'Dispatched', 'Delivered', 'Opened', 'Clicked', 'Converted'];
+      const data = [f.target, f.dispatched, f.delivered, f.opened, f.clicked, f.converted];
+      const colors = ['#cbd5e1', '#94a3b8', '#3b82f6', '#6366f1', '#8b5cf6', '#10b981'];
+      new Chart(ctx, {
+        type: 'bar',
+        data: { labels, datasets: [{ label: 'Count', data, backgroundColor: colors, borderRadius: 6 }] },
+        options: {
+          responsive: true, maintainAspectRatio: false,
+          plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => `${fmt(ctx.parsed.y)} (${data[0] ? ((ctx.parsed.y / data[0]) * 100).toFixed(1) : 0}%)` } } },
+          scales: { y: { beginAtZero: true, ticks: { callback: v => v.toLocaleString('en-IN') } } }
+        }
+      });
+    }
+
+    function drawObjectiveDonut(byObj) {
+      const ctx = document.getElementById('chartObjective');
+      const labels = Object.keys(byObj);
+      const data = labels.map(k => byObj[k]);
+      if (!labels.length) {
+        ctx.parentElement.innerHTML = '<div class="cb-empty" style="height:100%;display:flex;align-items:center;justify-content:center;">No campaigns yet</div>';
+        return;
+      }
+      new Chart(ctx, {
+        type: 'doughnut',
+        data: { labels, datasets: [{ data, backgroundColor: ['#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#ef4444', '#06b6d4', '#ec4899'] }] },
+        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } } }
+      });
+    }
+
+    function drawChannelChart(rows) {
+      const ctx = document.getElementById('chartChannel');
+      if (!rows.length) {
+        ctx.parentElement.innerHTML = '<div class="cb-empty" style="height:100%;display:flex;align-items:center;justify-content:center;">No channel data yet</div>';
+        return;
+      }
+      const labels = rows.map(r => r.channel);
+      const delivered = rows.map(r => r.delivered);
+      const converted = rows.map(r => r.converted);
+      new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels,
+          datasets: [
+            { label: 'Delivered', data: delivered, backgroundColor: '#3b82f6', borderRadius: 6 },
+            { label: 'Converted', data: converted, backgroundColor: '#10b981', borderRadius: 6 },
+          ]
+        },
+        options: {
+          responsive: true, maintainAspectRatio: false,
+          plugins: { legend: { position: 'bottom' } },
+          scales: { y: { beginAtZero: true, ticks: { callback: v => v.toLocaleString('en-IN') } } }
+        }
+      });
+    }
+
+    function renderCampaignsTable(rows) {
+      document.getElementById('campaignsCount').textContent = rows.length ? `${rows.length} campaigns` : '';
+      if (!rows.length) { document.getElementById('campaignsTable').innerHTML = emptyTable('No campaigns yet. When marketing launches campaigns they will appear here.'); return; }
+      document.getElementById('campaignsTable').innerHTML = `
+        <table class="cb-table">
+          <thead><tr>
+            <th>Campaign Name</th><th>Status</th><th>Channel</th><th>Start Date</th>
+            <th class="num">Target</th><th class="num">Delivered</th>
+            <th class="num">Converted</th><th class="num">Conv. Value</th><th>Owner</th>
+          </tr></thead>
+          <tbody>${rows.map(r => {
+            const chs = decodeChannels(r.channel);
+            return `
+            <tr>
+              <td style="font-weight:500;">${esc(r.campaign_name || '—')}</td>
+              <td>${statusBadge(r.status)}</td>
+              <td><div class="cb-chips">${chs.length ? chs.map(c => `<span class="cb-badge cb-badge-neutral">${esc(c)}</span>`).join('') : '<span style="color:hsl(var(--muted-foreground));">—</span>'}</div></td>
+              <td>${fmtDate(r.start_date)}</td>
+              <td class="num">${fmt(r.target_count)}</td>
+              <td class="num">${fmt(r.delivered_count)}</td>
+              <td class="num">${fmt(r.converted_count)}</td>
+              <td class="num">${fmtCurrency(r.conversion_value)}</td>
+              <td>${esc(r.owner || '—')}</td>
+            </tr>`;
+          }).join('')}</tbody>
+        </table>`;
+    }
+
+    function renderSegmentsTable(rows) {
+      document.getElementById('segmentsCount').textContent = rows.length ? `${rows.length} segments` : '';
+      if (!rows.length) { document.getElementById('segmentsTable').innerHTML = emptyTable('No segments configured yet.'); return; }
+      document.getElementById('segmentsTable').innerHTML = `
+        <table class="cb-table">
+          <thead><tr>
+            <th>Segment Name</th><th>Type</th><th class="num">Members</th>
+            <th>Last Computed</th><th>Status</th><th>Eligible For</th>
+          </tr></thead>
+          <tbody>${rows.map(r => {
+            const eligs = decodeEligible(r.eligible_for);
+            return `
+            <tr>
+              <td style="font-weight:500;">${esc(r.segment_name || '—')}</td>
+              <td><span class="cb-badge cb-badge-neutral">${esc(decodeSegType(r.segment_type))}</span></td>
+              <td class="num">${fmt(r.member_count)}</td>
+              <td>${fmtDateTime(r.last_computed_at)}</td>
+              <td>${segStatusBadge(r.status)}</td>
+              <td><div class="cb-chips">${eligs.length ? eligs.map(e => `<span class="cb-badge cb-badge-neutral">${esc(e)}</span>`).join('') : '<span style="color:hsl(var(--muted-foreground));">—</span>'}</div></td>
+            </tr>`;
+          }).join('')}</tbody>
+        </table>`;
+    }
+
+    async function main() {
+      document.getElementById('stats').innerHTML = '<div class="cb-stat">Loading…</div>';
+
+      const [campaigns, segments] = await Promise.all([
+        sql(`SELECT _id, campaign_name, status, channel, objective, start_date, end_date, target_count, dispatched_count, delivered_count, opened_count, clicked_count, converted_count, conversion_value, owner FROM a1776271424351_campaigns WHERE _deleted=0 ORDER BY rec_created_at DESC`),
+        sql(`SELECT segment_name, segment_type, member_count, last_computed_at, status, eligible_for FROM a1776271424351_campaign_segments_1 WHERE _deleted=0 ORDER BY rec_created_at DESC`),
+      ]);
+
+      // KPIs
+      const now = new Date();
+      const d30 = new Date(now); d30.setDate(now.getDate() - 30);
+      let active = 0, dispatched30 = 0, delivered30 = 0, opened30 = 0, clicked30 = 0, convValue30 = 0, sumTarget = 0;
+      for (const c of campaigns) {
+        const st = parseArr(c.status);
+        if (st === 3) active++;
+        const started = c.start_date && !String(c.start_date).startsWith('1970') ? new Date(c.start_date) : null;
+        const isRecent = started && started >= d30;
+        if (isRecent) {
+          dispatched30 += Number(c.dispatched_count) || 0;
+          delivered30 += Number(c.delivered_count) || 0;
+          opened30 += Number(c.opened_count) || 0;
+          clicked30 += Number(c.clicked_count) || 0;
+          convValue30 += Number(c.conversion_value) || 0;
+        }
+        sumTarget += Number(c.target_count) || 0;
+      }
+      const deliveryRate = dispatched30 > 0 ? (delivered30 / dispatched30) * 100 : 0;
+      const ctr = delivered30 > 0 ? (clicked30 / delivered30) * 100 : 0;
+      renderStats({ active, dispatched30, deliveryRate, ctr, convValue30 });
+
+      // Funnel — aggregate running campaigns (status 3) or all if none running
+      const running = campaigns.filter(c => parseArr(c.status) === 3);
+      const pool = running.length ? running : campaigns;
+      const funnel = { target: 0, dispatched: 0, delivered: 0, opened: 0, clicked: 0, converted: 0 };
+      for (const c of pool) {
+        funnel.target += Number(c.target_count) || 0;
+        funnel.dispatched += Number(c.dispatched_count) || 0;
+        funnel.delivered += Number(c.delivered_count) || 0;
+        funnel.opened += Number(c.opened_count) || 0;
+        funnel.clicked += Number(c.clicked_count) || 0;
+        funnel.converted += Number(c.converted_count) || 0;
+      }
+      if (Object.values(funnel).every(v => v === 0)) {
+        document.getElementById('chartFunnel').parentElement.innerHTML = '<div class="cb-empty" style="height:100%;display:flex;align-items:center;justify-content:center;">No running campaigns yet</div>';
+      } else {
+        drawFunnel(funnel);
+      }
+
+      // Objective donut
+      const byObj = {};
+      for (const c of campaigns) {
+        const key = decodeObj(c.objective);
+        byObj[key] = (byObj[key] || 0) + 1;
+      }
+      drawObjectiveDonut(byObj);
+
+      // Channel effectiveness — expand multi-channel per campaign
+      const chAgg = new Map();
+      for (const c of campaigns) {
+        const chs = parseArrAll(c.channel);
+        const dv = Number(c.delivered_count) || 0;
+        const cv = Number(c.converted_count) || 0;
+        if (!chs.length) continue;
+        // Distribute evenly if multi-channel
+        const share = chs.length;
+        for (const n of chs) {
+          const label = CHANNEL_LABELS[n] || `Ch${n}`;
+          if (!chAgg.has(label)) chAgg.set(label, { delivered: 0, converted: 0 });
+          const a = chAgg.get(label);
+          a.delivered += dv / share;
+          a.converted += cv / share;
+        }
+      }
+      const chRows = [...chAgg.entries()].map(([channel, v]) => ({ channel, delivered: Math.round(v.delivered), converted: Math.round(v.converted) }));
+      drawChannelChart(chRows);
+
+      renderCampaignsTable(campaigns);
+      renderSegmentsTable(segments);
+    }
+    main();
+  </script>
+</body>
+</html>

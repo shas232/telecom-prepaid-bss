@@ -1,0 +1,245 @@
+<script>
+window.ERPAI = {
+  token: 'erp_pat_live_REDACTED',
+  baseUrl: 'https://api.erpai.studio',
+  appId: 'afe8c4540708da6ca9e6fe79',
+  orgName: 'Telecom',
+  appName: 'telecom',
+  theme: 'light'
+};
+</script>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Payment Health</title>
+  <link rel="stylesheet" href="/runtime/erpai-pages-runtime.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    body { padding: 20px; font-family: 'Geist Sans', system-ui, -apple-system, sans-serif; }
+    .cb-header { margin-bottom: 20px; display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+    .cb-title { font-size: 20px; font-weight: 600; color: hsl(var(--foreground)); letter-spacing: -0.02em; margin: 0; }
+    .cb-subtitle { font-size: 13px; color: hsl(var(--muted-foreground)); margin-top: 4px; max-width: 720px; }
+    .cb-btn { display: inline-flex; align-items: center; gap: 6px; padding: 8px 12px; font-size: 13px; font-weight: 500; border-radius: 8px; border: 1px solid hsl(var(--border)); background: hsl(var(--background)); color: hsl(var(--foreground)); cursor: pointer; }
+    .cb-btn:hover { background: hsl(var(--muted) / 0.4); }
+
+    .cb-stats { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; margin-bottom: 20px; }
+    @media (max-width: 1100px) { .cb-stats { grid-template-columns: repeat(3, 1fr); } }
+    @media (max-width: 700px)  { .cb-stats { grid-template-columns: repeat(2, 1fr); } }
+    .cb-stat { background: hsl(var(--card)); border: 1px solid hsl(var(--border)); border-radius: 12px; padding: 14px; box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05); }
+    .cb-stat-label { font-size: 11px; color: hsl(var(--muted-foreground)); text-transform: uppercase; letter-spacing: 0.04em; font-weight: 600; margin-bottom: 6px; }
+    .cb-stat-val { font-size: 22px; font-weight: 600; font-variant-numeric: tabular-nums; line-height: 1.1; }
+    .cb-stat-sub { font-size: 11px; color: hsl(var(--muted-foreground)); margin-top: 4px; }
+    .cb-stat.alert { border-color: #ef4444; background: rgba(239, 68, 68, 0.05); }
+    .cb-stat.alert .cb-stat-val { color: #ef4444; }
+
+    .cb-section-head { display: flex; align-items: center; gap: 8px; margin: 24px 0 12px; }
+    .cb-section-title { font-size: 14px; font-weight: 600; margin: 0; color: hsl(var(--foreground)); }
+    .cb-section-sub { font-size: 12px; color: hsl(var(--muted-foreground)); font-weight: 500; }
+
+    .cb-chart-row { display: grid; grid-template-columns: 2fr 1fr 2fr; gap: 16px; margin-bottom: 20px; }
+    @media (max-width: 1100px) { .cb-chart-row { grid-template-columns: 1fr; } }
+    .cb-chart-card { padding: 16px; background: hsl(var(--card)); border: 1px solid hsl(var(--border)); border-radius: 12px; box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05); }
+    .cb-chart-head { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; }
+    .cb-chart-title { font-size: 13px; font-weight: 600; margin: 0; }
+    .cb-chart-canvas-wrap { position: relative; height: 260px; }
+
+    .cb-table { width: 100%; border-collapse: collapse; background: hsl(var(--card)); border: 1px solid hsl(var(--border)); border-radius: 12px; overflow: hidden; box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05); }
+    .cb-table thead { background: hsl(var(--muted) / 0.5); }
+    .cb-table th { text-align: left; font-size: 11px; font-weight: 600; color: hsl(var(--muted-foreground)); text-transform: uppercase; letter-spacing: 0.04em; padding: 10px 12px; border-bottom: 1px solid hsl(var(--border)); }
+    .cb-table td { padding: 10px 12px; border-bottom: 1px solid hsl(var(--border)); font-size: 13px; vertical-align: middle; }
+    .cb-table tbody tr:last-child td { border-bottom: none; }
+    .cb-table tbody tr:hover { background: hsl(var(--muted) / 0.4); }
+
+    .cb-empty { padding: 32px 16px; text-align: center; color: hsl(var(--muted-foreground)); font-size: 13px; background: hsl(var(--card)); border: 1px dashed hsl(var(--border)); border-radius: 12px; }
+    .cb-code { font-family: 'SF Mono', Monaco, Menlo, monospace; font-size: 12px; }
+    .cb-muted { color: hsl(var(--muted-foreground)); }
+    .cb-pill { display: inline-flex; align-items: center; padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 600; }
+    .cb-pill-ok { background: #dcfce7; color: #166534; }
+    .cb-pill-warn { background: #fef9c3; color: #854d0e; }
+    .cb-pill-bad { background: #fee2e2; color: #b91c1c; }
+  </style>
+</head>
+<body>
+  <div class="cb-header">
+    <div>
+      <h1 class="cb-title">Payment Health</h1>
+      <p class="cb-subtitle">Live view of payment gateway throughput, success rate, and failure causes across integrated providers.</p>
+    </div>
+    <button class="cb-btn" onclick="window.location.reload()">Refresh</button>
+  </div>
+
+  <div class="cb-section-head">
+    <h2 class="cb-section-title">KPIs</h2>
+    <span class="cb-section-sub" id="cb-kpi-sub">Loading…</span>
+  </div>
+  <div class="cb-stats" id="cb-stats"></div>
+
+  <div class="cb-section-head">
+    <h2 class="cb-section-title">Provider & Method Breakdown</h2>
+    <span class="cb-section-sub">Last 30 days</span>
+  </div>
+  <div class="cb-chart-row">
+    <div class="cb-chart-card">
+      <div class="cb-chart-head"><h3 class="cb-chart-title">Success vs Failed by Provider</h3></div>
+      <div class="cb-chart-canvas-wrap"><canvas id="ch-provider"></canvas></div>
+    </div>
+    <div class="cb-chart-card">
+      <div class="cb-chart-head"><h3 class="cb-chart-title">Payment Methods</h3></div>
+      <div class="cb-chart-canvas-wrap"><canvas id="ch-method"></canvas></div>
+    </div>
+    <div class="cb-chart-card">
+      <div class="cb-chart-head"><h3 class="cb-chart-title">Last 14 Days Trend</h3></div>
+      <div class="cb-chart-canvas-wrap"><canvas id="ch-trend"></canvas></div>
+    </div>
+  </div>
+
+  <div class="cb-section-head">
+    <h2 class="cb-section-title">Latest Failed Payments</h2>
+    <span class="cb-section-sub" id="cb-fail-count">—</span>
+  </div>
+  <div id="cb-fail-wrap"><div class="cb-empty">Loading…</div></div>
+
+  <script src="/runtime/erpai-pages-runtime.js"></script>
+  <script>
+    const TBL = 'a1776271424351_payments';
+    let TBL_NAME = TBL;
+
+    const esc = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+    const fmtInt = n => n == null || isNaN(n) ? '—' : Number(n).toLocaleString();
+    const fmtMoney = n => n == null || isNaN(n) ? '—' : '$' + Number(n).toLocaleString(undefined, { maximumFractionDigits: 2 });
+    const fmtDT = ts => { if (!ts || ts.startsWith('1970')) return '—'; const d = new Date(String(ts).replace(' ','T')+'Z'); return isNaN(d) ? ts : d.toLocaleString(undefined,{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'}); };
+
+    async function sql(q) {
+      try {
+        const r = await fetch(`${window.ERPAI.baseUrl}/v1/agent/app/sql/execute`, {
+          method:'POST',
+          headers:{'Authorization':`Bearer ${window.ERPAI.token}`,'Content-Type':'application/json'},
+          body: JSON.stringify({ appId: window.ERPAI.appId, sqlQuery: q, limit: 500 })
+        });
+        const j = await r.json();
+        if (!j.success) {
+          if (j.message && /Unknown table/i.test(j.message) && !q.includes('_1 ')) {
+            const retry = q.replace(new RegExp(TBL_NAME,'g'), TBL_NAME+'_1');
+            TBL_NAME = TBL_NAME+'_1';
+            return sql(retry);
+          }
+          console.warn('SQL fail:', j.message, q);
+          return null;
+        }
+        return j.data.rows;
+      } catch (e) { console.warn('fetch fail',e); return null; }
+    }
+
+    function isEmpty(x){ return !x || x.length === 0; }
+
+    function renderEmpty(){
+      document.getElementById('cb-stats').innerHTML = '';
+      document.getElementById('cb-kpi-sub').textContent = 'No payments yet';
+      const msg = `<div class="cb-empty">No payments yet — wire the Payments table to your PG integration to see live metrics.</div>`;
+      ['cb-fail-wrap'].forEach(id => document.getElementById(id).innerHTML = msg);
+      ['ch-provider','ch-method','ch-trend'].forEach(id => {
+        const c = document.getElementById(id).parentElement;
+        c.innerHTML = `<div class="cb-empty" style="height:260px;display:flex;align-items:center;justify-content:center;">No data</div>`;
+      });
+    }
+
+    async function loadKpis() {
+      // Use argMax(...) GROUP BY _id to dedupe versions, then aggregate
+      const tx = await sql(`SELECT count() AS v FROM (SELECT _id FROM ${TBL_NAME} WHERE _deleted=0 AND toDate(created_at)=today() GROUP BY _id) AS t`);
+      const amt = await sql(`SELECT sum(amt) AS v FROM (SELECT argMax(amount,_version) AS amt FROM ${TBL_NAME} WHERE _deleted=0 AND created_at > now() - INTERVAL 1 DAY GROUP BY _id) AS t`);
+      const succ = await sql(`SELECT s, f FROM (SELECT countIf(st='[2]') AS s, countIf(st='[3]' OR st='[4]') AS f FROM (SELECT argMax(status,_version) AS st FROM ${TBL_NAME} WHERE _deleted=0 GROUP BY _id))`);
+      const lat = await sql(`SELECT avg(dateDiff('second', i, c)) AS v FROM (SELECT argMax(initiated_at,_version) AS i, argMax(completed_at,_version) AS c, argMax(status,_version) AS st FROM ${TBL_NAME} WHERE _deleted=0 GROUP BY _id) WHERE st='[2]' AND c > i`);
+      const fail = await sql(`SELECT count() AS v FROM (SELECT argMax(status,_version) AS st FROM ${TBL_NAME} WHERE _deleted=0 GROUP BY _id) WHERE st='[3]' OR st='[4]'`);
+
+      const txN = tx && tx[0] ? Number(tx[0].v) : null;
+      if (txN === 0 || txN == null) { return { empty: true }; }
+
+      const amtN = amt && amt[0] ? Number(amt[0].v) : 0;
+      const s = succ && succ[0] ? Number(succ[0].s) : 0;
+      const f = succ && succ[0] ? Number(succ[0].f) : 0;
+      const rate = (s+f) > 0 ? (s*100/(s+f)) : null;
+      const latS = lat && lat[0] && lat[0].v ? Number(lat[0].v) : null;
+      const failN = fail && fail[0] ? Number(fail[0].v) : 0;
+
+      document.getElementById('cb-stats').innerHTML = [
+        { label:'Transactions Today', val: fmtInt(txN) },
+        { label:'Total Amount (24h)', val: fmtMoney(amtN) },
+        { label:'Success Rate', val: rate == null ? '—' : rate.toFixed(1) + '%' },
+        { label:'Avg Latency', val: latS == null ? '—' : latS.toFixed(1)+'s' },
+        { label:'Failed Count', val: fmtInt(failN), alert: failN > 0 }
+      ].map(k => `<div class="cb-stat ${k.alert?'alert':''}"><div class="cb-stat-label">${k.label}</div><div class="cb-stat-val">${k.val}</div></div>`).join('');
+      document.getElementById('cb-kpi-sub').textContent = 'Refreshed just now';
+      return { empty: false };
+    }
+
+    const PROV_MAP = { '[1]':'Stripe','[2]':'Adyen','[3]':'Razorpay','[4]':'PayPal','[5]':'Flutterwave','[6]':'Paystack','[7]':'M-Pesa','[8]':'Other' };
+    const METHOD_MAP = { '[1]':'Card','[2]':'Bank','[3]':'Wallet','[4]':'UPI','[5]':'Mobile Money','[6]':'Cash','[7]':'Voucher','[8]':'Other' };
+
+    async function loadProviderChart() {
+      const rows = await sql(`SELECT prov, countIf(st='[2]') AS succ, countIf(st='[3]' OR st='[4]') AS fail FROM (SELECT argMax(provider,_version) AS prov, argMax(status,_version) AS st FROM ${TBL_NAME} WHERE _deleted=0 GROUP BY _id) GROUP BY prov ORDER BY succ+fail DESC LIMIT 8`);
+      if (isEmpty(rows)) return;
+      const labels = rows.map(r => PROV_MAP[r.prov] || r.prov || '—');
+      new Chart(document.getElementById('ch-provider'), {
+        type:'bar',
+        data:{ labels, datasets:[
+          { label:'Success', data: rows.map(r=>Number(r.succ)), backgroundColor:'#10b981' },
+          { label:'Failed', data: rows.map(r=>Number(r.fail)), backgroundColor:'#ef4444' }
+        ]},
+        options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{position:'bottom',labels:{boxWidth:10,font:{size:11}}}}, scales:{x:{stacked:false},y:{beginAtZero:true}} }
+      });
+    }
+
+    async function loadMethodChart() {
+      const rows = await sql(`SELECT m, count() AS n FROM (SELECT argMax(payment_method,_version) AS m FROM ${TBL_NAME} WHERE _deleted=0 GROUP BY _id) GROUP BY m ORDER BY n DESC LIMIT 8`);
+      if (isEmpty(rows)) return;
+      const labels = rows.map(r => METHOD_MAP[r.m] || r.m || '—');
+      new Chart(document.getElementById('ch-method'), {
+        type:'doughnut',
+        data:{ labels, datasets:[{ data: rows.map(r=>Number(r.n)), backgroundColor:['#3b82f6','#10b981','#f59e0b','#8b5cf6','#ef4444','#06b6d4','#ec4899','#6b7280'] }]},
+        options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{position:'bottom',labels:{boxWidth:10,font:{size:11}}}} }
+      });
+    }
+
+    async function loadTrend() {
+      const rows = await sql(`SELECT d, countIf(st='[2]') AS succ, countIf(st='[3]' OR st='[4]') AS fail FROM (SELECT _id, toDate(argMax(created_at,_version)) AS d, argMax(status,_version) AS st FROM ${TBL_NAME} WHERE _deleted=0 AND created_at > now() - INTERVAL 14 DAY GROUP BY _id) GROUP BY d ORDER BY d`);
+      if (isEmpty(rows)) return;
+      new Chart(document.getElementById('ch-trend'), {
+        type:'line',
+        data:{ labels: rows.map(r=>r.d), datasets:[
+          { label:'Success', data: rows.map(r=>Number(r.succ)), borderColor:'#10b981', backgroundColor:'rgba(16,185,129,0.15)', tension:0.3, fill:true },
+          { label:'Failed', data: rows.map(r=>Number(r.fail)), borderColor:'#ef4444', backgroundColor:'rgba(239,68,68,0.15)', tension:0.3, fill:true }
+        ]},
+        options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{position:'bottom',labels:{boxWidth:10,font:{size:11}}}}, scales:{y:{beginAtZero:true}} }
+      });
+    }
+
+    async function loadFailures() {
+      const rows = await sql(`SELECT _id, argMax(payment_code,_version) AS code, argMax(provider,_version) AS provider, argMax(payment_method,_version) AS method, argMax(amount,_version) AS amount, argMax(failure_reason,_version) AS reason, argMax(initiated_at,_version) AS initiated, argMax(status,_version) AS st FROM ${TBL_NAME} WHERE _deleted=0 GROUP BY _id HAVING st='[3]' OR st='[4]' ORDER BY initiated DESC LIMIT 20`);
+      const el = document.getElementById('cb-fail-wrap');
+      const countEl = document.getElementById('cb-fail-count');
+      if (rows == null) { el.innerHTML = `<div class="cb-empty">Unable to load failed payments.</div>`; return; }
+      if (!rows.length) { el.innerHTML = `<div class="cb-empty">No failed payments — nice!</div>`; countEl.textContent = '0'; return; }
+      countEl.textContent = `${rows.length} shown`;
+      el.innerHTML = `<table class="cb-table"><thead><tr>
+        <th>Code</th><th>Provider</th><th>Method</th><th>Amount</th><th>Failure Reason</th><th>Initiated</th>
+      </tr></thead><tbody>${rows.map(r=>`<tr>
+        <td><span class="cb-code">${esc(r.code||'—')}</span></td>
+        <td>${esc(PROV_MAP[r.provider]||r.provider||'—')}</td>
+        <td>${esc(METHOD_MAP[r.method]||r.method||'—')}</td>
+        <td>${fmtMoney(r.amount)}</td>
+        <td class="cb-muted">${esc(r.reason||'—')}</td>
+        <td class="cb-muted">${fmtDT(r.initiated)}</td>
+      </tr>`).join('')}</tbody></table>`;
+    }
+
+    async function main() {
+      const k = await loadKpis();
+      if (k && k.empty) { renderEmpty(); return; }
+      await Promise.all([loadProviderChart(), loadMethodChart(), loadTrend(), loadFailures()]);
+    }
+    main();
+  </script>
+</body>
+</html>

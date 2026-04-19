@@ -1,0 +1,50 @@
+<div id="erpai-ins-customers" style="font:13px/1.4 system-ui,-apple-system,Segoe UI,sans-serif;color:hsl(var(--foreground));background:hsl(var(--card));border:1px solid hsl(var(--border));border-radius:8px;padding:12px 14px;display:grid;grid-template-columns:1.4fr 1fr 1fr 1fr;gap:16px;align-items:center;min-height:120px">
+  <style>
+    #erpai-ins-customers .ti-h{font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:hsl(var(--muted-foreground));margin:0 0 6px}
+    #erpai-ins-customers .ti-v{font-size:20px;font-weight:600;line-height:1}
+    #erpai-ins-customers .ti-sub{font-size:11px;color:hsl(var(--muted-foreground));margin-top:3px}
+    #erpai-ins-customers .ti-row{display:flex;align-items:center;gap:8px;margin-bottom:4px;font-size:11px}
+    #erpai-ins-customers .ti-row:last-child{margin-bottom:0}
+    #erpai-ins-customers .ti-lab{width:80px;color:hsl(var(--muted-foreground));flex:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    #erpai-ins-customers .ti-barw{flex:1;height:7px;background:hsl(var(--border));border-radius:4px;overflow:hidden}
+    #erpai-ins-customers .ti-bar{height:100%;background:hsl(var(--primary,221 83% 53%));border-radius:4px;transition:width .4s}
+    #erpai-ins-customers .ti-cnt{width:22px;text-align:right;color:hsl(var(--foreground));font-variant-numeric:tabular-nums;font-weight:500}
+    @media(max-width:640px){#erpai-ins-customers{grid-template-columns:1fr 1fr;gap:12px}}
+  </style>
+  <div>
+    <div class="ti-h">Segment Mix</div>
+    <div id="cust-bars">
+      <div class="ti-row"><span class="ti-lab">Senior</span><span class="ti-barw"><span class="ti-bar" style="width:40%"></span></span><span class="ti-cnt">8</span></div>
+      <div class="ti-row"><span class="ti-lab">Consumer</span><span class="ti-barw"><span class="ti-bar" style="width:25%"></span></span><span class="ti-cnt">5</span></div>
+      <div class="ti-row"><span class="ti-lab">Business</span><span class="ti-barw"><span class="ti-bar" style="width:20%"></span></span><span class="ti-cnt">4</span></div>
+      <div class="ti-row"><span class="ti-lab">Student</span><span class="ti-barw"><span class="ti-bar" style="width:10%"></span></span><span class="ti-cnt">2</span></div>
+      <div class="ti-row"><span class="ti-lab">Youth</span><span class="ti-barw"><span class="ti-bar" style="width:5%"></span></span><span class="ti-cnt">1</span></div>
+    </div>
+  </div>
+  <div><div class="ti-h">KYC Verified</div><div class="ti-v" id="cust-kyc">55%</div><div class="ti-sub"><span id="cust-kyc-n">11</span> of <span id="cust-total">20</span></div></div>
+  <div><div class="ti-h">Churn Risk</div><div class="ti-v" id="cust-churn" style="color:hsl(0 72% 51%)">1</div><div class="ti-sub">status = Churned</div></div>
+  <div><div class="ti-h">Avg Subs / Customer</div><div class="ti-v" id="cust-avgsub">1.0</div><div class="ti-sub">subscription_count</div></div>
+</div>
+<script>
+(function(){
+  if(!window.ERPAI||!window.ERPAI.token)return;
+  var SEGNAMES={"[1]":"Consumer","[2]":"Business","[3]":"Student","[4]":"Senior","[5]":"Youth"};
+  var base=window.ERPAI.baseUrl,tok=window.ERPAI.token,app=window.ERPAI.appId;
+  function q(sql){return fetch(base+"/v1/agent/app/sql/execute",{method:"POST",headers:{Authorization:"Bearer "+tok,"Content-Type":"application/json"},body:JSON.stringify({appId:app,sqlQuery:sql,limit:50})}).then(function(r){return r.json()}).then(function(j){return (j.data&&j.data.rows)||[]});}
+  Promise.all([
+    q("SELECT segment, count() AS c FROM (SELECT argMax(segment,_version) AS segment FROM a1776271424351_customers WHERE _deleted=0 GROUP BY _id) GROUP BY segment ORDER BY c DESC"),
+    q("SELECT sum(kyc_status='[3]') AS kyc, count() AS tot, sum(status='[3]') AS churn, avg(toFloat64OrZero(toString(subscription_count))) AS avgsub FROM (SELECT argMax(kyc_status,_version) AS kyc_status, argMax(status,_version) AS status, argMax(subscription_count,_version) AS subscription_count FROM a1776271424351_customers WHERE _deleted=0 GROUP BY _id)")
+  ]).then(function(r){
+    var segs=r[0],k=r[1][0]||{};
+    var max=Math.max.apply(null,segs.map(function(s){return +s.c||0}))||1;
+    var html=segs.slice(0,5).map(function(s){var n=SEGNAMES[s.segment]||"—";var w=Math.round((+s.c)/max*100);return '<div class="ti-row"><span class="ti-lab">'+n+'</span><span class="ti-barw"><span class="ti-bar" style="width:'+w+'%"></span></span><span class="ti-cnt">'+s.c+'</span></div>';}).join("");
+    document.getElementById("cust-bars").innerHTML=html;
+    var tot=+k.tot||0,kyc=+k.kyc||0;
+    document.getElementById("cust-kyc").textContent=(tot?Math.round(kyc/tot*100):0)+"%";
+    document.getElementById("cust-kyc-n").textContent=kyc;
+    document.getElementById("cust-total").textContent=tot;
+    document.getElementById("cust-churn").textContent=k.churn||0;
+    document.getElementById("cust-avgsub").textContent=(k.avgsub==null?"0":(+k.avgsub).toFixed(1));
+  }).catch(function(){});
+})();
+</script>

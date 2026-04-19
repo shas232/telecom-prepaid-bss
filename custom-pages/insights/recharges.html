@@ -1,0 +1,49 @@
+<div id="erpai-ins-rech" style="font:13px/1.4 system-ui,-apple-system,Segoe UI,sans-serif;color:hsl(var(--foreground));background:hsl(var(--card));border:1px solid hsl(var(--border));border-radius:8px;padding:12px 14px;display:grid;grid-template-columns:1fr 1fr 1fr 1fr 1.6fr;gap:14px;align-items:center;min-height:130px">
+  <style>
+    #erpai-ins-rech .ti-h{font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:hsl(var(--muted-foreground));margin:0 0 6px}
+    #erpai-ins-rech .ti-v{font-size:20px;font-weight:600;line-height:1}
+    #erpai-ins-rech .ti-sub{font-size:11px;color:hsl(var(--muted-foreground));margin-top:4px}
+    #erpai-ins-rech .ti-row{display:flex;align-items:center;gap:8px;margin-bottom:4px;font-size:11px}
+    #erpai-ins-rech .ti-row:last-child{margin-bottom:0}
+    #erpai-ins-rech .ti-lab{width:72px;color:hsl(var(--muted-foreground));flex:none;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    #erpai-ins-rech .ti-barw{flex:1;height:7px;background:hsl(var(--border));border-radius:4px;overflow:hidden}
+    #erpai-ins-rech .ti-bar{height:100%;background:hsl(var(--chart-1,221 83% 53%));border-radius:4px}
+    #erpai-ins-rech .ti-cnt{width:26px;text-align:right;color:hsl(var(--foreground));font-variant-numeric:tabular-nums;font-weight:500}
+    @media(max-width:640px){#erpai-ins-rech{grid-template-columns:1fr 1fr;gap:12px}#erpai-ins-rech>.ti-chan{grid-column:1/-1}}
+  </style>
+  <div><div class="ti-h">Today</div><div class="ti-v" id="rch-tc">0</div><div class="ti-sub">recharges</div></div>
+  <div><div class="ti-h">Today Amount</div><div class="ti-v" id="rch-ta">$0</div><div class="ti-sub">gross</div></div>
+  <div><div class="ti-h">Success Rate</div><div class="ti-v" id="rch-sr" style="color:hsl(142 71% 45%)">—</div><div class="ti-sub">last 100</div></div>
+  <div><div class="ti-h">Avg Ticket</div><div class="ti-v" id="rch-av">—</div><div class="ti-sub">all time</div></div>
+  <div class="ti-chan">
+    <div class="ti-h">By Channel</div>
+    <div id="rch-chan">
+      <div class="ti-row"><span class="ti-lab">App</span><span class="ti-barw"><span class="ti-bar" style="width:100%"></span></span><span class="ti-cnt">21</span></div>
+      <div class="ti-row"><span class="ti-lab">Retail POS</span><span class="ti-barw"><span class="ti-bar" style="width:71%"></span></span><span class="ti-cnt">15</span></div>
+      <div class="ti-row"><span class="ti-lab">Voucher</span><span class="ti-barw"><span class="ti-bar" style="width:71%"></span></span><span class="ti-cnt">15</span></div>
+    </div>
+  </div>
+</div>
+<script>
+(function(){
+  if(!window.ERPAI||!window.ERPAI.token)return;
+  var CHAN={"[1]":"Voucher","[2]":"USSD","[3]":"App","[4]":"Retail POS","[5]":"IVR","[6]":"Online","[7]":"Bank"};
+  var base=window.ERPAI.baseUrl,tok=window.ERPAI.token,app=window.ERPAI.appId;
+  function q(sql){return fetch(base+"/v1/agent/app/sql/execute",{method:"POST",headers:{Authorization:"Bearer "+tok,"Content-Type":"application/json"},body:JSON.stringify({appId:app,sqlQuery:sql,limit:50})}).then(function(r){return r.json()}).then(function(j){return (j.data&&j.data.rows)||[]});}
+  function fmt(n){n=+n||0;if(n>=1000000)return '$'+(n/1000000).toFixed(1)+'M';if(n>=1000)return '$'+(n/1000).toFixed(1)+'K';return '$'+Math.round(n);}
+  Promise.all([
+    q("SELECT count() AS tc, sum(amount) AS ta, sum(status='[2]') AS sc, avg(amount) AS av FROM (SELECT argMax(amount,_version) AS amount, argMax(status,_version) AS status, argMax(timestamp,_version) AS ts FROM a1776271424351_recharges WHERE _deleted=0 GROUP BY _id) WHERE toDate(ts)=toDate(now())"),
+    q("SELECT sum(status='[2]') AS ok, count() AS tot, avg(amount) AS av FROM (SELECT argMax(amount,_version) AS amount, argMax(status,_version) AS status FROM a1776271424351_recharges WHERE _deleted=0 GROUP BY _id)"),
+    q("SELECT channel, count() AS c FROM (SELECT argMax(channel,_version) AS channel FROM a1776271424351_recharges WHERE _deleted=0 GROUP BY _id) GROUP BY channel ORDER BY c DESC LIMIT 5")
+  ]).then(function(r){
+    var td=r[0][0]||{},all=r[1][0]||{},ch=r[2];
+    document.getElementById("rch-tc").textContent=td.tc||0;
+    document.getElementById("rch-ta").textContent=fmt(td.ta);
+    var tot=+all.tot||0,ok=+all.ok||0;
+    document.getElementById("rch-sr").textContent=(tot?Math.round(ok/tot*100):0)+"%";
+    document.getElementById("rch-av").textContent=fmt(all.av);
+    var max=Math.max.apply(null,ch.map(function(x){return +x.c||0}))||1;
+    document.getElementById("rch-chan").innerHTML=ch.map(function(x){var n=CHAN[x.channel]||"?";var w=Math.round((+x.c)/max*100);return '<div class="ti-row"><span class="ti-lab">'+n+'</span><span class="ti-barw"><span class="ti-bar" style="width:'+w+'%"></span></span><span class="ti-cnt">'+x.c+'</span></div>';}).join("");
+  }).catch(function(){});
+})();
+</script>

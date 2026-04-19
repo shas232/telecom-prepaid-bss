@@ -1,0 +1,54 @@
+<div id="erpai-ins-subs" style="font:13px/1.4 system-ui,-apple-system,Segoe UI,sans-serif;color:hsl(var(--foreground));background:hsl(var(--card));border:1px solid hsl(var(--border));border-radius:8px;padding:12px 14px;display:grid;grid-template-columns:140px 1fr 1fr 1fr 1fr;gap:16px;align-items:center;min-height:140px">
+  <style>
+    #erpai-ins-subs .ti-h{font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:hsl(var(--muted-foreground));margin:0 0 6px}
+    #erpai-ins-subs .ti-v{font-size:22px;font-weight:600;line-height:1}
+    #erpai-ins-subs .ti-sub{font-size:11px;color:hsl(var(--muted-foreground));margin-top:4px}
+    #erpai-ins-subs .ti-donut{position:relative;width:100px;height:100px;margin:auto}
+    #erpai-ins-subs .ti-center{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;flex-direction:column}
+    #erpai-ins-subs .ti-c-v{font-size:20px;font-weight:600}
+    #erpai-ins-subs .ti-c-l{font-size:10px;color:hsl(var(--muted-foreground));text-transform:uppercase;letter-spacing:.04em}
+    #erpai-ins-subs .ti-leg{display:flex;gap:8px;font-size:10px;flex-wrap:wrap;margin-top:6px;justify-content:center}
+    #erpai-ins-subs .ti-leg i{display:inline-block;width:8px;height:8px;border-radius:2px;margin-right:3px;vertical-align:middle}
+    @media(max-width:640px){#erpai-ins-subs{grid-template-columns:1fr 1fr;gap:12px}#erpai-ins-subs>.ti-donut-wrap{grid-column:1/-1}}
+  </style>
+  <div class="ti-donut-wrap" style="text-align:center">
+    <div class="ti-h">Status</div>
+    <div class="ti-donut">
+      <svg viewBox="0 0 42 42" width="100" height="100" id="sub-donut">
+        <circle cx="21" cy="21" r="15.915" fill="transparent" stroke="hsl(var(--border))" stroke-width="5"></circle>
+        <circle cx="21" cy="21" r="15.915" fill="transparent" stroke="hsl(142 71% 45%)" stroke-width="5" stroke-dasharray="80 20" stroke-dashoffset="25" transform="rotate(-90 21 21)"></circle>
+      </svg>
+      <div class="ti-center"><div class="ti-c-v" id="sub-total">20</div><div class="ti-c-l">subs</div></div>
+    </div>
+    <div class="ti-leg" id="sub-leg"><span><i style="background:hsl(142 71% 45%)"></i>Active 16</span><span><i style="background:hsl(38 92% 50%)"></i>Susp 1</span><span><i style="background:hsl(0 72% 51%)"></i>Term 1</span></div>
+  </div>
+  <div><div class="ti-h">Expiring (7d)</div><div class="ti-v" id="sub-exp7" style="color:hsl(38 92% 50%)">0</div><div class="ti-sub">active balances</div></div>
+  <div><div class="ti-h">Avg Plan Util</div><div class="ti-v" id="sub-util">205%</div><div class="ti-sub">active subs</div></div>
+  <div><div class="ti-h">Roaming On</div><div class="ti-v" id="sub-roam">4</div><div class="ti-sub">active subs</div></div>
+  <div><div class="ti-h">Port Activity</div><div class="ti-v" id="sub-port">2</div><div class="ti-sub">port in + out</div></div>
+</div>
+<script>
+(function(){
+  if(!window.ERPAI||!window.ERPAI.token)return;
+  var STATUS={"[1]":{n:"Active",c:"hsl(142 71% 45%)"},"[2]":{n:"Susp",c:"hsl(38 92% 50%)"},"[3]":{n:"Term",c:"hsl(0 72% 51%)"},"[4]":{n:"Port Out",c:"hsl(280 65% 60%)"},"[5]":{n:"Port In",c:"hsl(200 85% 55%)"}};
+  var base=window.ERPAI.baseUrl,tok=window.ERPAI.token,app=window.ERPAI.appId;
+  function q(sql){return fetch(base+"/v1/agent/app/sql/execute",{method:"POST",headers:{Authorization:"Bearer "+tok,"Content-Type":"application/json"},body:JSON.stringify({appId:app,sqlQuery:sql,limit:50})}).then(function(r){return r.json()}).then(function(j){return (j.data&&j.data.rows)||[]});}
+  Promise.all([
+    q("SELECT status, count() AS c FROM (SELECT argMax(status,_version) AS status FROM a1776271424351_subscriptions WHERE _deleted=0 GROUP BY _id) GROUP BY status ORDER BY c DESC"),
+    q("SELECT count() AS exp7 FROM (SELECT argMax(effective_to,_version) AS effective_to, argMax(status,_version) AS s FROM a1776271424351_balances WHERE _deleted=0 GROUP BY _id) WHERE s='[1]' AND effective_to <= now() + INTERVAL 7 DAY"),
+    q("SELECT avg(u) AS u, sum(r) AS r, sum(s IN ('[4]','[5]')) AS p FROM (SELECT argMax(`plan_utilization_%`,_version) AS u, argMax(roaming_enabled,_version) AS r, argMax(status,_version) AS s FROM a1776271424351_subscriptions WHERE _deleted=0 GROUP BY _id) WHERE s='[1]' OR s IN ('[4]','[5]')")
+  ]).then(function(r){
+    var st=r[0],tot=st.reduce(function(a,s){return a+(+s.c||0)},0)||1;
+    var circ=Math.PI*2*15.915,off=0,svg=['<circle cx="21" cy="21" r="15.915" fill="transparent" stroke="hsl(var(--border))" stroke-width="5"></circle>'];
+    st.forEach(function(s){var meta=STATUS[s.status]||{n:"?",c:"hsl(var(--muted-foreground))"};var frac=(+s.c)/tot;var len=frac*circ;svg.push('<circle cx="21" cy="21" r="15.915" fill="transparent" stroke="'+meta.c+'" stroke-width="5" stroke-dasharray="'+len.toFixed(2)+' '+(circ-len).toFixed(2)+'" stroke-dashoffset="'+(-off).toFixed(2)+'" transform="rotate(-90 21 21)"></circle>');off+=len;});
+    document.getElementById("sub-donut").innerHTML=svg.join("");
+    document.getElementById("sub-total").textContent=tot;
+    document.getElementById("sub-leg").innerHTML=st.slice(0,3).map(function(s){var m=STATUS[s.status]||{n:"?",c:"#888"};return '<span><i style="background:'+m.c+'"></i>'+m.n+' '+s.c+'</span>';}).join("");
+    document.getElementById("sub-exp7").textContent=(r[1][0]||{}).exp7||0;
+    var m=r[2][0]||{};
+    document.getElementById("sub-util").textContent=(m.u==null?"0":Math.round(+m.u))+"%";
+    document.getElementById("sub-roam").textContent=m.r||0;
+    document.getElementById("sub-port").textContent=m.p||0;
+  }).catch(function(){});
+})();
+</script>

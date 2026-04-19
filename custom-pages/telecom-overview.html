@@ -1,0 +1,1056 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Telecom BSS — Prepaid Billing System</title>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>
+<script>document.addEventListener('DOMContentLoaded',()=>mermaid.init(undefined,'.mermaid'))</script>
+<style>
+  :root{--bg:#fff;--fg:#111;--muted:#666;--border:#e5e5e5;--accent:#2563eb;--badge-bg:#f3f4f6;--card-bg:#fafafa}
+  @media(prefers-color-scheme:dark){:root{--bg:#0a0a0a;--fg:#e5e5e5;--muted:#999;--border:#333;--accent:#60a5fa;--badge-bg:#1e1e1e;--card-bg:#141414}}
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:var(--bg);color:var(--fg);line-height:1.6;max-width:none;margin:0;padding:32px 48px}
+  @media(min-width:1600px){body{padding:32px 80px}}
+  @media(max-width:700px){body{padding:24px 16px}}
+  h1{font-size:28px;font-weight:700;margin-bottom:4px}
+  .subtitle{color:var(--muted);font-size:14px;margin-bottom:32px}
+  h2{font-size:18px;font-weight:700;margin:36px 0 12px;padding-bottom:6px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px}
+  h3.group-header{font-size:13px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin:20px 0 10px}
+  h3{font-size:14px;font-weight:600;margin-bottom:4px}
+  .count{font-size:11px;font-weight:500;background:var(--badge-bg);color:var(--muted);padding:2px 8px;border-radius:99px}
+  .badge{display:inline-block;font-size:10px;font-weight:500;background:var(--badge-bg);color:var(--muted);padding:2px 8px;border-radius:4px;margin-right:4px}
+  .badge.ro{background:#fef3c7;color:#92400e}
+  .req{color:#ef4444;margin-left:2px}
+  .muted{color:var(--muted);font-size:11px}
+  .table-block{border:1px solid var(--border);border-radius:8px;overflow:hidden;margin-bottom:12px}
+  .table-header{padding:8px 12px;background:var(--card-bg);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px;font-size:13px}
+  .table-desc{padding:6px 12px;font-size:11px;color:var(--muted);border-bottom:1px solid var(--border)}
+  .col-count{margin-left:auto;font-size:10px;color:var(--muted)}
+  table{width:100%;border-collapse:collapse;font-size:12px}
+  th{text-align:left;padding:6px 12px;font-weight:500;color:var(--muted);border-bottom:1px solid var(--border);background:var(--card-bg)}
+  td{padding:5px 12px;border-bottom:1px solid var(--border);vertical-align:top}
+  tr:last-child td{border-bottom:none}
+  code{font-size:11px;background:var(--badge-bg);padding:1px 5px;border-radius:3px;font-family:'SF Mono',Consolas,monospace}
+  .card{border:1px solid var(--border);border-radius:8px;padding:12px;margin-bottom:8px}
+  .card p{font-size:12px;color:var(--muted);margin:4px 0}
+  .perms{display:flex;flex-wrap:wrap;gap:4px;margin-top:8px}
+  ul{padding-left:20px;font-size:13px}
+  li{margin-bottom:6px}
+  .prose{font-size:13px;color:var(--fg)}
+  .prose p{margin-bottom:8px}
+  .kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px}
+  .kpi{border:1px solid var(--border);border-radius:8px;padding:12px;background:var(--card-bg)}
+  .kpi .k{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
+  .kpi .v{font-size:22px;font-weight:700;margin-top:4px}
+  .footer{margin-top:40px;padding-top:16px;border-top:1px solid var(--border);font-size:11px;color:var(--muted);text-align:center}
+  .mermaid{background:var(--card-bg);border:1px solid var(--border);border-radius:8px;padding:16px;overflow-x:auto;font-size:11px}
+  @media print{body{max-width:100%;padding:20px}h2{break-after:avoid}.table-block{break-inside:avoid}.card{break-inside:avoid}@page{margin:1.5cm}}
+</style>
+</head>
+<body>
+  <h1>Telecom BSS — Prepaid Billing System</h1>
+  <div class="subtitle">Real-time charging, rating, wallet, catalog, partner &amp; customer operations</div>
+
+  <div class="kpis">
+    <div class="kpi"><div class="k">Tables</div><div class="v">54</div></div>
+    <div class="kpi"><div class="k">Columns</div><div class="v">715</div></div>
+    <div class="kpi"><div class="k">Relationships</div><div class="v">78</div></div>
+    <div class="kpi"><div class="k">Roles</div><div class="v">8</div></div>
+  </div>
+
+  <section>
+    <h2>Business Overview</h2>
+    <div class="prose">
+      <p>A prepaid telecom <strong>Business Support System (BSS)</strong> delivering end-to-end operations for a mobile operator: customer &amp; subscription lifecycle, SIM and MSISDN management, tariff-plan catalog with bundles and booster stacking, a monetary wallet alongside multi-balance service buckets (data / voice / SMS / bonus), real-time Diameter Gy/Ro online charging with priority-based balance depletion, CDR generation, partner &amp; channel distribution with commissioning, and a full customer-service surface (cases, interactions, notifications).</p>
+      <p>The model captures every artefact touched during the prepaid charging flow — CCR-I initiations, incremental CCR-U reauthorizations, CCR-T terminations, and exception CCR-E events — flowing through <code>Charging Sessions</code> &rarr; <code>Usage Transactions</code> &rarr; <code>Call Detail Records</code>, with rollup totals on subscriptions and balance buckets.</p>
+    </div>
+  </section>
+
+  <section>
+    <h2>Entity Relationship Diagram</h2>
+    <div class="mermaid">erDiagram
+    Subscriptions ||--o{ Balances : "Subscription"
+    Tariff_Plans ||--o{ Balances : "Tariff Plan"
+    Orders ||--o{ Order_Items : "Order"
+    Tariff_Plans ||--o{ Order_Items : "Tariff Plan"
+    Customers ||--o{ Orders : "Customer"
+    Subscriptions ||--o{ Orders : "Subscription"
+    Channels ||--o{ Orders : "Channel"
+    Wallets ||--o{ Recharges : "Wallet"
+    Distribution_Partners ||--o{ Recharges : "Distribution Partner"
+    Customers ||--o{ Customer_Identifications : "Customer"
+    Customers ||--o{ Wallets : "Customer"
+    Notification_Templates ||--o{ Notifications_Sent : "Template"
+    Customers ||--o{ Notifications_Sent : "Customer"
+    Subscriptions ||--o{ Notifications_Sent : "Subscription"
+    Channels ||--o{ Notifications_Sent : "Channel"
+    Charging_Sessions ||--o{ Call_Detail_Records : "Charging Session"
+    Subscriptions ||--o{ Call_Detail_Records : "Subscription"
+    Customers ||--o{ Call_Detail_Records : "Customer"
+    Tariff_Plans ||--o{ Call_Detail_Records : "Tariff Plan"
+    Subscriptions ||--o{ Subscription_Status_History : "Subscription"
+    Friends_and_Family_Groups ||--o{ FF_Members : "FF Group"
+    Subscriptions ||--o{ Bonus_Grants : "Subscription"
+    Subscriptions ||--o{ Balance_Transfers : "From Subscription"
+    Subscriptions ||--o{ Balance_Transfers : "To Subscription"
+    Customers ||--o{ Cases : "Customer"
+    Subscriptions ||--o{ Cases : "Subscription"
+    Channels ||--o{ Cases : "Channel"
+    Customers ||--o{ Customer_Lifecycle_Events : "Customer"
+    Subscriptions ||--o{ MSISDN_Pool : "Assigned Subscription"
+    Closed_User_Groups ||--o{ CUG_Members : "CUG"
+    Subscriptions ||--o{ CUG_Members : "Subscription"
+    Promotions ||--o{ Promotion_Redemptions : "Promotion"
+    Customers ||--o{ Promotion_Redemptions : "Customer"
+    Subscriptions ||--o{ Promotion_Redemptions : "Subscription"
+    Customers ||--o{ Subscriptions : "Customer"
+    Tariff_Plans ||--o{ Subscriptions : "Current Plan"
+    Roaming_Zones ||--o{ Subscriptions : "Current Roaming Zone"
+    Devices ||--o{ Subscriptions : "Current Device"
+    Subscriptions ||--o{ Friends_and_Family_Groups : "Owner Subscription"
+    Customers ||--o{ Customer_Interactions : "Customer"
+    Subscriptions ||--o{ Customer_Interactions : "Subscription"
+    Channels ||--o{ Customer_Interactions : "Channel"
+    Charging_Sessions ||--o{ Usage_Transactions : "Charging Session"
+    Subscriptions ||--o{ Usage_Transactions : "Subscription"
+    Balances ||--o{ Usage_Transactions : "Balance"
+    Distribution_Partners ||--o{ SIM_Inventory : "Allocated To Partner"
+    Subscriptions ||--o{ SIM_Inventory : "Active Subscription"
+    Distribution_Partners ||--o{ Partner_Contracts : "Partner"
+    Customers ||--o{ Closed_User_Groups : "Owner Customer"
+    Distribution_Partners ||--o{ Partner_Commissions : "Partner"
+    Recharges ||--o{ Partner_Commissions : "Recharge"
+    Customers ||--o{ Account_Hierarchy : "Parent Customer"
+    Customers ||--o{ Account_Hierarchy : "Child Customer"
+    Bundles ||--o{ Bundle_Components : "Bundle"
+    Subscriptions ||--o{ Charging_Sessions : "Subscription"
+    Wallets ||--o{ Wallet_Transactions : "Wallet"
+    Roaming_Zones ||--o{ Roaming_Partners : "Zone"
+    Roaming_Partners ||--o{ Roaming_Rate_Cards : "Partner"
+    Roaming_Zones ||--o{ Roaming_Rate_Cards : "Zone"
+    Subscriptions ||--o{ Roaming_Sessions : "Subscription"
+    Roaming_Partners ||--o{ Roaming_Sessions : "Partner"
+    Roaming_Zones ||--o{ Roaming_Sessions : "Zone"
+    Roaming_Partners ||--o{ TAP_Records : "Partner"
+    Subscriptions ||--o{ Devices : "Current Subscription"
+    Customers ||--o{ Devices : "Owner"
+    Device_TAC_Database ||--o{ Devices : "Device TAC"
+    Devices ||--o{ Equipment_Identity_Register : "Device"
+    Subscriptions ||--o{ IMEI_Change_Events : "Subscription"
+    Devices ||--o{ IMEI_Change_Events : "Old Device"
+    Devices ||--o{ IMEI_Change_Events : "New Device"
+    Customers ||--o{ MNP_Requests : "Customer"
+    Subscriptions ||--o{ MNP_Requests : "Subscription"
+    MSISDN_Pool ||--o{ Number_Auctions : "MSISDN Record"
+    Customers ||--o{ Number_Auctions : "Highest Bidder"
+    Customers ||--o{ Number_Auctions : "Winner"
+    Subscriptions ||--o{ Number_Change_Events : "Old Subscription"
+    Subscriptions ||--o{ Number_Change_Events : "New Subscription"</div>
+  </section>
+
+  <section>
+    <h2>Tables <span class="count">54</span></h2>
+    <h3 class="group-header">Customer <span class="count">6</span></h3>
+
+    <div class="table-block">
+      <div class="table-header">
+        <strong>Customers</strong>
+        <span class="badge">master</span>
+        <span class="col-count">19 columns</span>
+      </div>
+      <div class="table-desc">Prepaid subscribers and corporate accounts — identity, contact, KYC, risk score.</div>
+      <table>
+        <thead><tr><th>Column</th><th>Type</th><th>Details</th></tr></thead>
+        <tbody><tr><td>ID</td><td><code>auto-seq</code></td><td></td></tr><tr><td>KYC Status</td><td><code>select</code></td><td><span class="muted">[object Object], [object Object], [object Object], [object Object]</span></td></tr><tr><td>Name<span class="req">*</span></td><td><code>text</code></td><td></td></tr><tr><td>Language</td><td><code>select</code></td><td><span class="muted">[object Object], [object Object], [object Object], [object Object], [object Object]</span></td></tr><tr><td>Segment</td><td><code>select</code></td><td><span class="muted">[object Object], [object Object], [object Object], [object Object], [object Object]</span></td></tr><tr><td>Status</td><td><code>select</code></td><td><span class="muted">[object Object], [object Object], [object Object], [object Object]</span></td></tr><tr><td>Onboarded Date</td><td><code>date</code></td><td></td></tr><tr><td>Customer Type</td><td><code>select</code></td><td><span class="muted">[object Object], [object Object], [object Object]</span></td></tr><tr><td>Phone</td><td><code>phone</code></td><td></td></tr><tr><td>Email</td><td><code>email</code></td><td></td></tr><tr><td>Subscription Count</td><td><code>rollup</code></td><td><code>fx: COUNT(${Subscriptions-&gt;MSISDN})</code></td></tr><tr><td>Is Multi-Line</td><td><code>formula</code></td><td><code>fx: IF(${Subscription Count} &gt; 1, 1, 0)</code></td></tr><tr><td>Device Count</td><td><code>rollup</code></td><td><code>fx: COUNT(${Devices-&gt;Device Code})</code></td></tr><tr><td>MNP Request Count</td><td><code>rollup</code></td><td><code>fx: COUNT(${MNP Requests-&gt;MNP Code})</code></td></tr><tr><td>Auction Wins</td><td><code>rollup</code></td><td><code>fx: COUNT(${Number Auctions-&gt;Auction Code})</code></td></tr><tr><td>Auction Spend</td><td><code>rollup</code></td><td><code>fx: SUM(${Number Auctions-&gt;Sold Price})</code></td></tr><tr><td>Total Cases</td><td><code>rollup</code></td><td><code>fx: COUNT(${Cases-&gt;Subject})</code></td></tr><tr><td>Total Interactions</td><td><code>rollup</code></td><td><code>fx: COUNT(${Customer Interactions-&gt;Interaction Type})</code></td></tr><tr><td>Wallet Balance</td><td><code>rollup</code></td><td><code>fx: SUM(${Wallets-&gt;Current Balance})</code></td></tr></tbody>
+      </table>
+    </div>
+
+    <div class="table-block">
+      <div class="table-header">
+        <strong>Customer Identifications</strong>
+        <span class="badge">master</span>
+        <span class="col-count">12 columns</span>
+      </div>
+      <div class="table-desc">KYC documents and verification records linked to each customer.</div>
+      <table>
+        <thead><tr><th>Column</th><th>Type</th><th>Details</th></tr></thead>
+        <tbody><tr><td>ID</td><td><code>auto-seq</code></td><td></td></tr><tr><td>Verification Date</td><td><code>date</code></td><td></td></tr><tr><td>Scan URL</td><td><code>url</code></td><td></td></tr><tr><td>Notes</td><td><code>long_text</code></td><td></td></tr><tr><td>ID Type<span class="req">*</span></td><td><code>select</code></td><td><span class="muted">[object Object], [object Object], [object Object], [object Object], [object Object]</span></td></tr><tr><td>ID Number<span class="req">*</span></td><td><code>text</code></td><td></td></tr><tr><td>Issuing Authority</td><td><code>text</code></td><td></td></tr><tr><td>Issue Date</td><td><code>date</code></td><td></td></tr><tr><td>Expiry Date</td><td><code>date</code></td><td></td></tr><tr><td>Verified</td><td><code>toggle</code></td><td></td></tr><tr><td>Customer<span class="req">*</span></td><td><code>reference</code></td><td>→ Customers</td></tr><tr><td>Verification Method</td><td><code>select</code></td><td><span class="muted">[object Object], [object Object], [object Object], [object Object], [object Object]</span></td></tr></tbody>
+      </table>
+    </div>
+
+    <div class="table-block">
+      <div class="table-header">
+        <strong>Account Hierarchy</strong>
+        <span class="badge">master</span>
+        <span class="col-count">8 columns</span>
+      </div>
+      <div class="table-desc">Parent/child account structure for corporate and billing hierarchies.</div>
+      <table>
+        <thead><tr><th>Column</th><th>Type</th><th>Details</th></tr></thead>
+        <tbody><tr><td>ID</td><td><code>auto-seq</code></td><td></td></tr><tr><td>Effective To</td><td><code>date</code></td><td></td></tr><tr><td>Effective From</td><td><code>date</code></td><td></td></tr><tr><td>Billing Responsibility</td><td><code>select</code></td><td><span class="muted">[object Object], [object Object], [object Object]</span></td></tr><tr><td>Relationship Type<span class="req">*</span></td><td><code>select</code></td><td><span class="muted">[object Object], [object Object], [object Object], [object Object]</span></td></tr><tr><td>Notes</td><td><code>long_text</code></td><td></td></tr><tr><td>Parent Customer<span class="req">*</span></td><td><code>reference</code></td><td>→ Customers</td></tr><tr><td>Child Customer<span class="req">*</span></td><td><code>reference</code></td><td>→ Customers</td></tr></tbody>
+      </table>
+    </div>
+
+    <div class="table-block">
+      <div class="table-header">
+        <strong>Customer Lifecycle Events</strong>
+        <span class="badge">transaction</span>
+        <span class="col-count">9 columns</span>
+      </div>
+      <div class="table-desc">Log of activation, suspension, resumption, and churn events per subscription.</div>
+      <table>
+        <thead><tr><th>Column</th><th>Type</th><th>Details</th></tr></thead>
+        <tbody><tr><td>ID</td><td><code>auto-seq</code></td><td></td></tr><tr><td>Notes</td><td><code>long_text</code></td><td></td></tr><tr><td>Reason</td><td><code>text</code></td><td></td></tr><tr><td>Event Date<span class="req">*</span></td><td><code>date</code></td><td></td></tr><tr><td>Event Type<span class="req">*</span></td><td><code>select</code></td><td><span class="muted">[object Object], [object Object], [object Object], [object Object], [object Object], [object Object]…</span></td></tr><tr><td>Triggered By</td><td><code>select</code></td><td><span class="muted">[object Object], [object Object], [object Object], [object Object], [object Object]</span></td></tr><tr><td>Previous Status</td><td><code>text</code></td><td></td></tr><tr><td>New Status</td><td><code>text</code></td><td></td></tr><tr><td>Customer<span class="req">*</span></td><td><code>reference</code></td><td>→ Customers</td></tr></tbody>
+      </table>
+    </div>
+
+    <div class="table-block">
+      <div class="table-header">
+        <strong>Customer Interactions</strong>
+        <span class="badge">transaction</span>
+        <span class="col-count">12 columns</span>
+      </div>
+      <div class="table-desc">Inbound and outbound customer touchpoints across channels (IVR, app, store).</div>
+      <table>
+        <thead><tr><th>Column</th><th>Type</th><th>Details</th></tr></thead>
+        <tbody><tr><td>ID</td><td><code>auto-seq</code></td><td></td></tr><tr><td>Interaction Code<span class="req">*</span></td><td><code>text</code></td><td></td></tr><tr><td>Interaction Type</td><td><code>select</code></td><td><span class="muted">[object Object], [object Object], [object Object], [object Object], [object Object], [object Object]…</span></td></tr><tr><td>Timestamp<span class="req">*</span></td><td><code>date</code></td><td></td></tr><tr><td>Duration Seconds</td><td><code>number</code></td><td></td></tr><tr><td>Outcome</td><td><code>select</code></td><td><span class="muted">[object Object], [object Object], [object Object], [object Object]</span></td></tr><tr><td>Agent ID</td><td><code>text</code></td><td></td></tr><tr><td>Transcript</td><td><code>long_text</code></td><td></td></tr><tr><td>CSAT Score</td><td><code>number</code></td><td></td></tr><tr><td>Customer</td><td><code>reference</code></td><td>→ Customers</td></tr><tr><td>Subscription</td><td><code>reference</code></td><td>→ Subscriptions</td></tr><tr><td>Channel</td><td><code>reference</code></td><td>→ Channels</td></tr></tbody>
+      </table>
+    </div>
+
+    <div class="table-block">
+      <div class="table-header">
+        <strong>Cases</strong>
+        <span class="badge">transaction</span>
+        <span class="col-count">16 columns</span>
+      </div>
+      <div class="table-desc">Customer support tickets — classification, status, SLA, resolution.</div>
+      <table>
+        <thead><tr><th>Column</th><th>Type</th><th>Details</th></tr></thead>
+        <tbody><tr><td>ID</td><td><code>auto-seq</code></td><td></td></tr><tr><td>Case Code<span class="req">*</span></td><td><code>text</code></td><td></td></tr><tr><td>Description</td><td><code>long_text</code></td><td></td></tr><tr><td>Subject<span class="req">*</span></td><td><code>text</code></td><td></td></tr><tr><td>Status<span class="req">*</span></td><td><code>select</code></td><td><span class="muted">[object Object], [object Object], [object Object], [object Object], [object Object]</span></td></tr><tr><td>Opened At<span class="req">*</span></td><td><code>date</code></td><td></td></tr><tr><td>Resolved At</td><td><code>date</code></td><td></td></tr><tr><td>Assigned To</td><td><code>text</code></td><td></td></tr><tr><td>Resolution Notes</td><td><code>long_text</code></td><td></td></tr><tr><td>CSAT</td><td><code>number</code></td><td></td></tr><tr><td>Priority</td><td><code>select</code></td><td><span class="muted">[object Object], [object Object], [object Object], [object Object]</span></td></tr><tr><td>Category</td><td><code>select</code></td><td><span class="muted">[object Object], [object Object], [object Object], [object Object], [object Object], [object Object]</span></td></tr><tr><td>Customer<span class="req">*</span></td><td><code>reference</code></td><td>→ Customers</td></tr><tr><td>Subscription</td><td><code>reference</code></td><td>→ Subscriptions</td></tr><tr><td>Channel</td><td><code>reference</code></td><td>→ Channels</td></tr><tr><td>Customer Name</td><td><code>formula</code></td><td><code>fx: ${Customer-&gt;Name}</code></td></tr></tbody>
+      </table>
+    </div>
+<h3 class="group-header">Subscription &amp; SIM <span class="count">4</span></h3>
+
+    <div class="table-block">
+      <div class="table-header">
+        <strong>Subscriptions</strong>
+        <span class="badge">master</span>
+        <span class="col-count">35 columns</span>
+      </div>
+      <div class="table-desc">Active MSISDN → customer → plan bindings with status and dates.</div>
+      <table>
+        <thead><tr><th>Column</th><th>Type</th><th>Details</th></tr></thead>
+        <tbody><tr><td>ID</td><td><code>auto-seq</code></td><td></td></tr><tr><td>Home Network</td><td><code>text</code></td><td></td></tr><tr><td>IMSI</td><td><code>text</code></td><td></td></tr><tr><td>Subscription Type</td><td><code>select</code></td><td><span class="muted">[object Object], [object Object], [object Object]</span></td></tr><tr><td>APN</td><td><code>text</code></td><td></td></tr><tr><td>ICCID</td><td><code>text</code></td><td></td></tr><tr><td>MSISDN<span class="req">*</span></td><td><code>text</code></td><td></td></tr><tr><td>Notes</td><td><code>long_text</code></td><td></td></tr><tr><td>Roaming Enabled</td><td><code>toggle</code></td><td></td></tr><tr><td>Last Usage Date</td><td><code>date</code></td><td></td></tr><tr><td>Termination Date</td><td><code>date</code></td><td></td></tr><tr><td>Activation Date</td><td><code>date</code></td><td></td></tr><tr><td>Status<span class="req">*</span></td><td><code>select</code></td><td><span class="muted">[object Object], [object Object], [object Object], [object Object], [object Object]</span></td></tr><tr><td>Customer<span class="req">*</span></td><td><code>reference</code></td><td>→ Customers</td></tr><tr><td>Current Plan</td><td><code>reference</code></td><td>→ Tariff Plans</td></tr><tr><td>Customer Name</td><td><code>formula</code></td><td><code>fx: ${Customer-&gt;Name}</code></td></tr><tr><td>Plan Price</td><td><code>formula</code></td><td><code>fx: ${Current Plan-&gt;Price}</code></td></tr><tr><td>Plan Validity (days)</td><td><code>formula</code></td><td><code>fx: ${Current Plan-&gt;Validity Days}</code></td></tr><tr><td>Plan Data Allowance (MB)</td><td><code>formula</code></td><td><code>fx: ${Current Plan-&gt;Data Allowance (MB)}</code></td></tr><tr><td>Plan Voice Allowance (min)</td><td><code>formula</code></td><td><code>fx: ${Current Plan-&gt;Voice Allowance (min)}</code></td></tr><tr><td>Plan SMS Allowance</td><td><code>formula</code></td><td><code>fx: ${Current Plan-&gt;SMS Allowance}</code></td></tr><tr><td>Total Initial Balance</td><td><code>rollup</code></td><td><code>fx: SUM(${Balances-&gt;Initial Amount})</code></td></tr><tr><td>Total Used Balance</td><td><code>rollup</code></td><td><code>fx: SUM(${Balances-&gt;Used Amount})</code></td></tr><tr><td>UT Count</td><td><code>rollup</code></td><td><code>fx: COUNT(${Usage Transactions-&gt;Used Amount})</code></td></tr><tr><td>Total UT Usage</td><td><code>rollup</code></td><td><code>fx: SUM(${Usage Transactions-&gt;Used Amount})</code></td></tr><tr><td>Plan Utilization %</td><td><code>formula</code></td><td><code>fx: ${Total Used Balance} / ${Total Initial Balance} * 100</code></td></tr><tr><td>Plan Remaining Balance</td><td><code>formula</code></td><td><code>fx: ${Total Initial Balance} - ${Total Used Balance}</code></td></tr><tr><td>Plan Cost per Day</td><td><code>formula</code></td><td><code>fx: ${Plan Price} / ${Plan Validity (days)}</code></td></tr><tr><td>Roaming Credit Limit Daily</td><td><code>number</code></td><td></td></tr><tr><td>Current Roaming Zone</td><td><code>reference</code></td><td>→ Roaming Zones</td></tr><tr><td>Lifetime Roaming Charges</td><td><code>rollup</code></td><td><code>fx: SUM(${Roaming Sessions-&gt;Total Charged})</code></td></tr><tr><td>Roaming Session Count</td><td><code>rollup</code></td><td><code>fx: COUNT(${Roaming Sessions-&gt;Session Code})</code></td></tr><tr><td>Current Device</td><td><code>reference</code></td><td>→ Devices</td></tr><tr><td>IMEI Change Count</td><td><code>rollup</code></td><td><code>fx: COUNT(${IMEI Change Events-&gt;Event Code})</code></td></tr><tr><td>MNP Request Count</td><td><code>rollup</code></td><td><code>fx: COUNT(${MNP Requests-&gt;MNP Code})</code></td></tr></tbody>
+      </table>
+    </div>
+
+    <div class="table-block">
+      <div class="table-header">
+        <strong>Subscription Status History</strong>
+        <span class="badge">transaction</span>
+        <span class="col-count">7 columns</span>
+      </div>
+      <div class="table-desc">Historical log of every status transition on a subscription.</div>
+      <table>
+        <thead><tr><th>Column</th><th>Type</th><th>Details</th></tr></thead>
+        <tbody><tr><td>ID</td><td><code>auto-seq</code></td><td></td></tr><tr><td>To Status<span class="req">*</span></td><td><code>text</code></td><td></td></tr><tr><td>Changed At<span class="req">*</span></td><td><code>date</code></td><td></td></tr><tr><td>Reason</td><td><code>text</code></td><td></td></tr><tr><td>Changed By</td><td><code>text</code></td><td></td></tr><tr><td>From Status</td><td><code>text</code></td><td></td></tr><tr><td>Subscription<span class="req">*</span></td><td><code>reference</code></td><td>→ Subscriptions</td></tr></tbody>
+      </table>
+    </div>
+
+    <div class="table-block">
+      <div class="table-header">
+        <strong>SIM Inventory</strong>
+        <span class="badge">master</span>
+        <span class="col-count">10 columns</span>
+      </div>
+      <div class="table-desc">ICCID inventory with SIM state, ordering partner, and allocation.</div>
+      <table>
+        <thead><tr><th>Column</th><th>Type</th><th>Details</th></tr></thead>
+        <tbody><tr><td>ID</td><td><code>auto-seq</code></td><td></td></tr><tr><td>Warehouse Location</td><td><code>text</code></td><td></td></tr><tr><td>Vendor</td><td><code>text</code></td><td></td></tr><tr><td>Status<span class="req">*</span></td><td><code>select</code></td><td><span class="muted">[object Object], [object Object], [object Object], [object Object], [object Object]</span></td></tr><tr><td>Received Date</td><td><code>date</code></td><td></td></tr><tr><td>Batch ID</td><td><code>text</code></td><td></td></tr><tr><td>IMSI</td><td><code>text</code></td><td></td></tr><tr><td>ICCID<span class="req">*</span></td><td><code>text</code></td><td></td></tr><tr><td>Allocated To Partner</td><td><code>reference</code></td><td>→ Distribution Partners</td></tr><tr><td>Active Subscription</td><td><code>reference</code></td><td>→ Subscriptions</td></tr></tbody>
+      </table>
+    </div>
+
+    <div class="table-block">
+      <div class="table-header">
+        <strong>MSISDN Pool</strong>
+        <span class="badge">master</span>
+        <span class="col-count">9 columns</span>
+      </div>
+      <div class="table-desc">Number pool — reserved, assigned, quarantined, and released MSISDNs.</div>
+      <table>
+        <thead><tr><th>Column</th><th>Type</th><th>Details</th></tr></thead>
+        <tbody><tr><td>ID</td><td><code>auto-seq</code></td><td></td></tr><tr><td>MSISDN<span class="req">*</span></td><td><code>text</code></td><td></td></tr><tr><td>Last Assigned Date</td><td><code>date</code></td><td></td></tr><tr><td>Notes</td><td><code>long_text</code></td><td></td></tr><tr><td>Reservation Expiry</td><td><code>date</code></td><td></td></tr><tr><td>Tier</td><td><code>select</code></td><td><span class="muted">[object Object], [object Object], [object Object], [object Object]</span></td></tr><tr><td>Status<span class="req">*</span></td><td><code>select</code></td><td><span class="muted">[object Object], [object Object], [object Object], [object Object], [object Object]</span></td></tr><tr><td>Assigned Subscription</td><td><code>reference</code></td><td>→ Subscriptions</td></tr><tr><td>Recycle After</td><td><code>date</code></td><td></td></tr></tbody>
+      </table>
+    </div>
+<h3 class="group-header">Catalog <span class="count">6</span></h3>
+
+    <div class="table-block">
+      <div class="table-header">
+        <strong>Tariff Plans</strong>
+        <span class="badge">master</span>
+        <span class="col-count">27 columns</span>
+      </div>
+      <div class="table-desc">Prepaid plans: price, validity, allowances (data/voice/SMS), priority-on-charge.</div>
+      <table>
+        <thead><tr><th>Column</th><th>Type</th><th>Details</th></tr></thead>
+        <tbody><tr><td>ID</td><td><code>auto-seq</code></td><td></td></tr><tr><td>Plan Code<span class="req">*</span></td><td><code>text</code></td><td></td></tr><tr><td>Plan Name<span class="req">*</span></td><td><code>text</code></td><td></td></tr><tr><td>Price<span class="req">*</span></td><td><code>currency</code></td><td></td></tr><tr><td>Currency</td><td><code>select</code></td><td><span class="muted">[object Object], [object Object], [object Object], [object Object]</span></td></tr><tr><td>Plan Type</td><td><code>select</code></td><td><span class="muted">[object Object], [object Object], [object Object], [object Object], [object Object], [object Object]…</span></td></tr><tr><td>Validity Days<span class="req">*</span></td><td><code>number</code></td><td></td></tr><tr><td>Auto Renew Default</td><td><code>toggle</code></td><td></td></tr><tr><td>Priority On Charge</td><td><code>number</code></td><td></td></tr><tr><td>Region</td><td><code>text</code></td><td></td></tr><tr><td>Status</td><td><code>select</code></td><td><span class="muted">[object Object], [object Object], [object Object]</span></td></tr><tr><td>Data Allowance (MB)</td><td><code>number</code></td><td></td></tr><tr><td>Voice Allowance (min)</td><td><code>number</code></td><td></td></tr><tr><td>SMS Allowance</td><td><code>number</code></td><td></td></tr><tr><td>Data Overage Rate</td><td><code>currency</code></td><td></td></tr><tr><td>Voice Overage Rate</td><td><code>currency</code></td><td></td></tr><tr><td>SMS Overage Rate</td><td><code>currency</code></td><td></td></tr><tr><td>Data Overage Action</td><td><code>select</code></td><td><span class="muted">[object Object], [object Object], [object Object]</span></td></tr><tr><td>Voice Overage Action</td><td><code>select</code></td><td><span class="muted">[object Object], [object Object], [object Object]</span></td></tr><tr><td>SMS Overage Action</td><td><code>select</code></td><td><span class="muted">[object Object], [object Object], [object Object]</span></td></tr><tr><td>Active Subscribers</td><td><code>rollup</code></td><td><code>fx: COUNT(${Subscriptions-&gt;MSISDN})</code></td></tr><tr><td>Total Seeded Balance</td><td><code>rollup</code></td><td><code>fx: SUM(${Balances-&gt;Initial Amount})</code></td></tr><tr><td>Price per Day</td><td><code>formula</code></td><td><code>fx: ${Price} / ${Validity Days}</code></td></tr><tr><td>Price per MB</td><td><code>formula</code></td><td><code>fx: IF(${Data Allowance (MB)} &gt; 0, ${Price} / ${Data Allowance (MB)}, 0)</code></td></tr><tr><td>Price per Minute</td><td><code>formula</code></td><td><code>fx: IF(${Voice Allowance (min)} &gt; 0, ${Price} / ${Voice Allowance (min)}, 0)</code></td></tr><tr><td>Monthly Plan Revenue</td><td><code>formula</code></td><td><code>fx: ${Price} * ${Active Subscribers}</code></td></tr><tr><td>Roaming Zones Included</td><td><code>text</code></td><td></td></tr></tbody>
+      </table>
+    </div>
+
+    <div class="table-block">
+      <div class="table-header">
+        <strong>Bundles</strong>
+        <span class="badge">master</span>
+        <span class="col-count">7 columns</span>
+      </div>
+      <div class="table-desc">Add-on bundle definitions (booster packs, roaming, topups).</div>
+      <table>
+        <thead><tr><th>Column</th><th>Type</th><th>Details</th></tr></thead>
+        <tbody><tr><td>ID</td><td><code>auto-seq</code></td><td></td></tr><tr><td>Validity Days</td><td><code>number</code></td><td></td></tr><tr><td>Discount vs Components</td><td><code>number</code></td><td></td></tr><tr><td>Bundle Price</td><td><code>currency</code></td><td></td></tr><tr><td>Bundle Name<span class="req">*</span></td><td><code>text</code></td><td></td></tr><tr><td>Bundle Code<span class="req">*</span></td><td><code>text</code></td><td></td></tr><tr><td>Status</td><td><code>select</code></td><td><span class="muted">[object Object], [object Object], [object Object]</span></td></tr></tbody>
+      </table>
+    </div>
+
+    <div class="table-block">
+      <div class="table-header">
+        <strong>Bundle Components</strong>
+        <span class="badge">master</span>
+        <span class="col-count">6 columns</span>
+      </div>
+      <div class="table-desc">Line items that compose a bundle — unit, amount, validity.</div>
+      <table>
+        <thead><tr><th>Column</th><th>Type</th><th>Details</th></tr></thead>
+        <tbody><tr><td>ID</td><td><code>auto-seq</code></td><td></td></tr><tr><td>Quantity</td><td><code>number</code></td><td></td></tr><tr><td>Sequence</td><td><code>number</code></td><td></td></tr><tr><td>Notes</td><td><code>text</code></td><td></td></tr><tr><td>Bundle<span class="req">*</span></td><td><code>reference</code></td><td>→ Bundles</td></tr><tr><td>Offering<span class="req">*</span></td><td><code>reference</code></td><td>→ —</td></tr></tbody>
+      </table>
+    </div>
+
+    <div class="table-block">
+      <div class="table-header">
+        <strong>Promotions</strong>
+        <span class="badge">master</span>
+        <span class="col-count">13 columns</span>
+      </div>
+      <div class="table-desc">Marketing campaigns: discounts, bonuses, eligibility rules, windows.</div>
+      <table>
+        <thead><tr><th>Column</th><th>Type</th><th>Details</th></tr></thead>
+        <tbody><tr><td>ID</td><td><code>auto-seq</code></td><td></td></tr><tr><td>Total Budget</td><td><code>currency</code></td><td></td></tr><tr><td>Budget Consumed</td><td><code>currency</code></td><td></td></tr><tr><td>Status</td><td><code>select</code></td><td><span class="muted">[object Object], [object Object], [object Object], [object Object], [object Object]</span></td></tr><tr><td>End Date</td><td><code>date</code></td><td></td></tr><tr><td>Start Date</td><td><code>date</code></td><td></td></tr><tr><td>Eligibility Rules</td><td><code>long_text</code></td><td></td></tr><tr><td>Type</td><td><code>select</code></td><td><span class="muted">[object Object], [object Object], [object Object], [object Object], [object Object]</span></td></tr><tr><td>Promotion Name<span class="req">*</span></td><td><code>text</code></td><td></td></tr><tr><td>Promotion Code<span class="req">*</span></td><td><code>text</code></td><td></td></tr><tr><td>Max Redemptions Per Customer</td><td><code>number</code></td><td></td></tr><tr><td>Redemption Count</td><td><code>rollup</code></td><td><code>fx: COUNT(${Promotion Redemptions-&gt;Value Granted})</code></td></tr><tr><td>Value Given</td><td><code>rollup</code></td><td><code>fx: SUM(${Promotion Redemptions-&gt;Value Granted})</code></td></tr></tbody>
+      </table>
+    </div>
+
+    <div class="table-block">
+      <div class="table-header">
+        <strong>Business Rules</strong>
+        <span class="badge">master</span>
+        <span class="col-count">8 columns</span>
+      </div>
+      <div class="table-desc">Configurable priority/charging policy rules applied during rating.</div>
+      <table>
+        <thead><tr><th>Column</th><th>Type</th><th>Details</th></tr></thead>
+        <tbody><tr><td>ID</td><td><code>auto-seq</code></td><td></td></tr><tr><td>Rule Code<span class="req">*</span></td><td><code>text</code></td><td></td></tr><tr><td>Rule Name<span class="req">*</span></td><td><code>text</code></td><td></td></tr><tr><td>Rule Type</td><td><code>select</code></td><td><span class="muted">[object Object], [object Object], [object Object], [object Object], [object Object], [object Object]</span></td></tr><tr><td>Trigger Condition</td><td><code>long_text</code></td><td></td></tr><tr><td>Action</td><td><code>long_text</code></td><td></td></tr><tr><td>Priority</td><td><code>number</code></td><td></td></tr><tr><td>Enabled</td><td><code>toggle</code></td><td></td></tr></tbody>
+      </table>
+    </div>
+
+    <div class="table-block">
+      <div class="table-header">
+        <strong>Services</strong>
+        <span class="badge">master</span>
+        <span class="col-count">9 columns</span>
+      </div>
+      <div class="table-desc">Catalog of service definitions (voice, SMS, data, roaming).</div>
+      <table>
+        <thead><tr><th>Column</th><th>Type</th><th>Details</th></tr></thead>
+        <tbody><tr><td>ID</td><td><code>auto-seq</code></td><td></td></tr><tr><td>Service Name<span class="req">*</span></td><td><code>text</code></td><td></td></tr><tr><td>Service Family<span class="req">*</span></td><td><code>select</code></td><td><span class="muted">[object Object], [object Object], [object Object], [object Object], [object Object]</span></td></tr><tr><td>Service Code<span class="req">*</span></td><td><code>text</code></td><td></td></tr><tr><td>Default Rating Group</td><td><code>number</code></td><td></td></tr><tr><td>Default Service Context</td><td><code>select</code></td><td><span class="muted">[object Object], [object Object], [object Object], [object Object]</span></td></tr><tr><td>Unit Type<span class="req">*</span></td><td><code>select</code></td><td><span class="muted">[object Object], [object Object], [object Object], [object Object]</span></td></tr><tr><td>Description</td><td><code>long_text</code></td><td></td></tr><tr><td>PAYG Rate</td><td><code>currency</code></td><td></td></tr></tbody>
+      </table>
+    </div>
+<h3 class="group-header">Balances &amp; Wallet <span class="count">5</span></h3>
+
+    <div class="table-block">
+      <div class="table-header">
+        <strong>Balances</strong>
+        <span class="badge">transaction</span>
+        <span class="col-count">27 columns</span>
+      </div>
+      <div class="table-desc">Per-subscription service balances (data MB, voice min, SMS, bonus) with priority.</div>
+      <table>
+        <thead><tr><th>Column</th><th>Type</th><th>Details</th></tr></thead>
+        <tbody><tr><td>ID</td><td><code>auto-seq</code></td><td></td></tr><tr><td>Allowance Label</td><td><code>text</code></td><td></td></tr><tr><td>Unit Type</td><td><code>select</code></td><td><span class="muted">[object Object], [object Object], [object Object]</span></td></tr><tr><td>Cycle Start</td><td><code>date</code></td><td></td></tr><tr><td>Status<span class="req">*</span></td><td><code>select</code></td><td><span class="muted">[object Object], [object Object], [object Object], [object Object]</span></td></tr><tr><td>Cycle End</td><td><code>date</code></td><td></td></tr><tr><td>Service Context</td><td><code>select</code></td><td><span class="muted">[object Object], [object Object], [object Object], [object Object]</span></td></tr><tr><td>Initial Amount<span class="req">*</span></td><td><code>number</code></td><td></td></tr><tr><td>Rating Group<span class="req">*</span></td><td><code>number</code></td><td></td></tr><tr><td>Reserved Amount</td><td><code>number</code></td><td></td></tr><tr><td>Balance Code<span class="req">*</span></td><td><code>text</code></td><td></td></tr><tr><td>Subscription<span class="req">*</span></td><td><code>reference</code></td><td>→ Subscriptions</td></tr><tr><td>Tariff Plan</td><td><code>reference</code></td><td>→ Tariff Plans</td></tr><tr><td>Effective From</td><td><code>date</code></td><td></td></tr><tr><td>Effective To</td><td><code>date</code></td><td></td></tr><tr><td>Price Paid</td><td><code>currency</code></td><td></td></tr><tr><td>Activation Source</td><td><code>select</code></td><td><span class="muted">[object Object], [object Object], [object Object], [object Object], [object Object], [object Object]…</span></td></tr><tr><td>Plan Price</td><td><code>formula</code></td><td><code>fx: ${Tariff Plan-&gt;Price}</code></td></tr><tr><td>MSISDN</td><td><code>formula</code></td><td><code>fx: ${Subscription-&gt;MSISDN}</code></td></tr><tr><td>Plan Name</td><td><code>formula</code></td><td><code>fx: ${Tariff Plan-&gt;Plan Name}</code></td></tr><tr><td>Plan Validity Days</td><td><code>formula</code></td><td><code>fx: ${Tariff Plan-&gt;Validity Days}</code></td></tr><tr><td>Plan Priority</td><td><code>formula</code></td><td><code>fx: ${Tariff Plan-&gt;Priority On Charge}</code></td></tr><tr><td>Used Amount</td><td><code>rollup</code></td><td><code>fx: SUM(${Usage Transactions-&gt;Used Amount})</code></td></tr><tr><td>Remaining Amount</td><td><code>formula</code></td><td><code>fx: ${Initial Amount} - ${Used Amount}</code></td></tr><tr><td>Usage %</td><td><code>formula</code></td><td><code>fx: ${Used Amount} / ${Initial Amount} * 100</code></td></tr><tr><td>Remaining %</td><td><code>formula</code></td><td><code>fx: ${Remaining Amount} / ${Initial Amount} * 100</code></td></tr><tr><td>Is Low Balance</td><td><code>formula</code></td><td><code>fx: IF(${Remaining Amount} / ${Initial Amount} * 100 &lt; 20, 1, 0)</code></td></tr></tbody>
+      </table>
+    </div>
+
+    <div class="table-block">
+      <div class="table-header">
+        <strong>Wallets</strong>
+        <span class="badge">master</span>
+        <span class="col-count">16 columns</span>
+      </div>
+      <div class="table-desc">Customer wallet holding monetary balance (separate from service balances).</div>
+      <table>
+        <thead><tr><th>Column</th><th>Type</th><th>Details</th></tr></thead>
+        <tbody><tr><td>ID</td><td><code>auto-seq</code></td><td></td></tr><tr><td>Lifetime Recharge</td><td><code>currency</code></td><td></td></tr><tr><td>Currency</td><td><code>select</code></td><td><span class="muted">[object Object], [object Object], [object Object]</span></td></tr><tr><td>Last Recharge Date</td><td><code>date</code></td><td></td></tr><tr><td>Last Usage Date</td><td><code>date</code></td><td></td></tr><tr><td>Status</td><td><code>select</code></td><td><span class="muted">[object Object], [object Object], [object Object]</span></td></tr><tr><td>Lifetime Spend</td><td><code>currency</code></td><td></td></tr><tr><td>Current Balance</td><td><code>currency</code></td><td></td></tr><tr><td>Customer<span class="req">*</span></td><td><code>reference</code></td><td>→ Customers</td></tr><tr><td>Total Recharges</td><td><code>rollup</code></td><td><code>fx: SUM(${Recharges-&gt;Amount})</code></td></tr><tr><td>Recharge Count</td><td><code>rollup</code></td><td><code>fx: COUNT(${Recharges-&gt;Amount})</code></td></tr><tr><td>Transaction Count</td><td><code>rollup</code></td><td><code>fx: COUNT(${Wallet Transactions-&gt;Amount})</code></td></tr><tr><td>Avg Recharge Amount</td><td><code>formula</code></td><td><code>fx: IF(${Recharge Count} &gt; 0, ${Total Recharges} / ${Recharge Count}, 0)</code></td></tr><tr><td>Net Lifetime Flow</td><td><code>formula</code></td><td><code>fx: ${Lifetime Recharge} - ${Lifetime Spend}</code></td></tr><tr><td>Spend Ratio %</td><td><code>formula</code></td><td><code>fx: IF(${Lifetime Recharge} &gt; 0, ${Lifetime Spend} / ${Lifetime Recharge} * 100, 0)</code></td></tr><tr><td>Wallet Code<span class="req">*</span></td><td><code>text</code></td><td></td></tr></tbody>
+      </table>
+    </div>
+
+    <div class="table-block">
+      <div class="table-header">
+        <strong>Wallet Transactions</strong>
+        <span class="badge">transaction</span>
+        <span class="col-count">14 columns</span>
+      </div>
+      <div class="table-desc">Debits/credits on wallets — recharge, rating deduction, refund, expiry.</div>
+      <table>
+        <thead><tr><th>Column</th><th>Type</th><th>Details</th></tr></thead>
+        <tbody><tr><td>ID</td><td><code>auto-seq</code></td><td></td></tr><tr><td>Amount<span class="req">*</span></td><td><code>currency</code></td><td></td></tr><tr><td>Notes</td><td><code>text</code></td><td></td></tr><tr><td>Timestamp<span class="req">*</span></td><td><code>date</code></td><td></td></tr><tr><td>Initiated By</td><td><code>text</code></td><td></td></tr><tr><td>Reference Type</td><td><code>select</code></td><td><span class="muted">[object Object], [object Object], [object Object], [object Object], [object Object]</span></td></tr><tr><td>Balance Before</td><td><code>currency</code></td><td></td></tr><tr><td>Balance After</td><td><code>currency</code></td><td></td></tr><tr><td>Reference ID</td><td><code>text</code></td><td></td></tr><tr><td>Transaction Code<span class="req">*</span></td><td><code>text</code></td><td></td></tr><tr><td>Transaction Type<span class="req">*</span></td><td><code>select</code></td><td><span class="muted">[object Object], [object Object], [object Object], [object Object], [object Object], [object Object]…</span></td></tr><tr><td>Wallet<span class="req">*</span></td><td><code>reference</code></td><td>→ Wallets</td></tr><tr><td>Wallet Current Balance</td><td><code>formula</code></td><td><code>fx: ${Wallet-&gt;Current Balance}</code></td></tr><tr><td>Wallet Code</td><td><code>text</code></td><td></td></tr></tbody>
+      </table>
+    </div>
+
+    <div class="table-block">
+      <div class="table-header">
+        <strong>Balance Transfers</strong>
+        <span class="badge">transaction</span>
+        <span class="col-count">10 columns</span>
+      </div>
+      <div class="table-desc">Peer-to-peer balance gifting between subscribers.</div>
+      <table>
+        <thead><tr><th>Column</th><th>Type</th><th>Details</th></tr></thead>
+        <tbody><tr><td>ID</td><td><code>auto-seq</code></td><td></td></tr><tr><td>Reason</td><td><code>text</code></td><td></td></tr><tr><td>Amount<span class="req">*</span></td><td><code>number</code></td><td></td></tr><tr><td>Transfer Type<span class="req">*</span></td><td><code>select</code></td><td><span class="muted">[object Object], [object Object], [object Object]</span></td></tr><tr><td>Transfer Code<span class="req">*</span></td><td><code>text</code></td><td></td></tr><tr><td>Fee</td><td><code>currency</code></td><td></td></tr><tr><td>Status</td><td><code>select</code></td><td><span class="muted">[object Object], [object Object], [object Object], [object Object]</span></td></tr><tr><td>Timestamp</td><td><code>date</code></td><td></td></tr><tr><td>From Subscription<span class="req">*</span></td><td><code>reference</code></td><td>→ Subscriptions</td></tr><tr><td>To Subscription<span class="req">*</span></td><td><code>reference</code></td><td>→ Subscriptions</td></tr></tbody>
+      </table>
+    </div>
+
+    <div class="table-block">
+      <div class="table-header">
+        <strong>Bonus Grants</strong>
+        <span class="badge">transaction</span>
+        <span class="col-count">12 columns</span>
+      </div>
+      <div class="table-desc">Bonus balance awards from promotions, referrals, or manual adjustments.</div>
+      <table>
+        <thead><tr><th>Column</th><th>Type</th><th>Details</th></tr></thead>
+        <tbody><tr><td>ID</td><td><code>auto-seq</code></td><td></td></tr><tr><td>Granted By</td><td><code>text</code></td><td></td></tr><tr><td>Granted Date</td><td><code>date</code></td><td></td></tr><tr><td>Expiry Date</td><td><code>date</code></td><td></td></tr><tr><td>Consumed Amount</td><td><code>number</code></td><td></td></tr><tr><td>Unit Type</td><td><code>select</code></td><td><span class="muted">[object Object], [object Object], [object Object], [object Object]</span></td></tr><tr><td>Rating Group<span class="req">*</span></td><td><code>number</code></td><td></td></tr><tr><td>Bonus Code<span class="req">*</span></td><td><code>text</code></td><td></td></tr><tr><td>Amount<span class="req">*</span></td><td><code>number</code></td><td></td></tr><tr><td>Validity Days</td><td><code>number</code></td><td></td></tr><tr><td>Granted Reason</td><td><code>select</code></td><td><span class="muted">[object Object], [object Object], [object Object], [object Object], [object Object]</span></td></tr><tr><td>Subscription<span class="req">*</span></td><td><code>reference</code></td><td>→ Subscriptions</td></tr></tbody>
+      </table>
+    </div>
+<h3 class="group-header">Charging &amp; CDR <span class="count">3</span></h3>
+
+    <div class="table-block">
+      <div class="table-header">
+        <strong>Charging Sessions</strong>
+        <span class="badge">transaction</span>
+        <span class="col-count">22 columns</span>
+      </div>
+      <div class="table-desc">Gy session — one per call/data session, tracks CCR-I → CCR-T lifecycle.</div>
+      <table>
+        <thead><tr><th>Column</th><th>Type</th><th>Details</th></tr></thead>
+        <tbody><tr><td>ID</td><td><code>auto-seq</code></td><td></td></tr><tr><td>Request Count</td><td><code>number</code></td><td></td></tr><tr><td>RAT Type</td><td><code>select</code></td><td><span class="muted">[object Object], [object Object], [object Object], [object Object], [object Object]</span></td></tr><tr><td>Location Info</td><td><code>text</code></td><td></td></tr><tr><td>APN</td><td><code>text</code></td><td></td></tr><tr><td>Session ID<span class="req">*</span></td><td><code>text</code></td><td></td></tr><tr><td>Service Type</td><td><code>select</code></td><td><span class="muted">[object Object], [object Object], [object Object], [object Object], [object Object], [object Object]…</span></td></tr><tr><td>Total Charged</td><td><code>currency</code></td><td></td></tr><tr><td>Ended At</td><td><code>date</code></td><td></td></tr><tr><td>Status<span class="req">*</span></td><td><code>select</code></td><td><span class="muted">[object Object], [object Object], [object Object]</span></td></tr><tr><td>Termination Cause</td><td><code>select</code></td><td><span class="muted">[object Object], [object Object], [object Object], [object Object], [object Object], [object Object]…</span></td></tr><tr><td>Started At<span class="req">*</span></td><td><code>date</code></td><td></td></tr><tr><td>Service Context</td><td><code>select</code></td><td><span class="muted">[object Object], [object Object], [object Object], [object Object]</span></td></tr><tr><td>Calling Party</td><td><code>text</code></td><td></td></tr><tr><td>Called Party</td><td><code>text</code></td><td></td></tr><tr><td>Total Used Amount</td><td><code>number</code></td><td></td></tr><tr><td>Subscription<span class="req">*</span></td><td><code>reference</code></td><td>→ Subscriptions</td></tr><tr><td>MSISDN</td><td><code>formula</code></td><td><code>fx: ${Subscription-&gt;MSISDN}</code></td></tr><tr><td>UT Count</td><td><code>rollup</code></td><td><code>fx: COUNT(${Usage Transactions-&gt;Used Amount})</code></td></tr><tr><td>Total UT Used</td><td><code>rollup</code></td><td><code>fx: SUM(${Usage Transactions-&gt;Used Amount})</code></td></tr><tr><td>Avg Charge per Event</td><td><code>formula</code></td><td><code>fx: IF(${UT Count} &gt; 0, ${Total UT Used} / ${UT Count}, 0)</code></td></tr><tr><td>Last Event</td><td><code>rollup</code></td><td><code>fx: MAX(${Usage Transactions-&gt;Timestamp})</code></td></tr></tbody>
+      </table>
+    </div>
+
+    <div class="table-block">
+      <div class="table-header">
+        <strong>Usage Transactions</strong>
+        <span class="badge">transaction</span>
+        <span class="col-count">25 columns</span>
+      </div>
+      <div class="table-desc">Per-event charging records (CCR-I, CCR-U, CCR-T, CCR-E) with rating group.</div>
+      <table>
+        <thead><tr><th>Column</th><th>Type</th><th>Details</th></tr></thead>
+        <tbody><tr><td>ID</td><td><code>auto-seq</code></td><td></td></tr><tr><td>FUI Action</td><td><code>select</code></td><td><span class="muted">[object Object], [object Object], [object Object], [object Object]</span></td></tr><tr><td>Calling Party</td><td><code>text</code></td><td></td></tr><tr><td>Called Party</td><td><code>text</code></td><td></td></tr><tr><td>APN</td><td><code>text</code></td><td></td></tr><tr><td>Raw Event</td><td><code>long_text</code></td><td></td></tr><tr><td>CC Time Seconds</td><td><code>number</code></td><td></td></tr><tr><td>Message Type<span class="req">*</span></td><td><code>select</code></td><td><span class="muted">[object Object], [object Object], [object Object], [object Object]</span></td></tr><tr><td>Request Number</td><td><code>number</code></td><td></td></tr><tr><td>Timestamp<span class="req">*</span></td><td><code>date</code></td><td></td></tr><tr><td>Rating Group<span class="req">*</span></td><td><code>number</code></td><td></td></tr><tr><td>Service Identifier</td><td><code>number</code></td><td></td></tr><tr><td>Used Amount</td><td><code>number</code></td><td></td></tr><tr><td>Input Octets</td><td><code>number</code></td><td></td></tr><tr><td>Granted Amount</td><td><code>number</code></td><td></td></tr><tr><td>Validity Time</td><td><code>number</code></td><td></td></tr><tr><td>Result Code</td><td><code>number</code></td><td></td></tr><tr><td>Unit Type</td><td><code>select</code></td><td><span class="muted">[object Object], [object Object], [object Object]</span></td></tr><tr><td>Requested Amount</td><td><code>number</code></td><td></td></tr><tr><td>Output Octets</td><td><code>number</code></td><td></td></tr><tr><td>FUI Redirect URL</td><td><code>url</code></td><td></td></tr><tr><td>Charging Session<span class="req">*</span></td><td><code>reference</code></td><td>→ Charging Sessions</td></tr><tr><td>Subscription<span class="req">*</span></td><td><code>reference</code></td><td>→ Subscriptions</td></tr><tr><td>Balance</td><td><code>reference</code></td><td>→ Balances</td></tr><tr><td>MSISDN</td><td><code>formula</code></td><td><code>fx: ${Subscription-&gt;MSISDN}</code></td></tr></tbody>
+      </table>
+    </div>
+
+    <div class="table-block">
+      <div class="table-header">
+        <strong>Call Detail Records</strong>
+        <span class="badge">transaction</span>
+        <span class="col-count">25 columns</span>
+      </div>
+      <div class="table-desc">Settled CDRs with subscriber, termination cause, and amount charged.</div>
+      <table>
+        <thead><tr><th>Column</th><th>Type</th><th>Details</th></tr></thead>
+        <tbody><tr><td>ID</td><td><code>auto-seq</code></td><td></td></tr><tr><td>Total MB</td><td><code>number</code></td><td></td></tr><tr><td>Total Minutes</td><td><code>number</code></td><td></td></tr><tr><td>Total Units</td><td><code>number</code></td><td></td></tr><tr><td>Rating Group</td><td><code>number</code></td><td></td></tr><tr><td>Total Charged from Allowance</td><td><code>number</code></td><td></td></tr><tr><td>Partner Involved</td><td><code>text</code></td><td></td></tr><tr><td>Started At</td><td><code>date</code></td><td></td></tr><tr><td>Total Charged from Wallet</td><td><code>currency</code></td><td></td></tr><tr><td>Total Octets</td><td><code>number</code></td><td></td></tr><tr><td>Ended At</td><td><code>date</code></td><td></td></tr><tr><td>Final Termination Cause</td><td><code>text</code></td><td></td></tr><tr><td>Record Sequence Number</td><td><code>number</code></td><td></td></tr><tr><td>Service Type</td><td><code>select</code></td><td><span class="muted">[object Object], [object Object], [object Object], [object Object], [object Object], [object Object]</span></td></tr><tr><td>CDR Code<span class="req">*</span></td><td><code>text</code></td><td></td></tr><tr><td>Duration Seconds</td><td><code>number</code></td><td></td></tr><tr><td>Charging Session<span class="req">*</span></td><td><code>reference</code></td><td>→ Charging Sessions</td></tr><tr><td>Subscription<span class="req">*</span></td><td><code>reference</code></td><td>→ Subscriptions</td></tr><tr><td>Customer</td><td><code>reference</code></td><td>→ Customers</td></tr><tr><td>Tariff Plan</td><td><code>reference</code></td><td>→ Tariff Plans</td></tr><tr><td>MSISDN</td><td><code>formula</code></td><td><code>fx: ${Subscription-&gt;MSISDN}</code></td></tr><tr><td>Plan Name</td><td><code>formula</code></td><td><code>fx: ${Tariff Plan-&gt;Plan Name}</code></td></tr><tr><td>Total Charged</td><td><code>formula</code></td><td><code>fx: ${Total Charged from Wallet} + ${Total Charged from Allowance}</code></td></tr><tr><td>Wallet Charge %</td><td><code>formula</code></td><td><code>fx: IF((${Total Charged from Wallet} + ${Total Charged from Allowance}) &gt; 0, ${Total Charged from Wallet} / (${Total Charged from Wallet} + ${Total Charged from Allowance}) * 100, 0)</code></td></tr><tr><td>Duration Minutes</td><td><code>formula</code></td><td><code>fx: ${Duration Seconds} / 60</code></td></tr></tbody>
+      </table>
+    </div>
+<h3 class="group-header">Sales &amp; Orders <span class="count">4</span></h3>
+
+    <div class="table-block">
+      <div class="table-header">
+        <strong>Orders</strong>
+        <span class="badge">transaction</span>
+        <span class="col-count">13 columns</span>
+      </div>
+      <div class="table-desc">Customer orders — plans, bundles, SIMs, recharges, accessories.</div>
+      <table>
+        <thead><tr><th>Column</th><th>Type</th><th>Details</th></tr></thead>
+        <tbody><tr><td>ID</td><td><code>auto-seq</code></td><td></td></tr><tr><td>Order Type<span class="req">*</span></td><td><code>select</code></td><td><span class="muted">[object Object], [object Object], [object Object], [object Object], [object Object], [object Object]…</span></td></tr><tr><td>Notes</td><td><code>long_text</code></td><td></td></tr><tr><td>Order Code<span class="req">*</span></td><td><code>text</code></td><td></td></tr><tr><td>Total Amount</td><td><code>currency</code></td><td></td></tr><tr><td>Status<span class="req">*</span></td><td><code>select</code></td><td><span class="muted">[object Object], [object Object], [object Object], [object Object], [object Object], [object Object]</span></td></tr><tr><td>Submitted At</td><td><code>date</code></td><td></td></tr><tr><td>Fulfilled At</td><td><code>date</code></td><td></td></tr><tr><td>Customer<span class="req">*</span></td><td><code>reference</code></td><td>→ Customers</td></tr><tr><td>Subscription</td><td><code>reference</code></td><td>→ Subscriptions</td></tr><tr><td>Channel</td><td><code>reference</code></td><td>→ Channels</td></tr><tr><td>Customer Name</td><td><code>formula</code></td><td><code>fx: ${Customer-&gt;Name}</code></td></tr><tr><td>Customer Phone</td><td><code>formula</code></td><td><code>fx: ${Customer-&gt;Phone}</code></td></tr></tbody>
+      </table>
+    </div>
+
+    <div class="table-block">
+      <div class="table-header">
+        <strong>Order Items</strong>
+        <span class="badge">master</span>
+        <span class="col-count">7 columns</span>
+      </div>
+      <div class="table-desc">Line items of each order (product, qty, price, discount).</div>
+      <table>
+        <thead><tr><th>Column</th><th>Type</th><th>Details</th></tr></thead>
+        <tbody><tr><td>ID</td><td><code>auto-seq</code></td><td></td></tr><tr><td>Quantity<span class="req">*</span></td><td><code>number</code></td><td></td></tr><tr><td>Notes</td><td><code>text</code></td><td></td></tr><tr><td>Total</td><td><code>currency</code></td><td></td></tr><tr><td>Unit Price</td><td><code>currency</code></td><td></td></tr><tr><td>Order<span class="req">*</span></td><td><code>reference</code></td><td>→ Orders</td></tr><tr><td>Tariff Plan</td><td><code>reference</code></td><td>→ Tariff Plans</td></tr></tbody>
+      </table>
+    </div>
+
+    <div class="table-block">
+      <div class="table-header">
+        <strong>Recharges</strong>
+        <span class="badge">transaction</span>
+        <span class="col-count">15 columns</span>
+      </div>
+      <div class="table-desc">Prepaid top-ups to the customer wallet — channel, amount, method.</div>
+      <table>
+        <thead><tr><th>Column</th><th>Type</th><th>Details</th></tr></thead>
+        <tbody><tr><td>ID</td><td><code>auto-seq</code></td><td></td></tr><tr><td>Net Amount</td><td><code>currency</code></td><td></td></tr><tr><td>Tax Amount</td><td><code>currency</code></td><td></td></tr><tr><td>Gateway Reference</td><td><code>text</code></td><td></td></tr><tr><td>Status<span class="req">*</span></td><td><code>select</code></td><td><span class="muted">[object Object], [object Object], [object Object], [object Object]</span></td></tr><tr><td>Timestamp<span class="req">*</span></td><td><code>date</code></td><td></td></tr><tr><td>Recharge Code<span class="req">*</span></td><td><code>text</code></td><td></td></tr><tr><td>Amount<span class="req">*</span></td><td><code>currency</code></td><td></td></tr><tr><td>Currency</td><td><code>select</code></td><td><span class="muted">[object Object], [object Object], [object Object]</span></td></tr><tr><td>Channel<span class="req">*</span></td><td><code>select</code></td><td><span class="muted">[object Object], [object Object], [object Object], [object Object], [object Object], [object Object]…</span></td></tr><tr><td>Voucher Serial</td><td><code>text</code></td><td></td></tr><tr><td>Wallet<span class="req">*</span></td><td><code>reference</code></td><td>→ Wallets</td></tr><tr><td>Distribution Partner</td><td><code>reference</code></td><td>→ Distribution Partners</td></tr><tr><td>Tax Rate %</td><td><code>formula</code></td><td><code>fx: IF(${Amount} &gt; 0, ${Tax Amount} / ${Amount} * 100, 0)</code></td></tr><tr><td>Wallet Code</td><td><code>text</code></td><td></td></tr></tbody>
+      </table>
+    </div>
+
+    <div class="table-block">
+      <div class="table-header">
+        <strong>Recharge Vouchers</strong>
+        <span class="badge">master</span>
+        <span class="col-count">0 columns</span>
+      </div>
+      <div class="table-desc">Scratch-card / voucher inventory — face value, serial, status.</div>
+      <table>
+        <thead><tr><th>Column</th><th>Type</th><th>Details</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+<h3 class="group-header">Partner &amp; Channel <span class="count">4</span></h3>
+
+    <div class="table-block">
+      <div class="table-header">
+        <strong>Distribution Partners</strong>
+        <span class="badge">master</span>
+        <span class="col-count">16 columns</span>
+      </div>
+      <div class="table-desc">Reseller and distribution partner master (name, territory, commission rate).</div>
+      <table>
+        <thead><tr><th>Column</th><th>Type</th><th>Details</th></tr></thead>
+        <tbody><tr><td>ID</td><td><code>auto-seq</code></td><td></td></tr><tr><td>Partner Code<span class="req">*</span></td><td><code>text</code></td><td></td></tr><tr><td>Status</td><td><code>select</code></td><td><span class="muted">[object Object], [object Object], [object Object], [object Object], [object Object]</span></td></tr><tr><td>Onboarded Date</td><td><code>date</code></td><td></td></tr><tr><td>Wallet Balance</td><td><code>currency</code></td><td></td></tr><tr><td>Contact Person</td><td><code>text</code></td><td></td></tr><tr><td>Partner Name<span class="req">*</span></td><td><code>text</code></td><td></td></tr><tr><td>Commission Scheme</td><td><code>text</code></td><td></td></tr><tr><td>Region</td><td><code>text</code></td><td></td></tr><tr><td>Tier</td><td><code>select</code></td><td><span class="muted">[object Object], [object Object], [object Object]</span></td></tr><tr><td>Partner Type</td><td><code>select</code></td><td><span class="muted">[object Object], [object Object], [object Object], [object Object], [object Object]</span></td></tr><tr><td>Contact Email</td><td><code>email</code></td><td></td></tr><tr><td>Contact Phone</td><td><code>phone</code></td><td></td></tr><tr><td>Total Commission</td><td><code>rollup</code></td><td><code>fx: SUM(${Partner Commissions-&gt;Commission Amount})</code></td></tr><tr><td>Total Recharges</td><td><code>rollup</code></td><td><code>fx: COUNT(${Recharges-&gt;Amount})</code></td></tr><tr><td>Recharge Volume</td><td><code>rollup</code></td><td><code>fx: SUM(${Recharges-&gt;Amount})</code></td></tr></tbody>
+      </table>
+    </div>
+
+    <div class="table-block">
+      <div class="table-header">
+        <strong>Partner Contracts</strong>
+        <span class="badge">master</span>
+        <span class="col-count">10 columns</span>
+      </div>
+      <div class="table-desc">Contracts with partners — commission scheme, validity, revenue share.</div>
+      <table>
+        <thead><tr><th>Column</th><th>Type</th><th>Details</th></tr></thead>
+        <tbody><tr><td>ID</td><td><code>auto-seq</code></td><td></td></tr><tr><td>Termination Clauses</td><td><code>long_text</code></td><td></td></tr><tr><td>Commission Structure</td><td><code>long_text</code></td><td></td></tr><tr><td>SLA Targets</td><td><code>long_text</code></td><td></td></tr><tr><td>Status</td><td><code>select</code></td><td><span class="muted">[object Object], [object Object], [object Object], [object Object]</span></td></tr><tr><td>Effective To</td><td><code>date</code></td><td></td></tr><tr><td>Effective From</td><td><code>date</code></td><td></td></tr><tr><td>Contract Number<span class="req">*</span></td><td><code>text</code></td><td></td></tr><tr><td>Signed Document URL</td><td><code>url</code></td><td></td></tr><tr><td>Partner<span class="req">*</span></td><td><code>reference</code></td><td>→ Distribution Partners</td></tr></tbody>
+      </table>
+    </div>
+
+    <div class="table-block">
+      <div class="table-header">
+        <strong>Partner Commissions</strong>
+        <span class="badge">transaction</span>
+        <span class="col-count">11 columns</span>
+      </div>
+      <div class="table-desc">Commission earned per recharge or activation by partner.</div>
+      <table>
+        <thead><tr><th>Column</th><th>Type</th><th>Details</th></tr></thead>
+        <tbody><tr><td>ID</td><td><code>auto-seq</code></td><td></td></tr><tr><td>Status</td><td><code>select</code></td><td><span class="muted">[object Object], [object Object], [object Object], [object Object]</span></td></tr><tr><td>Commission Amount<span class="req">*</span></td><td><code>currency</code></td><td></td></tr><tr><td>Base Amount</td><td><code>currency</code></td><td></td></tr><tr><td>Commission Type</td><td><code>select</code></td><td><span class="muted">[object Object], [object Object], [object Object]</span></td></tr><tr><td>Accrued Date</td><td><code>date</code></td><td></td></tr><tr><td>Settled Date</td><td><code>date</code></td><td></td></tr><tr><td>Settlement Reference</td><td><code>text</code></td><td></td></tr><tr><td>Partner<span class="req">*</span></td><td><code>reference</code></td><td>→ Distribution Partners</td></tr><tr><td>Recharge</td><td><code>reference</code></td><td>→ Recharges</td></tr><tr><td>Recharge Amount</td><td><code>formula</code></td><td><code>fx: ${Recharge-&gt;Amount}</code></td></tr></tbody>
+      </table>
+    </div>
+
+    <div class="table-block">
+      <div class="table-header">
+        <strong>Channels</strong>
+        <span class="badge">master</span>
+        <span class="col-count">7 columns</span>
+      </div>
+      <div class="table-desc">Sales/service channels — retail, USSD, self-care, B2B, IVR.</div>
+      <table>
+        <thead><tr><th>Column</th><th>Type</th><th>Details</th></tr></thead>
+        <tbody><tr><td>ID</td><td><code>auto-seq</code></td><td></td></tr><tr><td>Channel Code<span class="req">*</span></td><td><code>text</code></td><td></td></tr><tr><td>Channel Name<span class="req">*</span></td><td><code>text</code></td><td></td></tr><tr><td>Channel Type<span class="req">*</span></td><td><code>select</code></td><td><span class="muted">[object Object], [object Object], [object Object], [object Object], [object Object], [object Object]…</span></td></tr><tr><td>Enabled</td><td><code>toggle</code></td><td></td></tr><tr><td>Operating Hours</td><td><code>text</code></td><td></td></tr><tr><td>Config JSON</td><td><code>long_text</code></td><td></td></tr></tbody>
+      </table>
+    </div>
+<h3 class="group-header">F&amp;F / CUG / Promotions <span class="count">5</span></h3>
+
+    <div class="table-block">
+      <div class="table-header">
+        <strong>Friends and Family Groups</strong>
+        <span class="badge">master</span>
+        <span class="col-count">7 columns</span>
+      </div>
+      <div class="table-desc">F&amp;F discount group definitions.</div>
+      <table>
+        <thead><tr><th>Column</th><th>Type</th><th>Details</th></tr></thead>
+        <tbody><tr><td>ID</td><td><code>auto-seq</code></td><td></td></tr><tr><td>Group Code<span class="req">*</span></td><td><code>text</code></td><td></td></tr><tr><td>Special Rate Card</td><td><code>text</code></td><td></td></tr><tr><td>Status</td><td><code>select</code></td><td><span class="muted">[object Object], [object Object]</span></td></tr><tr><td>Max Members</td><td><code>number</code></td><td></td></tr><tr><td>Group Name<span class="req">*</span></td><td><code>text</code></td><td></td></tr><tr><td>Owner Subscription<span class="req">*</span></td><td><code>reference</code></td><td>→ Subscriptions</td></tr></tbody>
+      </table>
+    </div>
+
+    <div class="table-block">
+      <div class="table-header">
+        <strong>FF Members</strong>
+        <span class="badge">master</span>
+        <span class="col-count">6 columns</span>
+      </div>
+      <div class="table-desc">Members within a Friends &amp; Family group.</div>
+      <table>
+        <thead><tr><th>Column</th><th>Type</th><th>Details</th></tr></thead>
+        <tbody><tr><td>ID</td><td><code>auto-seq</code></td><td></td></tr><tr><td>Member MSISDN<span class="req">*</span></td><td><code>text</code></td><td></td></tr><tr><td>Added Date</td><td><code>date</code></td><td></td></tr><tr><td>On Net</td><td><code>toggle</code></td><td></td></tr><tr><td>Status</td><td><code>select</code></td><td><span class="muted">[object Object], [object Object]</span></td></tr><tr><td>FF Group<span class="req">*</span></td><td><code>reference</code></td><td>→ Friends and Family Groups</td></tr></tbody>
+      </table>
+    </div>
+
+    <div class="table-block">
+      <div class="table-header">
+        <strong>Closed User Groups</strong>
+        <span class="badge">master</span>
+        <span class="col-count">7 columns</span>
+      </div>
+      <div class="table-desc">CUG (on-net intra-enterprise rated) group definitions.</div>
+      <table>
+        <thead><tr><th>Column</th><th>Type</th><th>Details</th></tr></thead>
+        <tbody><tr><td>ID</td><td><code>auto-seq</code></td><td></td></tr><tr><td>CUG Code<span class="req">*</span></td><td><code>text</code></td><td></td></tr><tr><td>CUG Type</td><td><code>select</code></td><td><span class="muted">[object Object], [object Object], [object Object]</span></td></tr><tr><td>Internal Rate Card</td><td><code>text</code></td><td></td></tr><tr><td>Status</td><td><code>select</code></td><td><span class="muted">[object Object], [object Object]</span></td></tr><tr><td>CUG Name<span class="req">*</span></td><td><code>text</code></td><td></td></tr><tr><td>Owner Customer</td><td><code>reference</code></td><td>→ Customers</td></tr></tbody>
+      </table>
+    </div>
+
+    <div class="table-block">
+      <div class="table-header">
+        <strong>CUG Members</strong>
+        <span class="badge">master</span>
+        <span class="col-count">6 columns</span>
+      </div>
+      <div class="table-desc">CUG membership — which subscriber belongs to which CUG.</div>
+      <table>
+        <thead><tr><th>Column</th><th>Type</th><th>Details</th></tr></thead>
+        <tbody><tr><td>ID</td><td><code>auto-seq</code></td><td></td></tr><tr><td>Added Date</td><td><code>date</code></td><td></td></tr><tr><td>Status</td><td><code>select</code></td><td><span class="muted">[object Object], [object Object]</span></td></tr><tr><td>Role</td><td><code>select</code></td><td><span class="muted">[object Object], [object Object]</span></td></tr><tr><td>CUG<span class="req">*</span></td><td><code>reference</code></td><td>→ Closed User Groups</td></tr><tr><td>Subscription<span class="req">*</span></td><td><code>reference</code></td><td>→ Subscriptions</td></tr></tbody>
+      </table>
+    </div>
+
+    <div class="table-block">
+      <div class="table-header">
+        <strong>Promotion Redemptions</strong>
+        <span class="badge">transaction</span>
+        <span class="col-count">9 columns</span>
+      </div>
+      <div class="table-desc">Log of promotion claims by subscribers.</div>
+      <table>
+        <thead><tr><th>Column</th><th>Type</th><th>Details</th></tr></thead>
+        <tbody><tr><td>ID</td><td><code>auto-seq</code></td><td></td></tr><tr><td>Notes</td><td><code>text</code></td><td></td></tr><tr><td>Value Granted</td><td><code>number</code></td><td></td></tr><tr><td>Reference Transaction</td><td><code>text</code></td><td></td></tr><tr><td>Expiry Date</td><td><code>date</code></td><td></td></tr><tr><td>Redeemed At<span class="req">*</span></td><td><code>date</code></td><td></td></tr><tr><td>Promotion<span class="req">*</span></td><td><code>reference</code></td><td>→ Promotions</td></tr><tr><td>Customer<span class="req">*</span></td><td><code>reference</code></td><td>→ Customers</td></tr><tr><td>Subscription</td><td><code>reference</code></td><td>→ Subscriptions</td></tr></tbody>
+      </table>
+    </div>
+<h3 class="group-header">Notifications &amp; Network <span class="count">4</span></h3>
+
+    <div class="table-block">
+      <div class="table-header">
+        <strong>Notification Templates</strong>
+        <span class="badge">master</span>
+        <span class="col-count">10 columns</span>
+      </div>
+      <div class="table-desc">SMS / push / email template library — variables, language, channel.</div>
+      <table>
+        <thead><tr><th>Column</th><th>Type</th><th>Details</th></tr></thead>
+        <tbody><tr><td>ID</td><td><code>auto-seq</code></td><td></td></tr><tr><td>Template Code<span class="req">*</span></td><td><code>text</code></td><td></td></tr><tr><td>Template Name<span class="req">*</span></td><td><code>text</code></td><td></td></tr><tr><td>Trigger Event</td><td><code>select</code></td><td><span class="muted">[object Object], [object Object], [object Object], [object Object], [object Object], [object Object]…</span></td></tr><tr><td>Channel Type</td><td><code>select</code></td><td><span class="muted">[object Object], [object Object], [object Object], [object Object], [object Object]</span></td></tr><tr><td>Subject</td><td><code>text</code></td><td></td></tr><tr><td>Body</td><td><code>long_text</code></td><td></td></tr><tr><td>Variables</td><td><code>text</code></td><td></td></tr><tr><td>Language</td><td><code>select</code></td><td><span class="muted">[object Object], [object Object], [object Object], [object Object], [object Object]</span></td></tr><tr><td>Enabled</td><td><code>toggle</code></td><td></td></tr></tbody>
+      </table>
+    </div>
+
+    <div class="table-block">
+      <div class="table-header">
+        <strong>Notifications Sent</strong>
+        <span class="badge">transaction</span>
+        <span class="col-count">10 columns</span>
+      </div>
+      <div class="table-desc">Outbound notification log — template, recipient, status, timestamp.</div>
+      <table>
+        <thead><tr><th>Column</th><th>Type</th><th>Details</th></tr></thead>
+        <tbody><tr><td>ID</td><td><code>auto-seq</code></td><td></td></tr><tr><td>Delivered At</td><td><code>date</code></td><td></td></tr><tr><td>Sent At<span class="req">*</span></td><td><code>date</code></td><td></td></tr><tr><td>Status</td><td><code>select</code></td><td><span class="muted">[object Object], [object Object], [object Object], [object Object], [object Object]</span></td></tr><tr><td>Content Snapshot</td><td><code>long_text</code></td><td></td></tr><tr><td>Read At</td><td><code>date</code></td><td></td></tr><tr><td>Template</td><td><code>reference</code></td><td>→ Notification Templates</td></tr><tr><td>Customer</td><td><code>reference</code></td><td>→ Customers</td></tr><tr><td>Subscription</td><td><code>reference</code></td><td>→ Subscriptions</td></tr><tr><td>Channel</td><td><code>reference</code></td><td>→ Channels</td></tr></tbody>
+      </table>
+    </div>
+
+    <div class="table-block">
+      <div class="table-header">
+        <strong>Network Elements</strong>
+        <span class="badge">master</span>
+        <span class="col-count">9 columns</span>
+      </div>
+      <div class="table-desc">Telco network nodes (OCS, PCRF, PGW, SMSC, IN) registered with the app.</div>
+      <table>
+        <thead><tr><th>Column</th><th>Type</th><th>Details</th></tr></thead>
+        <tbody><tr><td>ID</td><td><code>auto-seq</code></td><td></td></tr><tr><td>Status</td><td><code>select</code></td><td><span class="muted">[object Object], [object Object], [object Object]</span></td></tr><tr><td>Last Heartbeat</td><td><code>date</code></td><td></td></tr><tr><td>Region</td><td><code>text</code></td><td></td></tr><tr><td>Diameter Realm</td><td><code>text</code></td><td></td></tr><tr><td>IP Address</td><td><code>text</code></td><td></td></tr><tr><td>FQDN</td><td><code>text</code></td><td></td></tr><tr><td>Element Type</td><td><code>select</code></td><td><span class="muted">[object Object], [object Object], [object Object], [object Object], [object Object], [object Object]…</span></td></tr><tr><td>Element Code<span class="req">*</span></td><td><code>text</code></td><td></td></tr></tbody>
+      </table>
+    </div>
+
+    <div class="table-block">
+      <div class="table-header">
+        <strong>Users</strong>
+        <span class="badge">master</span>
+        <span class="col-count">6 columns</span>
+      </div>
+      <div class="table-desc">Internal BSS users (operators, CSR, admin) with role assignments.</div>
+      <table>
+        <thead><tr><th>Column</th><th>Type</th><th>Details</th></tr></thead>
+        <tbody><tr><td>User<span class="req">*</span></td><td><code>user</code></td><td></td></tr><tr><td>First Name<span class="req">*</span></td><td><code>text</code></td><td></td></tr><tr><td>Last Name</td><td><code>text</code></td><td></td></tr><tr><td>Email<span class="req">*</span></td><td><code>text</code></td><td></td></tr><tr><td>Role</td><td><code>select</code></td><td><span class="muted">[object Object], [object Object], [object Object]</span></td></tr><tr><td>Status</td><td><code>select</code></td><td><span class="muted">[object Object], [object Object]</span></td></tr></tbody>
+      </table>
+    </div>
+<h3 class="group-header">Other <span class="count">13</span></h3>
+
+    <div class="table-block">
+      <div class="table-header">
+        <strong>Roaming Partners</strong>
+        <span class="badge">transaction</span>
+        <span class="col-count">24 columns</span>
+      </div>
+      <div class="table-desc"></div>
+      <table>
+        <thead><tr><th>Column</th><th>Type</th><th>Details</th></tr></thead>
+        <tbody><tr><td>ID</td><td><code>auto-seq</code></td><td></td></tr><tr><td>Partner Code<span class="req">*</span></td><td><code>text</code></td><td></td></tr><tr><td>Partner Name<span class="req">*</span></td><td><code>text</code></td><td></td></tr><tr><td>Country<span class="req">*</span></td><td><code>text</code></td><td></td></tr><tr><td>Country Code</td><td><code>text</code></td><td></td></tr><tr><td>MCC<span class="req">*</span></td><td><code>text</code></td><td></td></tr><tr><td>MNC<span class="req">*</span></td><td><code>text</code></td><td></td></tr><tr><td>VLR Prefix</td><td><code>text</code></td><td></td></tr><tr><td>Status<span class="req">*</span></td><td><code>select</code></td><td><span class="muted">[object Object], [object Object], [object Object], [object Object], [object Object]</span></td></tr><tr><td>Contract Type</td><td><code>select</code></td><td><span class="muted">[object Object], [object Object], [object Object]</span></td></tr><tr><td>Settlement Currency</td><td><code>select</code></td><td><span class="muted">[object Object], [object Object], [object Object], [object Object], [object Object], [object Object]…</span></td></tr><tr><td>IOT Voice Rate (per min)</td><td><code>number</code></td><td></td></tr><tr><td>IOT Data Rate (per MB)</td><td><code>number</code></td><td></td></tr><tr><td>IOT SMS Rate</td><td><code>number</code></td><td></td></tr><tr><td>Onboarded Date</td><td><code>date</code></td><td></td></tr><tr><td>Contact Email</td><td><code>email</code></td><td></td></tr><tr><td>Contact Phone</td><td><code>phone</code></td><td></td></tr><tr><td>Notes</td><td><code>long_text</code></td><td></td></tr><tr><td>Zone</td><td><code>reference</code></td><td>→ Roaming Zones</td></tr><tr><td>Total Roaming Revenue</td><td><code>rollup</code></td><td><code>fx: SUM(${Roaming Sessions-&gt;Total Charged})</code></td></tr><tr><td>Session Count</td><td><code>rollup</code></td><td><code>fx: COUNT(${Roaming Sessions-&gt;Session Code})</code></td></tr><tr><td>TAP File Count</td><td><code>rollup</code></td><td><code>fx: COUNT(${TAP Records-&gt;TAP Code})</code></td></tr><tr><td>Total Settlement</td><td><code>rollup</code></td><td><code>fx: SUM(${TAP Records-&gt;Total Amount})</code></td></tr><tr><td>Rate Card Count</td><td><code>rollup</code></td><td><code>fx: COUNT(${Roaming Rate Cards-&gt;Rate Code})</code></td></tr></tbody>
+      </table>
+    </div>
+
+    <div class="table-block">
+      <div class="table-header">
+        <strong>Roaming Zones</strong>
+        <span class="badge">transaction</span>
+        <span class="col-count">14 columns</span>
+      </div>
+      <div class="table-desc"></div>
+      <table>
+        <thead><tr><th>Column</th><th>Type</th><th>Details</th></tr></thead>
+        <tbody><tr><td>ID</td><td><code>auto-seq</code></td><td></td></tr><tr><td>Zone Code<span class="req">*</span></td><td><code>text</code></td><td></td></tr><tr><td>Zone Name<span class="req">*</span></td><td><code>text</code></td><td></td></tr><tr><td>Description</td><td><code>long_text</code></td><td></td></tr><tr><td>Region</td><td><code>select</code></td><td><span class="muted">[object Object], [object Object], [object Object], [object Object], [object Object], [object Object]</span></td></tr><tr><td>Priority</td><td><code>number</code></td><td></td></tr><tr><td>Default Voice Rate (per min)</td><td><code>number</code></td><td></td></tr><tr><td>Default Data Rate (per MB)</td><td><code>number</code></td><td></td></tr><tr><td>Default SMS Rate</td><td><code>number</code></td><td></td></tr><tr><td>Countries Count</td><td><code>number</code></td><td></td></tr><tr><td>Status</td><td><code>select</code></td><td><span class="muted">[object Object], [object Object]</span></td></tr><tr><td>Partner Count</td><td><code>rollup</code></td><td><code>fx: COUNT(${Roaming Partners-&gt;Partner Code})</code></td></tr><tr><td>Total Zone Revenue</td><td><code>rollup</code></td><td><code>fx: SUM(${Roaming Sessions-&gt;Total Charged})</code></td></tr><tr><td>Session Count</td><td><code>rollup</code></td><td><code>fx: COUNT(${Roaming Sessions-&gt;Session Code})</code></td></tr></tbody>
+      </table>
+    </div>
+
+    <div class="table-block">
+      <div class="table-header">
+        <strong>Roaming Rate Cards</strong>
+        <span class="badge">transaction</span>
+        <span class="col-count">16 columns</span>
+      </div>
+      <div class="table-desc"></div>
+      <table>
+        <thead><tr><th>Column</th><th>Type</th><th>Details</th></tr></thead>
+        <tbody><tr><td>ID</td><td><code>auto-seq</code></td><td></td></tr><tr><td>Rate Code<span class="req">*</span></td><td><code>text</code></td><td></td></tr><tr><td>Partner<span class="req">*</span></td><td><code>reference</code></td><td>→ Roaming Partners</td></tr><tr><td>Zone</td><td><code>reference</code></td><td>→ Roaming Zones</td></tr><tr><td>Service Type<span class="req">*</span></td><td><code>select</code></td><td><span class="muted">[object Object], [object Object], [object Object], [object Object], [object Object], [object Object]</span></td></tr><tr><td>Unit</td><td><code>select</code></td><td><span class="muted">[object Object], [object Object], [object Object], [object Object]</span></td></tr><tr><td>Customer Rate<span class="req">*</span></td><td><code>number</code></td><td></td></tr><tr><td>Wholesale Rate (IOT)</td><td><code>number</code></td><td></td></tr><tr><td>Currency</td><td><code>select</code></td><td><span class="muted">[object Object], [object Object], [object Object], [object Object], [object Object]</span></td></tr><tr><td>Effective From</td><td><code>date</code></td><td></td></tr><tr><td>Effective To</td><td><code>date</code></td><td></td></tr><tr><td>Status</td><td><code>select</code></td><td><span class="muted">[object Object], [object Object], [object Object], [object Object]</span></td></tr><tr><td>Notes</td><td><code>long_text</code></td><td></td></tr><tr><td>Markup %</td><td><code>formula</code></td><td><code>fx: IF(${Wholesale Rate (IOT)} &gt; 0, (${Customer Rate} - ${Wholesale Rate (IOT)}) / ${Customer Rate} * 100, 0)</code></td></tr><tr><td>Partner Name</td><td><code>text</code></td><td></td></tr><tr><td>Zone Name</td><td><code>text</code></td><td></td></tr></tbody>
+      </table>
+    </div>
+
+    <div class="table-block">
+      <div class="table-header">
+        <strong>Roaming Sessions</strong>
+        <span class="badge">transaction</span>
+        <span class="col-count">20 columns</span>
+      </div>
+      <div class="table-desc"></div>
+      <table>
+        <thead><tr><th>Column</th><th>Type</th><th>Details</th></tr></thead>
+        <tbody><tr><td>ID</td><td><code>auto-seq</code></td><td></td></tr><tr><td>Session Code<span class="req">*</span></td><td><code>text</code></td><td></td></tr><tr><td>Subscription<span class="req">*</span></td><td><code>reference</code></td><td>→ Subscriptions</td></tr><tr><td>Partner<span class="req">*</span></td><td><code>reference</code></td><td>→ Roaming Partners</td></tr><tr><td>Zone</td><td><code>reference</code></td><td>→ Roaming Zones</td></tr><tr><td>Country</td><td><code>text</code></td><td></td></tr><tr><td>VLR Address</td><td><code>text</code></td><td></td></tr><tr><td>Entered At<span class="req">*</span></td><td><code>date</code></td><td></td></tr><tr><td>Left At</td><td><code>date</code></td><td></td></tr><tr><td>Status<span class="req">*</span></td><td><code>select</code></td><td><span class="muted">[object Object], [object Object], [object Object], [object Object]</span></td></tr><tr><td>Bill Shock Level</td><td><code>select</code></td><td><span class="muted">[object Object], [object Object], [object Object], [object Object], [object Object]</span></td></tr><tr><td>Data Usage (MB)</td><td><code>number</code></td><td></td></tr><tr><td>Voice Usage (min)</td><td><code>number</code></td><td></td></tr><tr><td>SMS Count</td><td><code>number</code></td><td></td></tr><tr><td>Total Charged</td><td><code>number</code></td><td></td></tr><tr><td>Daily Cap</td><td><code>number</code></td><td></td></tr><tr><td>Notes</td><td><code>long_text</code></td><td></td></tr><tr><td>MSISDN</td><td><code>formula</code></td><td><code>fx: ${Subscription-&gt;MSISDN}</code></td></tr><tr><td>Partner Name</td><td><code>text</code></td><td></td></tr><tr><td>Zone Name</td><td><code>text</code></td><td></td></tr></tbody>
+      </table>
+    </div>
+
+    <div class="table-block">
+      <div class="table-header">
+        <strong>TAP Records</strong>
+        <span class="badge">transaction</span>
+        <span class="col-count">15 columns</span>
+      </div>
+      <div class="table-desc"></div>
+      <table>
+        <thead><tr><th>Column</th><th>Type</th><th>Details</th></tr></thead>
+        <tbody><tr><td>ID</td><td><code>auto-seq</code></td><td></td></tr><tr><td>TAP Code<span class="req">*</span></td><td><code>text</code></td><td></td></tr><tr><td>Partner<span class="req">*</span></td><td><code>reference</code></td><td>→ Roaming Partners</td></tr><tr><td>File Name</td><td><code>text</code></td><td></td></tr><tr><td>Period Start<span class="req">*</span></td><td><code>date</code></td><td></td></tr><tr><td>Period End<span class="req">*</span></td><td><code>date</code></td><td></td></tr><tr><td>Total Events</td><td><code>number</code></td><td></td></tr><tr><td>Total Amount</td><td><code>number</code></td><td></td></tr><tr><td>Currency</td><td><code>select</code></td><td><span class="muted">[object Object], [object Object], [object Object], [object Object], [object Object]</span></td></tr><tr><td>Status<span class="req">*</span></td><td><code>select</code></td><td><span class="muted">[object Object], [object Object], [object Object], [object Object], [object Object], [object Object]</span></td></tr><tr><td>Received Date</td><td><code>date</code></td><td></td></tr><tr><td>Settled Date</td><td><code>date</code></td><td></td></tr><tr><td>Dispute Reason</td><td><code>text</code></td><td></td></tr><tr><td>Reconciliation Notes</td><td><code>long_text</code></td><td></td></tr><tr><td>Partner Name</td><td><code>text</code></td><td></td></tr></tbody>
+      </table>
+    </div>
+
+    <div class="table-block">
+      <div class="table-header">
+        <strong>Device TAC Database</strong>
+        <span class="badge">transaction</span>
+        <span class="col-count">17 columns</span>
+      </div>
+      <div class="table-desc"></div>
+      <table>
+        <thead><tr><th>Column</th><th>Type</th><th>Details</th></tr></thead>
+        <tbody><tr><td>ID</td><td><code>auto-seq</code></td><td></td></tr><tr><td>TAC<span class="req">*</span></td><td><code>text</code></td><td></td></tr><tr><td>Manufacturer<span class="req">*</span></td><td><code>text</code></td><td></td></tr><tr><td>Brand</td><td><code>text</code></td><td></td></tr><tr><td>Marketing Name<span class="req">*</span></td><td><code>text</code></td><td></td></tr><tr><td>Model</td><td><code>text</code></td><td></td></tr><tr><td>Release Year</td><td><code>number</code></td><td></td></tr><tr><td>Form Factor<span class="req">*</span></td><td><code>select</code></td><td><span class="muted">[object Object], [object Object], [object Object], [object Object], [object Object], [object Object]</span></td></tr><tr><td>VoLTE Support</td><td><code>toggle</code></td><td></td></tr><tr><td>VoNR (5G Voice) Support</td><td><code>toggle</code></td><td></td></tr><tr><td>5G Support</td><td><code>toggle</code></td><td></td></tr><tr><td>Dual SIM</td><td><code>toggle</code></td><td></td></tr><tr><td>eSIM Support</td><td><code>toggle</code></td><td></td></tr><tr><td>Band Support</td><td><code>text</code></td><td></td></tr><tr><td>Status</td><td><code>select</code></td><td><span class="muted">[object Object], [object Object], [object Object]</span></td></tr><tr><td>Notes</td><td><code>long_text</code></td><td></td></tr><tr><td>Active Devices</td><td><code>rollup</code></td><td><code>fx: COUNT(${Devices-&gt;IMEI})</code></td></tr></tbody>
+      </table>
+    </div>
+
+    <div class="table-block">
+      <div class="table-header">
+        <strong>Devices</strong>
+        <span class="badge">transaction</span>
+        <span class="col-count">19 columns</span>
+      </div>
+      <div class="table-desc"></div>
+      <table>
+        <thead><tr><th>Column</th><th>Type</th><th>Details</th></tr></thead>
+        <tbody><tr><td>ID</td><td><code>auto-seq</code></td><td></td></tr><tr><td>Status<span class="req">*</span></td><td><code>select</code></td><td><span class="muted">[object Object], [object Object], [object Object], [object Object], [object Object], [object Object]…</span></td></tr><tr><td>Is Fraud Flagged</td><td><code>toggle</code></td><td></td></tr><tr><td>Notes</td><td><code>long_text</code></td><td></td></tr><tr><td>Device Code<span class="req">*</span></td><td><code>text</code></td><td></td></tr><tr><td>IMEI<span class="req">*</span></td><td><code>text</code></td><td></td></tr><tr><td>Last Seen</td><td><code>date</code></td><td></td></tr><tr><td>First Seen</td><td><code>date</code></td><td></td></tr><tr><td>TAC<span class="req">*</span></td><td><code>text</code></td><td></td></tr><tr><td>Current Subscription</td><td><code>reference</code></td><td>→ Subscriptions</td></tr><tr><td>Owner</td><td><code>reference</code></td><td>→ Customers</td></tr><tr><td>Device TAC<span class="req">*</span></td><td><code>reference</code></td><td>→ Device TAC Database</td></tr><tr><td>IMEISV</td><td><code>text</code></td><td></td></tr><tr><td>EIR Entries</td><td><code>rollup</code></td><td><code>fx: COUNT(${Equipment Identity Register-&gt;EIR Code})</code></td></tr><tr><td>Make</td><td><code>text</code></td><td></td></tr><tr><td>Model Name</td><td><code>text</code></td><td></td></tr><tr><td>Supports VoLTE</td><td><code>toggle</code></td><td></td></tr><tr><td>Supports 5G</td><td><code>toggle</code></td><td></td></tr><tr><td>Release Year</td><td><code>number</code></td><td></td></tr></tbody>
+      </table>
+    </div>
+
+    <div class="table-block">
+      <div class="table-header">
+        <strong>Equipment Identity Register</strong>
+        <span class="badge">transaction</span>
+        <span class="col-count">15 columns</span>
+      </div>
+      <div class="table-desc"></div>
+      <table>
+        <thead><tr><th>Column</th><th>Type</th><th>Details</th></tr></thead>
+        <tbody><tr><td>ID</td><td><code>auto-seq</code></td><td></td></tr><tr><td>EIR Code<span class="req">*</span></td><td><code>text</code></td><td></td></tr><tr><td>IMEI<span class="req">*</span></td><td><code>text</code></td><td></td></tr><tr><td>Device</td><td><code>reference</code></td><td>→ Devices</td></tr><tr><td>List Type<span class="req">*</span></td><td><code>select</code></td><td><span class="muted">[object Object], [object Object], [object Object], [object Object]</span></td></tr><tr><td>Reason<span class="req">*</span></td><td><code>select</code></td><td><span class="muted">[object Object], [object Object], [object Object], [object Object], [object Object], [object Object]…</span></td></tr><tr><td>Reported By</td><td><code>text</code></td><td></td></tr><tr><td>Reported At<span class="req">*</span></td><td><code>date</code></td><td></td></tr><tr><td>Country of Report</td><td><code>text</code></td><td></td></tr><tr><td>Police Case Number</td><td><code>text</code></td><td></td></tr><tr><td>Status<span class="req">*</span></td><td><code>select</code></td><td><span class="muted">[object Object], [object Object], [object Object], [object Object]</span></td></tr><tr><td>Cleared At</td><td><code>date</code></td><td></td></tr><tr><td>Cleared By</td><td><code>text</code></td><td></td></tr><tr><td>Notes</td><td><code>long_text</code></td><td></td></tr><tr><td>Device Status</td><td><code>formula</code></td><td><code>fx: ${Device-&gt;Status}</code></td></tr></tbody>
+      </table>
+    </div>
+
+    <div class="table-block">
+      <div class="table-header">
+        <strong>IMEI Change Events</strong>
+        <span class="badge">transaction</span>
+        <span class="col-count">15 columns</span>
+      </div>
+      <div class="table-desc"></div>
+      <table>
+        <thead><tr><th>Column</th><th>Type</th><th>Details</th></tr></thead>
+        <tbody><tr><td>ID</td><td><code>auto-seq</code></td><td></td></tr><tr><td>Event Code<span class="req">*</span></td><td><code>text</code></td><td></td></tr><tr><td>Subscription<span class="req">*</span></td><td><code>reference</code></td><td>→ Subscriptions</td></tr><tr><td>Old IMEI</td><td><code>text</code></td><td></td></tr><tr><td>New IMEI<span class="req">*</span></td><td><code>text</code></td><td></td></tr><tr><td>Old Device</td><td><code>reference</code></td><td>→ Devices</td></tr><tr><td>New Device</td><td><code>reference</code></td><td>→ Devices</td></tr><tr><td>Changed At<span class="req">*</span></td><td><code>date</code></td><td></td></tr><tr><td>Hours Since Previous</td><td><code>number</code></td><td></td></tr><tr><td>Suspicious</td><td><code>toggle</code></td><td></td></tr><tr><td>Review Status<span class="req">*</span></td><td><code>select</code></td><td><span class="muted">[object Object], [object Object], [object Object], [object Object], [object Object]</span></td></tr><tr><td>Reviewed By</td><td><code>text</code></td><td></td></tr><tr><td>Reviewed At</td><td><code>date</code></td><td></td></tr><tr><td>Resolution Notes</td><td><code>long_text</code></td><td></td></tr><tr><td>MSISDN</td><td><code>formula</code></td><td><code>fx: ${Subscription-&gt;MSISDN}</code></td></tr></tbody>
+      </table>
+    </div>
+
+    <div class="table-block">
+      <div class="table-header">
+        <strong>MNP Requests</strong>
+        <span class="badge">transaction</span>
+        <span class="col-count">17 columns</span>
+      </div>
+      <div class="table-desc"></div>
+      <table>
+        <thead><tr><th>Column</th><th>Type</th><th>Details</th></tr></thead>
+        <tbody><tr><td>ID</td><td><code>auto-seq</code></td><td></td></tr><tr><td>MNP Code<span class="req">*</span></td><td><code>text</code></td><td></td></tr><tr><td>Type<span class="req">*</span></td><td><code>select</code></td><td><span class="muted">[object Object], [object Object]</span></td></tr><tr><td>MSISDN<span class="req">*</span></td><td><code>text</code></td><td></td></tr><tr><td>Customer</td><td><code>reference</code></td><td>→ Customers</td></tr><tr><td>Subscription</td><td><code>reference</code></td><td>→ Subscriptions</td></tr><tr><td>Donor Operator</td><td><code>text</code></td><td></td></tr><tr><td>Recipient Operator</td><td><code>text</code></td><td></td></tr><tr><td>UPC Code</td><td><code>text</code></td><td></td></tr><tr><td>Requested At<span class="req">*</span></td><td><code>date</code></td><td></td></tr><tr><td>Scheduled Cutover</td><td><code>date</code></td><td></td></tr><tr><td>Actual Cutover</td><td><code>date</code></td><td></td></tr><tr><td>Status<span class="req">*</span></td><td><code>select</code></td><td><span class="muted">[object Object], [object Object], [object Object], [object Object], [object Object], [object Object]…</span></td></tr><tr><td>Rejection Reason</td><td><code>select</code></td><td><span class="muted">[object Object], [object Object], [object Object], [object Object], [object Object], [object Object]…</span></td></tr><tr><td>SLA Days Remaining</td><td><code>number</code></td><td></td></tr><tr><td>Notes</td><td><code>long_text</code></td><td></td></tr><tr><td>Customer Name</td><td><code>formula</code></td><td><code>fx: ${Customer-&gt;Name}</code></td></tr></tbody>
+      </table>
+    </div>
+
+    <div class="table-block">
+      <div class="table-header">
+        <strong>Number Recycling Rules</strong>
+        <span class="badge">transaction</span>
+        <span class="col-count">9 columns</span>
+      </div>
+      <div class="table-desc"></div>
+      <table>
+        <thead><tr><th>Column</th><th>Type</th><th>Details</th></tr></thead>
+        <tbody><tr><td>ID</td><td><code>auto-seq</code></td><td></td></tr><tr><td>Rule Code<span class="req">*</span></td><td><code>text</code></td><td></td></tr><tr><td>Tier<span class="req">*</span></td><td><code>select</code></td><td><span class="muted">[object Object], [object Object], [object Object], [object Object]</span></td></tr><tr><td>Quarantine Days<span class="req">*</span></td><td><code>number</code></td><td></td></tr><tr><td>Reactivation Fee</td><td><code>number</code></td><td></td></tr><tr><td>Effective From</td><td><code>date</code></td><td></td></tr><tr><td>Status<span class="req">*</span></td><td><code>select</code></td><td><span class="muted">[object Object], [object Object], [object Object]</span></td></tr><tr><td>Regulator Reference</td><td><code>text</code></td><td></td></tr><tr><td>Notes</td><td><code>long_text</code></td><td></td></tr></tbody>
+      </table>
+    </div>
+
+    <div class="table-block">
+      <div class="table-header">
+        <strong>Number Auctions</strong>
+        <span class="badge">transaction</span>
+        <span class="col-count">17 columns</span>
+      </div>
+      <div class="table-desc"></div>
+      <table>
+        <thead><tr><th>Column</th><th>Type</th><th>Details</th></tr></thead>
+        <tbody><tr><td>ID</td><td><code>auto-seq</code></td><td></td></tr><tr><td>Auction Code<span class="req">*</span></td><td><code>text</code></td><td></td></tr><tr><td>MSISDN<span class="req">*</span></td><td><code>text</code></td><td></td></tr><tr><td>MSISDN Record</td><td><code>reference</code></td><td>→ MSISDN Pool</td></tr><tr><td>Tier<span class="req">*</span></td><td><code>select</code></td><td><span class="muted">[object Object], [object Object], [object Object]</span></td></tr><tr><td>Reserve Price<span class="req">*</span></td><td><code>number</code></td><td></td></tr><tr><td>Current Bid</td><td><code>number</code></td><td></td></tr><tr><td>Highest Bidder</td><td><code>reference</code></td><td>→ Customers</td></tr><tr><td>Bid Count</td><td><code>number</code></td><td></td></tr><tr><td>Start Date<span class="req">*</span></td><td><code>date</code></td><td></td></tr><tr><td>End Date<span class="req">*</span></td><td><code>date</code></td><td></td></tr><tr><td>Status<span class="req">*</span></td><td><code>select</code></td><td><span class="muted">[object Object], [object Object], [object Object], [object Object], [object Object], [object Object]</span></td></tr><tr><td>Winner</td><td><code>reference</code></td><td>→ Customers</td></tr><tr><td>Sold Price</td><td><code>number</code></td><td></td></tr><tr><td>Notes</td><td><code>long_text</code></td><td></td></tr><tr><td>Winner Name</td><td><code>formula</code></td><td><code>fx: ${Winner-&gt;Name}</code></td></tr><tr><td>Bid Premium %</td><td><code>formula</code></td><td><code>fx: IF(${Reserve Price} &gt; 0, (${Current Bid} - ${Reserve Price}) / ${Reserve Price} * 100, 0)</code></td></tr></tbody>
+      </table>
+    </div>
+
+    <div class="table-block">
+      <div class="table-header">
+        <strong>Number Change Events</strong>
+        <span class="badge">transaction</span>
+        <span class="col-count">10 columns</span>
+      </div>
+      <div class="table-desc"></div>
+      <table>
+        <thead><tr><th>Column</th><th>Type</th><th>Details</th></tr></thead>
+        <tbody><tr><td>ID</td><td><code>auto-seq</code></td><td></td></tr><tr><td>Event Code<span class="req">*</span></td><td><code>text</code></td><td></td></tr><tr><td>MSISDN<span class="req">*</span></td><td><code>text</code></td><td></td></tr><tr><td>Old Subscription</td><td><code>reference</code></td><td>→ Subscriptions</td></tr><tr><td>New Subscription</td><td><code>reference</code></td><td>→ Subscriptions</td></tr><tr><td>Change Type<span class="req">*</span></td><td><code>select</code></td><td><span class="muted">[object Object], [object Object], [object Object], [object Object], [object Object], [object Object]…</span></td></tr><tr><td>Changed At<span class="req">*</span></td><td><code>date</code></td><td></td></tr><tr><td>Changed By</td><td><code>text</code></td><td></td></tr><tr><td>Reason</td><td><code>text</code></td><td></td></tr><tr><td>Notes</td><td><code>long_text</code></td><td></td></tr></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section>
+    <h2>Relationships <span class="count">78</span></h2>
+    <ul><li><strong>Balances</strong> ──→ <strong>Subscriptions</strong> — Balances.Subscription references Subscriptions</li><li><strong>Balances</strong> ──→ <strong>Tariff Plans</strong> — Balances.Tariff Plan references Tariff Plans</li><li><strong>Order Items</strong> ──→ <strong>Orders</strong> — Order Items.Order references Orders</li><li><strong>Order Items</strong> ──→ <strong>Tariff Plans</strong> — Order Items.Tariff Plan references Tariff Plans</li><li><strong>Orders</strong> ──→ <strong>Customers</strong> — Orders.Customer references Customers</li><li><strong>Orders</strong> ──→ <strong>Subscriptions</strong> — Orders.Subscription references Subscriptions</li><li><strong>Orders</strong> ──→ <strong>Channels</strong> — Orders.Channel references Channels</li><li><strong>Recharges</strong> ──→ <strong>Wallets</strong> — Recharges.Wallet references Wallets</li><li><strong>Recharges</strong> ──→ <strong>Distribution Partners</strong> — Recharges.Distribution Partner references Distribution Partners</li><li><strong>Customer Identifications</strong> ──→ <strong>Customers</strong> — Customer Identifications.Customer references Customers</li><li><strong>Wallets</strong> ──→ <strong>Customers</strong> — Wallets.Customer references Customers</li><li><strong>Notifications Sent</strong> ──→ <strong>Notification Templates</strong> — Notifications Sent.Template references Notification Templates</li><li><strong>Notifications Sent</strong> ──→ <strong>Customers</strong> — Notifications Sent.Customer references Customers</li><li><strong>Notifications Sent</strong> ──→ <strong>Subscriptions</strong> — Notifications Sent.Subscription references Subscriptions</li><li><strong>Notifications Sent</strong> ──→ <strong>Channels</strong> — Notifications Sent.Channel references Channels</li><li><strong>Call Detail Records</strong> ──→ <strong>Charging Sessions</strong> — Call Detail Records.Charging Session references Charging Sessions</li><li><strong>Call Detail Records</strong> ──→ <strong>Subscriptions</strong> — Call Detail Records.Subscription references Subscriptions</li><li><strong>Call Detail Records</strong> ──→ <strong>Customers</strong> — Call Detail Records.Customer references Customers</li><li><strong>Call Detail Records</strong> ──→ <strong>Tariff Plans</strong> — Call Detail Records.Tariff Plan references Tariff Plans</li><li><strong>Subscription Status History</strong> ──→ <strong>Subscriptions</strong> — Subscription Status History.Subscription references Subscriptions</li><li><strong>FF Members</strong> ──→ <strong>Friends and Family Groups</strong> — FF Members.FF Group references Friends and Family Groups</li><li><strong>Bonus Grants</strong> ──→ <strong>Subscriptions</strong> — Bonus Grants.Subscription references Subscriptions</li><li><strong>Balance Transfers</strong> ──→ <strong>Subscriptions</strong> — Balance Transfers.From Subscription references Subscriptions</li><li><strong>Balance Transfers</strong> ──→ <strong>Subscriptions</strong> — Balance Transfers.To Subscription references Subscriptions</li><li><strong>Cases</strong> ──→ <strong>Customers</strong> — Cases.Customer references Customers</li><li><strong>Cases</strong> ──→ <strong>Subscriptions</strong> — Cases.Subscription references Subscriptions</li><li><strong>Cases</strong> ──→ <strong>Channels</strong> — Cases.Channel references Channels</li><li><strong>Customer Lifecycle Events</strong> ──→ <strong>Customers</strong> — Customer Lifecycle Events.Customer references Customers</li><li><strong>MSISDN Pool</strong> ──→ <strong>Subscriptions</strong> — MSISDN Pool.Assigned Subscription references Subscriptions</li><li><strong>CUG Members</strong> ──→ <strong>Closed User Groups</strong> — CUG Members.CUG references Closed User Groups</li><li><strong>CUG Members</strong> ──→ <strong>Subscriptions</strong> — CUG Members.Subscription references Subscriptions</li><li><strong>Promotion Redemptions</strong> ──→ <strong>Promotions</strong> — Promotion Redemptions.Promotion references Promotions</li><li><strong>Promotion Redemptions</strong> ──→ <strong>Customers</strong> — Promotion Redemptions.Customer references Customers</li><li><strong>Promotion Redemptions</strong> ──→ <strong>Subscriptions</strong> — Promotion Redemptions.Subscription references Subscriptions</li><li><strong>Subscriptions</strong> ──→ <strong>Customers</strong> — Subscriptions.Customer references Customers</li><li><strong>Subscriptions</strong> ──→ <strong>Tariff Plans</strong> — Subscriptions.Current Plan references Tariff Plans</li><li><strong>Subscriptions</strong> ──→ <strong>Roaming Zones</strong> — Subscriptions.Current Roaming Zone references Roaming Zones</li><li><strong>Subscriptions</strong> ──→ <strong>Devices</strong> — Subscriptions.Current Device references Devices</li><li><strong>Friends and Family Groups</strong> ──→ <strong>Subscriptions</strong> — Friends and Family Groups.Owner Subscription references Subscriptions</li><li><strong>Customer Interactions</strong> ──→ <strong>Customers</strong> — Customer Interactions.Customer references Customers</li><li><strong>Customer Interactions</strong> ──→ <strong>Subscriptions</strong> — Customer Interactions.Subscription references Subscriptions</li><li><strong>Customer Interactions</strong> ──→ <strong>Channels</strong> — Customer Interactions.Channel references Channels</li><li><strong>Usage Transactions</strong> ──→ <strong>Charging Sessions</strong> — Usage Transactions.Charging Session references Charging Sessions</li><li><strong>Usage Transactions</strong> ──→ <strong>Subscriptions</strong> — Usage Transactions.Subscription references Subscriptions</li><li><strong>Usage Transactions</strong> ──→ <strong>Balances</strong> — Usage Transactions.Balance references Balances</li><li><strong>SIM Inventory</strong> ──→ <strong>Distribution Partners</strong> — SIM Inventory.Allocated To Partner references Distribution Partners</li><li><strong>SIM Inventory</strong> ──→ <strong>Subscriptions</strong> — SIM Inventory.Active Subscription references Subscriptions</li><li><strong>Partner Contracts</strong> ──→ <strong>Distribution Partners</strong> — Partner Contracts.Partner references Distribution Partners</li><li><strong>Closed User Groups</strong> ──→ <strong>Customers</strong> — Closed User Groups.Owner Customer references Customers</li><li><strong>Partner Commissions</strong> ──→ <strong>Distribution Partners</strong> — Partner Commissions.Partner references Distribution Partners</li><li><strong>Partner Commissions</strong> ──→ <strong>Recharges</strong> — Partner Commissions.Recharge references Recharges</li><li><strong>Account Hierarchy</strong> ──→ <strong>Customers</strong> — Account Hierarchy.Parent Customer references Customers</li><li><strong>Account Hierarchy</strong> ──→ <strong>Customers</strong> — Account Hierarchy.Child Customer references Customers</li><li><strong>Bundle Components</strong> ──→ <strong>Bundles</strong> — Bundle Components.Bundle references Bundles</li><li><strong>Charging Sessions</strong> ──→ <strong>Subscriptions</strong> — Charging Sessions.Subscription references Subscriptions</li><li><strong>Wallet Transactions</strong> ──→ <strong>Wallets</strong> — Wallet Transactions.Wallet references Wallets</li><li><strong>Roaming Partners</strong> ──→ <strong>Roaming Zones</strong> — Roaming Partners.Zone references Roaming Zones</li><li><strong>Roaming Rate Cards</strong> ──→ <strong>Roaming Partners</strong> — Roaming Rate Cards.Partner references Roaming Partners</li><li><strong>Roaming Rate Cards</strong> ──→ <strong>Roaming Zones</strong> — Roaming Rate Cards.Zone references Roaming Zones</li><li><strong>Roaming Sessions</strong> ──→ <strong>Subscriptions</strong> — Roaming Sessions.Subscription references Subscriptions</li><li><strong>Roaming Sessions</strong> ──→ <strong>Roaming Partners</strong> — Roaming Sessions.Partner references Roaming Partners</li><li><strong>Roaming Sessions</strong> ──→ <strong>Roaming Zones</strong> — Roaming Sessions.Zone references Roaming Zones</li><li><strong>TAP Records</strong> ──→ <strong>Roaming Partners</strong> — TAP Records.Partner references Roaming Partners</li><li><strong>Devices</strong> ──→ <strong>Subscriptions</strong> — Devices.Current Subscription references Subscriptions</li><li><strong>Devices</strong> ──→ <strong>Customers</strong> — Devices.Owner references Customers</li><li><strong>Devices</strong> ──→ <strong>Device TAC Database</strong> — Devices.Device TAC references Device TAC Database</li><li><strong>Equipment Identity Register</strong> ──→ <strong>Devices</strong> — Equipment Identity Register.Device references Devices</li><li><strong>IMEI Change Events</strong> ──→ <strong>Subscriptions</strong> — IMEI Change Events.Subscription references Subscriptions</li><li><strong>IMEI Change Events</strong> ──→ <strong>Devices</strong> — IMEI Change Events.Old Device references Devices</li><li><strong>IMEI Change Events</strong> ──→ <strong>Devices</strong> — IMEI Change Events.New Device references Devices</li><li><strong>MNP Requests</strong> ──→ <strong>Customers</strong> — MNP Requests.Customer references Customers</li><li><strong>MNP Requests</strong> ──→ <strong>Subscriptions</strong> — MNP Requests.Subscription references Subscriptions</li><li><strong>Number Auctions</strong> ──→ <strong>MSISDN Pool</strong> — Number Auctions.MSISDN Record references MSISDN Pool</li><li><strong>Number Auctions</strong> ──→ <strong>Customers</strong> — Number Auctions.Highest Bidder references Customers</li><li><strong>Number Auctions</strong> ──→ <strong>Customers</strong> — Number Auctions.Winner references Customers</li><li><strong>Number Change Events</strong> ──→ <strong>Subscriptions</strong> — Number Change Events.Old Subscription references Subscriptions</li><li><strong>Number Change Events</strong> ──→ <strong>Subscriptions</strong> — Number Change Events.New Subscription references Subscriptions</li></ul>
+  </section>
+
+  <section>
+    <h2>Roles &amp; Permissions <span class="count">8</span></h2>
+    
+    <div class="card">
+      <h3>Admin</h3>
+      <p>Full access — all BSS modules, config, and ops.</p>
+      <div class="perms"><span class="badge">Full CRUD on all tables</span><span class="badge">Access to all dashboards and reports</span><span class="badge">Manage users, roles, and workflows</span></div>
+    </div>
+    <div class="card">
+      <h3>CSR (Customer Service Rep)</h3>
+      <p>Front-line customer operations.</p>
+      <div class="perms"><span class="badge">Read all customer data</span><span class="badge">Create/close Cases &amp; Interactions</span><span class="badge">Trigger manual recharges &amp; balance adjustments</span><span class="badge">Lookup MSISDN / ICCID / wallet balance</span></div>
+    </div>
+    <div class="card">
+      <h3>Billing Analyst</h3>
+      <p>Owns charging correctness, rating, and CDR integrity.</p>
+      <div class="perms"><span class="badge">Read all charging/rating/CDR tables</span><span class="badge">Manage Tariff Plans, Bundles, Business Rules</span><span class="badge">Trigger re-rating and reconciliation workflows</span></div>
+    </div>
+    <div class="card">
+      <h3>Partner Manager</h3>
+      <p>Distributor, retailer, and channel operations.</p>
+      <div class="perms"><span class="badge">Manage Distribution Partners, Contracts, Commissions</span><span class="badge">View recharge volume per partner</span><span class="badge">Approve/adjust commission payouts</span></div>
+    </div>
+    <div class="card">
+      <h3>Network Ops</h3>
+      <p>Monitors Gy/Ro integration and session health.</p>
+      <div class="perms"><span class="badge">Read Charging Sessions, Usage Transactions, Network Elements</span><span class="badge">Read Notifications Sent</span><span class="badge">Replay / retry stuck sessions</span></div>
+    </div>
+    <div class="card">
+      <h3>Marketing</h3>
+      <p>Owns promotions, bundles, bonus campaigns.</p>
+      <div class="perms"><span class="badge">Manage Promotions, Bundles, Bundle Components</span><span class="badge">Manage Notification Templates</span><span class="badge">View redemption and conversion reports</span></div>
+    </div>
+    <div class="card">
+      <h3>Retail Partner</h3>
+      <p>External retailer operating through the partner portal.</p>
+      <div class="perms"><span class="badge">Sell SIMs, recharges, plan activations</span><span class="badge">View own commission ledger</span><span class="badge">No access to other partners’ data</span></div>
+    </div>
+    <div class="card">
+      <h3>Self-Care Subscriber</h3>
+      <p>End subscriber logged in through the self-care portal.</p>
+      <div class="perms"><span class="badge">View own subscription, balances, plan, recharge history</span><span class="badge">Submit own Cases</span><span class="badge">Initiate own recharges / balance transfers</span></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Views <span class="count">10</span></h2>
+    
+    <div class="card">
+      <h3>All Active Subscribers <span class="badge">Subscriptions</span></h3>
+      <p><strong>Filter:</strong> Status = active</p>
+      <p><strong>Roles:</strong> CSR, Billing, Admin</p>
+      <div class="perms"><span class="badge">MSISDN</span><span class="badge">Customer Name</span><span class="badge">Current Plan</span><span class="badge">Plan Price</span><span class="badge">Activation Date</span><span class="badge">Status</span></div>
+    </div>
+    <div class="card">
+      <h3>Low Balance Subscribers <span class="badge">Balances</span></h3>
+      <p><strong>Filter:</strong> Remaining Amount &lt; 10% × Initial Amount</p>
+      <p><strong>Roles:</strong> CSR, Marketing</p>
+      <div class="perms"><span class="badge">MSISDN</span><span class="badge">Plan Name</span><span class="badge">Initial Amount</span><span class="badge">Used Amount</span><span class="badge">Remaining Amount</span></div>
+    </div>
+    <div class="card">
+      <h3>Expiring Plans (7 days) <span class="badge">Subscriptions</span></h3>
+      <p><strong>Filter:</strong> Validity End ≤ today + 7d</p>
+      <p><strong>Roles:</strong> CSR, Marketing</p>
+      <div class="perms"><span class="badge">MSISDN</span><span class="badge">Current Plan</span><span class="badge">Validity End</span><span class="badge">Plan Price</span></div>
+    </div>
+    <div class="card">
+      <h3>Open Cases <span class="badge">Cases</span></h3>
+      <p><strong>Filter:</strong> Status in (new, in_progress)</p>
+      <p><strong>Roles:</strong> CSR, Admin</p>
+      <div class="perms"><span class="badge">Case ID</span><span class="badge">Customer Name</span><span class="badge">Category</span><span class="badge">Priority</span><span class="badge">Opened At</span><span class="badge">Status</span></div>
+    </div>
+    <div class="card">
+      <h3>Today's Recharges <span class="badge">Recharges</span></h3>
+      <p><strong>Filter:</strong> Recharge Date = today</p>
+      <p><strong>Roles:</strong> Partner Manager, Billing</p>
+      <div class="perms"><span class="badge">Recharge Code</span><span class="badge">Wallet Code</span><span class="badge">Amount</span><span class="badge">Channel</span><span class="badge">Partner</span><span class="badge">Status</span></div>
+    </div>
+    <div class="card">
+      <h3>High-Value Customers <span class="badge">Customers</span></h3>
+      <p><strong>Filter:</strong> Lifetime Recharge &gt; 5,000</p>
+      <p><strong>Roles:</strong> Marketing, Partner Manager</p>
+      <div class="perms"><span class="badge">Name</span><span class="badge">Phone</span><span class="badge">Subscription Count</span><span class="badge">Lifetime Recharge</span><span class="badge">Recharge Count</span></div>
+    </div>
+    <div class="card">
+      <h3>Stuck Charging Sessions <span class="badge">Charging Sessions</span></h3>
+      <p><strong>Filter:</strong> Status = in_progress AND Start Time &lt; now − 24h</p>
+      <p><strong>Roles:</strong> Network Ops</p>
+      <div class="perms"><span class="badge">Session ID</span><span class="badge">MSISDN</span><span class="badge">Service</span><span class="badge">Start Time</span><span class="badge">UT Count</span></div>
+    </div>
+    <div class="card">
+      <h3>Partner Commission Ledger <span class="badge">Partner Commissions</span></h3>
+      <p><strong>Filter:</strong> grouped by Partner</p>
+      <p><strong>Roles:</strong> Partner Manager, Admin</p>
+      <div class="perms"><span class="badge">Partner</span><span class="badge">Recharge</span><span class="badge">Recharge Amount</span><span class="badge">Commission Amount</span><span class="badge">Status</span></div>
+    </div>
+    <div class="card">
+      <h3>Voucher Inventory <span class="badge">Recharge Vouchers</span></h3>
+      <p><strong>Filter:</strong> Status = available</p>
+      <p><strong>Roles:</strong> Partner Manager, Admin</p>
+      <div class="perms"><span class="badge">Voucher Code</span><span class="badge">Face Value</span><span class="badge">Batch</span><span class="badge">Status</span><span class="badge">Expiry</span></div>
+    </div>
+    <div class="card">
+      <h3>CDR Review <span class="badge">Call Detail Records</span></h3>
+      <p><strong>Filter:</strong> CDR Date = yesterday</p>
+      <p><strong>Roles:</strong> Billing</p>
+      <div class="perms"><span class="badge">CDR ID</span><span class="badge">MSISDN</span><span class="badge">Plan Name</span><span class="badge">Service</span><span class="badge">Amount</span><span class="badge">Termination Cause</span></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Reports &amp; Analytics <span class="count">7</span></h2>
+    <ul><li><strong>Prepaid Balance Dashboard</strong> <span class="badge">hierarchical</span> — Live totals: active subs, wallet balance, service balances by plan, rating-group usage, top-up velocity.</li><li><strong>CDR Settlement Report</strong> <span class="badge">flat</span> — Daily CDRs with service breakdown, hourly volume, termination cause mix, CSV export for reconciliation.</li><li><strong>Usage Patterns Heatmap</strong> <span class="badge">hierarchical</span> — 7×24 day-of-week × hour heatmap — events, data MB, voice minutes, SMS count.</li><li><strong>Customer 360</strong> <span class="badge">hierarchical</span> — Full subscriber view — KYC, subscriptions, balances, wallet, cases, interactions, lifecycle.</li><li><strong>Partner Commission Summary</strong> <span class="badge">flat</span> — Commission earned per partner, period, channel — paid vs pending, recharge-volume driven.</li><li><strong>Promotion Effectiveness</strong> <span class="badge">flat</span> — Redemption count × revenue lift × incremental ARPU per promotion.</li><li><strong>Churn Risk Report</strong> <span class="badge">hierarchical</span> — Subscribers with falling usage, low balance, expiring plans — churn probability bucket.</li></ul>
+  </section>
+
+  <section>
+    <h2>Business Process Flow</h2>
+    <div class="prose">
+      <ol>
+        <li><strong>Customer Onboarding</strong>
+          <ul>
+            <li>Agent or self-care captures identity; record created in <code>Customers</code> with <code>Customer Identifications</code> for KYC.</li>
+            <li>MSISDN pulled from <code>MSISDN Pool</code>; SIM allocated from <code>SIM Inventory</code>; <code>Subscriptions</code> row created and activated.</li>
+            <li><code>Customer Lifecycle Events</code> log records the activation; welcome SMS sent via <code>Notifications Sent</code>.</li>
+          </ul>
+        </li>
+        <li><strong>Plan Selection &amp; Provisioning</strong>
+          <ul>
+            <li>Customer picks a <code>Tariff Plan</code>; an <code>Order</code> with <code>Order Items</code> is created.</li>
+            <li>Wallet is debited via <code>Wallet Transactions</code>; service buckets are seeded in <code>Balances</code> (data / voice / SMS / bonus) with priority-on-charge.</li>
+            <li>Optional <code>Bundles</code> / boosters stack additional buckets on top of the base plan.</li>
+          </ul>
+        </li>
+        <li><strong>Recharge Flow</strong>
+          <ul>
+            <li>Voucher from <code>Recharge Vouchers</code>, or partner POS via <code>Distribution Partners</code>, creates a <code>Recharges</code> row.</li>
+            <li>Wallet credited (<code>Wallet Transactions</code>); commission row inserted in <code>Partner Commissions</code> according to <code>Partner Contracts</code>.</li>
+          </ul>
+        </li>
+        <li><strong>Real-time Charging (Gy)</strong>
+          <ul>
+            <li>Network element (PGW / MSC / SMSC) opens a <code>Charging Sessions</code> row with CCR-I.</li>
+            <li>Per event, a <code>Usage Transactions</code> row records Requested / Granted / Used Service-Unit, with the rating-group determined by <code>Services</code>.</li>
+            <li>Rating engine applies <code>Business Rules</code> and depletes <code>Balances</code> in priority order; bonus buckets deplete before paid ones.</li>
+            <li>Session ends on CCR-T; <code>Call Detail Records</code> settlement row is written.</li>
+          </ul>
+        </li>
+        <li><strong>Promotions &amp; Loyalty</strong>
+          <ul>
+            <li>Eligibility engine checks <code>Promotions</code>; on hit a <code>Promotion Redemptions</code> row and a <code>Bonus Grants</code> balance entry are created.</li>
+            <li><code>Friends and Family Groups</code> / <code>Closed User Groups</code> redirect rating to discounted tariffs for on-net on-group calls.</li>
+          </ul>
+        </li>
+        <li><strong>Customer Care</strong>
+          <ul>
+            <li>All inbound touchpoints land in <code>Customer Interactions</code>; escalations create <code>Cases</code> with SLA + status.</li>
+            <li>CSR can adjust <code>Balances</code>, issue <code>Bonus Grants</code>, or trigger <code>Balance Transfers</code> between subscribers.</li>
+          </ul>
+        </li>
+        <li><strong>Expiry &amp; Churn</strong>
+          <ul>
+            <li>Daily sweep suspends <code>Subscriptions</code> whose validity has expired; status transition logged in <code>Subscription Status History</code>.</li>
+            <li>Low-balance / expiring-plan notifications trigger retention promos.</li>
+          </ul>
+        </li>
+        <li><strong>Partner &amp; Channel Ops</strong>
+          <ul>
+            <li><code>Channels</code> (retail, USSD, self-care, B2B) route orders and recharges to the right partner.</li>
+            <li><code>Partner Commissions</code> ledger is settled on cadence defined in <code>Partner Contracts</code>.</li>
+          </ul>
+        </li>
+        <li><strong>Automation</strong>
+          <ul>
+            <li>Workflows: welcome notification on activation, low-balance alert, plan-expiry reminder, plan-purchase confirmation, daily CDR summary.</li>
+            <li>Rollups refresh in near-realtime: Used / Remaining Amount per balance, Lifetime Recharge per customer, Active Subscribers per plan.</li>
+          </ul>
+        </li>
+      </ol>
+    </div>
+  </section>
+
+  <div class="footer">Generated on 2026-04-17 · 54 tables · 715 columns · 78 relationships</div>
+</body>
+</html>

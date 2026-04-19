@@ -1,0 +1,58 @@
+<div id="erpai-ins-fraud" style="font:13px/1.4 system-ui,-apple-system,Segoe UI,sans-serif;color:hsl(var(--foreground));background:hsl(var(--card));border:1px solid hsl(var(--border));border-radius:8px;padding:12px 14px;display:grid;grid-template-columns:140px 1fr 1fr 1fr;gap:16px;align-items:center;min-height:140px">
+  <style>
+    #erpai-ins-fraud .ti-h{font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:hsl(var(--muted-foreground));margin:0 0 6px}
+    #erpai-ins-fraud .ti-v{font-size:22px;font-weight:600;line-height:1}
+    #erpai-ins-fraud .ti-sub{font-size:11px;color:hsl(var(--muted-foreground));margin-top:4px}
+    #erpai-ins-fraud .ti-donut{position:relative;width:100px;height:100px;margin:auto}
+    #erpai-ins-fraud .ti-center{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;flex-direction:column}
+    #erpai-ins-fraud .ti-c-v{font-size:20px;font-weight:600}
+    #erpai-ins-fraud .ti-c-l{font-size:10px;color:hsl(var(--muted-foreground));text-transform:uppercase;letter-spacing:.04em}
+    #erpai-ins-fraud .ti-leg{display:flex;gap:6px;font-size:10px;flex-wrap:wrap;margin-top:6px;justify-content:center}
+    #erpai-ins-fraud .ti-leg i{display:inline-block;width:8px;height:8px;border-radius:2px;margin-right:3px;vertical-align:middle}
+    @media(max-width:640px){#erpai-ins-fraud{grid-template-columns:1fr 1fr;gap:12px}#erpai-ins-fraud>.ti-donut-wrap{grid-column:1/-1}}
+  </style>
+  <div class="ti-donut-wrap" style="text-align:center">
+    <div class="ti-h">Severity</div>
+    <div class="ti-donut">
+      <svg viewBox="0 0 42 42" width="100" height="100" id="fr-donut">
+        <circle cx="21" cy="21" r="15.915" fill="transparent" stroke="hsl(var(--border))" stroke-width="5"></circle>
+      </svg>
+      <div class="ti-center"><div class="ti-c-v" id="fr-total">33</div><div class="ti-c-l">alerts</div></div>
+    </div>
+    <div class="ti-leg" id="fr-leg">
+      <span><i style="background:hsl(142 71% 45%)"></i>Low 9</span>
+      <span><i style="background:hsl(48 96% 53%)"></i>Med 8</span>
+      <span><i style="background:hsl(25 95% 53%)"></i>High 12</span>
+      <span><i style="background:hsl(0 72% 51%)"></i>Crit 4</span>
+    </div>
+  </div>
+  <div><div class="ti-h">Open Alerts</div><div class="ti-v" id="fr-open" style="color:hsl(25 95% 53%)">29</div><div class="ti-sub">New + Investigating</div></div>
+  <div><div class="ti-h">Critical (24h)</div><div class="ti-v" id="fr-crit" style="color:hsl(0 72% 51%)">0</div><div class="ti-sub">needs triage</div></div>
+  <div><div class="ti-h">Loss Estimate YTD</div><div class="ti-v" id="fr-loss">$7.8K</div><div class="ti-sub">confirmed + open</div></div>
+</div>
+<script>
+(function(){
+  if(!window.ERPAI||!window.ERPAI.token)return;
+  var SEV=[{k:"[1]",n:"Low",c:"hsl(142 71% 45%)"},{k:"[2]",n:"Med",c:"hsl(48 96% 53%)"},{k:"[3]",n:"High",c:"hsl(25 95% 53%)"},{k:"[4]",n:"Crit",c:"hsl(0 72% 51%)"}];
+  var base=window.ERPAI.baseUrl,tok=window.ERPAI.token,app=window.ERPAI.appId;
+  function q(sql){return fetch(base+"/v1/agent/app/sql/execute",{method:"POST",headers:{Authorization:"Bearer "+tok,"Content-Type":"application/json"},body:JSON.stringify({appId:app,sqlQuery:sql,limit:50})}).then(function(r){return r.json()}).then(function(j){return (j.data&&j.data.rows)||[]});}
+  function fmt(n){n=+n||0;if(n>=1000000)return '$'+(n/1000000).toFixed(1)+'M';if(n>=1000)return '$'+(n/1000).toFixed(1)+'K';return '$'+Math.round(n);}
+  Promise.all([
+    q("SELECT severity, count() AS c FROM (SELECT argMax(severity,_version) AS severity FROM a1776271424351_fraud_alerts WHERE _deleted=0 GROUP BY _id) GROUP BY severity"),
+    q("SELECT sum(status IN ('[1]','[2]')) AS open_cnt, sum(severity='[4]' AND triggered_at>=now()-INTERVAL 24 HOUR) AS c24, sum(toFloat64OrZero(toString(le))) AS loss FROM (SELECT argMax(status,_version) AS status, argMax(severity,_version) AS severity, argMax(triggered_at,_version) AS triggered_at, argMax(loss_estimate,_version) AS le FROM a1776271424351_fraud_alerts WHERE _deleted=0 GROUP BY _id) WHERE triggered_at >= toStartOfYear(now())")
+  ]).then(function(r){
+    var map={};r[0].forEach(function(x){map[x.severity]=+x.c||0});
+    var tot=SEV.reduce(function(a,s){return a+(map[s.k]||0)},0)||1;
+    var circ=Math.PI*2*15.915,off=0;
+    var svg=['<circle cx="21" cy="21" r="15.915" fill="transparent" stroke="hsl(var(--border))" stroke-width="5"></circle>'];
+    SEV.forEach(function(s){var n=map[s.k]||0;if(!n)return;var len=n/tot*circ;svg.push('<circle cx="21" cy="21" r="15.915" fill="transparent" stroke="'+s.c+'" stroke-width="5" stroke-dasharray="'+len.toFixed(2)+' '+(circ-len).toFixed(2)+'" stroke-dashoffset="'+(-off).toFixed(2)+'" transform="rotate(-90 21 21)"></circle>');off+=len;});
+    document.getElementById("fr-donut").innerHTML=svg.join("");
+    document.getElementById("fr-total").textContent=tot;
+    document.getElementById("fr-leg").innerHTML=SEV.map(function(s){return '<span><i style="background:'+s.c+'"></i>'+s.n+' '+(map[s.k]||0)+'</span>';}).join("");
+    var m=r[1][0]||{};
+    document.getElementById("fr-open").textContent=m.open_cnt||0;
+    document.getElementById("fr-crit").textContent=m.c24||0;
+    document.getElementById("fr-loss").textContent=fmt(m.loss);
+  }).catch(function(){});
+})();
+</script>

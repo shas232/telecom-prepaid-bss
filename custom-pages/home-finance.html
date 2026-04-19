@@ -1,0 +1,237 @@
+<script>
+window.ERPAI = {
+  token: 'erp_pat_live_REDACTED',
+  baseUrl: 'https://api.erpai.studio',
+  appId: 'afe8c4540708da6ca9e6fe79',
+  orgName: 'Telecom',
+  appName: 'telecom',
+  theme: 'light'
+};
+</script>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Finance Home</title>
+  <link rel="stylesheet" href="/runtime/erpai-pages-runtime.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    body { padding: 20px; font-family: 'Geist Sans', system-ui, -apple-system, sans-serif; }
+    .cb-header { margin-bottom: 20px; display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+    .cb-title { font-size: 20px; font-weight: 600; color: hsl(var(--foreground)); letter-spacing: -0.02em; margin: 0; }
+    .cb-subtitle { font-size: 13px; color: hsl(var(--muted-foreground)); margin-top: 4px; max-width: 720px; }
+    .cb-header-right { display: flex; align-items: center; gap: 10px; }
+    .cb-date { font-size: 13px; color: hsl(var(--muted-foreground)); font-variant-numeric: tabular-nums; }
+    .cb-btn { display: inline-flex; align-items: center; gap: 6px; padding: 8px 12px; font-size: 13px; font-weight: 500; border-radius: 8px; border: 1px solid hsl(var(--border)); background: hsl(var(--background)); color: hsl(var(--foreground)); cursor: pointer; }
+    .cb-btn:hover { background: hsl(var(--muted) / 0.4); }
+
+    .cb-kpis { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; margin-bottom: 24px; }
+    @media (max-width: 1100px) { .cb-kpis { grid-template-columns: repeat(3, 1fr); } }
+    @media (max-width: 700px) { .cb-kpis { grid-template-columns: repeat(2, 1fr); } }
+    .cb-kpi { background: hsl(var(--card)); border: 1px solid hsl(var(--border)); border-radius: 12px; padding: 14px; box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05); }
+    .cb-kpi-label { font-size: 11px; color: hsl(var(--muted-foreground)); text-transform: uppercase; letter-spacing: 0.04em; font-weight: 600; margin-bottom: 6px; }
+    .cb-kpi-val { font-size: 22px; font-weight: 600; font-variant-numeric: tabular-nums; color: hsl(var(--foreground)); line-height: 1.1; }
+    .cb-kpi-sub { font-size: 11px; color: hsl(var(--muted-foreground)); margin-top: 4px; }
+
+    .cb-section-head { display: flex; align-items: center; gap: 8px; margin: 24px 0 12px; }
+    .cb-section-title { font-size: 14px; font-weight: 600; margin: 0; color: hsl(var(--foreground)); }
+    .cb-section-sub { font-size: 12px; color: hsl(var(--muted-foreground)); font-weight: 500; }
+
+    .cb-charts { display: grid; grid-template-columns: 2fr 1fr; gap: 16px; margin-bottom: 24px; }
+    @media (max-width: 900px) { .cb-charts { grid-template-columns: 1fr; } }
+    .cb-chart-card { background: hsl(var(--card)); border: 1px solid hsl(var(--border)); border-radius: 12px; padding: 14px; box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05); }
+    .cb-chart-card h3 { margin: 0 0 10px; font-size: 13px; font-weight: 600; color: hsl(var(--foreground)); }
+    .cb-chart-wrap { position: relative; height: 240px; }
+
+    .cb-feed { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 24px; }
+    @media (max-width: 900px) { .cb-feed { grid-template-columns: 1fr; } }
+    .cb-feed-card { background: hsl(var(--card)); border: 1px solid hsl(var(--border)); border-radius: 12px; overflow: hidden; box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05); }
+    .cb-feed-head { padding: 12px 14px; border-bottom: 1px solid hsl(var(--border)); display: flex; align-items: center; gap: 8px; background: hsl(var(--muted) / 0.3); }
+    .cb-feed-head h3 { font-size: 13px; font-weight: 600; margin: 0; }
+    .cb-feed-head .cb-feed-count { margin-left: auto; font-size: 11px; color: hsl(var(--muted-foreground)); }
+
+    .cb-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+    .cb-table th { text-align: left; font-size: 10px; font-weight: 600; color: hsl(var(--muted-foreground)); text-transform: uppercase; letter-spacing: 0.04em; padding: 8px 12px; border-bottom: 1px solid hsl(var(--border)); background: hsl(var(--muted) / 0.2); }
+    .cb-table td { padding: 8px 12px; border-bottom: 1px solid hsl(var(--border)); color: hsl(var(--foreground)); vertical-align: middle; font-variant-numeric: tabular-nums; }
+    .cb-table tbody tr:hover { background: hsl(var(--muted) / 0.4); }
+    .cb-table tbody tr:last-child td { border-bottom: none; }
+    .cb-mono { font-family: 'SF Mono', Monaco, Menlo, monospace; font-size: 11px; color: hsl(var(--muted-foreground)); }
+    .cb-muted { color: hsl(var(--muted-foreground)); }
+    .cb-amount { font-weight: 600; }
+    .cb-empty { padding: 24px 12px; text-align: center; color: hsl(var(--muted-foreground)); font-size: 12px; }
+    .cb-loading { padding: 16px; color: hsl(var(--muted-foreground)); font-size: 12px; }
+    .cb-pill { display: inline-block; padding: 2px 8px; font-size: 10px; font-weight: 600; border-radius: 9999px; text-transform: uppercase; letter-spacing: 0.04em; background: hsl(var(--muted) / 0.5); color: hsl(var(--foreground)); }
+    .cb-footer { margin-top: 28px; padding-top: 14px; border-top: 1px solid hsl(var(--border)); font-size: 11px; color: hsl(var(--muted-foreground)); display: flex; justify-content: space-between; align-items: center; }
+  </style>
+</head>
+<body>
+  <div class="cb-header">
+    <div>
+      <h1 class="cb-title">Finance &amp; Reconciliation</h1>
+      <p class="cb-subtitle">Revenue, commissions, tax, and ARPU — the books, at a glance.</p>
+    </div>
+    <div class="cb-header-right">
+      <span class="cb-date" id="cb-today"></span>
+      <button class="cb-btn" onclick="window.location.reload()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M3 21v-5h5"/></svg>
+        Refresh
+      </button>
+    </div>
+  </div>
+
+  <div class="cb-section-head">
+    <h2 class="cb-section-title">Headline Numbers</h2>
+    <span class="cb-section-sub" id="cb-kpi-sub">Loading…</span>
+  </div>
+  <div class="cb-kpis" id="cb-kpis"></div>
+
+  <div class="cb-charts">
+    <div class="cb-chart-card">
+      <h3>Revenue — last 6 months</h3>
+      <div class="cb-chart-wrap"><canvas id="cb-chart-rev"></canvas></div>
+    </div>
+    <div class="cb-chart-card">
+      <h3>Commission Status</h3>
+      <div class="cb-chart-wrap"><canvas id="cb-chart-comm"></canvas></div>
+    </div>
+  </div>
+
+  <div class="cb-feed">
+    <div class="cb-feed-card">
+      <div class="cb-feed-head"><h3>Tax Calendar</h3><span class="cb-feed-count" id="cb-tax-count"></span></div>
+      <div id="cb-taxes"><div class="cb-loading">Loading…</div></div>
+    </div>
+    <div class="cb-feed-card">
+      <div class="cb-feed-head"><h3>Pending Commissions</h3><span class="cb-feed-count" id="cb-pcomm-count"></span></div>
+      <div id="cb-pcomms"><div class="cb-loading">Loading…</div></div>
+    </div>
+  </div>
+
+  <div class="cb-footer">
+    <span id="cb-refresh">Last refresh: —</span>
+    <span>Data source: ERPAI live ClickHouse views</span>
+  </div>
+
+  <script src="/runtime/erpai-pages-runtime.js"></script>
+  <script>
+    const COMM_STATUS = { '[1]': 'Accrued', '[2]': 'Pending', '[3]': 'Settled', '[4]': 'Reversed' };
+
+    const fmtInt = n => n == null || isNaN(n) ? '—' : Number(n).toLocaleString();
+    const fmtMoney = n => n == null || isNaN(n) ? '—' : '$' + Number(n).toLocaleString(undefined, { maximumFractionDigits: 0 });
+    const fmtDate = ts => { if (!ts || ts.startsWith('1970')) return '—'; const d = new Date(ts.replace(' ', 'T') + 'Z'); if (isNaN(d)) return ts; return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }); };
+    const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+    async function runSql(sql, limit = 200) {
+      try {
+        const r = await erpai.api('POST', '/v1/agent/app/sql/execute', { appId: window.ERPAI.appId, sqlQuery: sql, limit });
+        return r?.data?.rows || r?.rows || [];
+      } catch (e) { console.warn('SQL fail:', sql, e); return null; }
+    }
+
+    async function loadKpis() {
+      const queries = [
+        { label: 'Revenue (month)', sub: 'Recharges this month', sql: "SELECT round(sum(amount), 0) AS v FROM a1776271424351_recharges WHERE _deleted=0 AND toStartOfMonth(timestamp) = toStartOfMonth(now())", money: true },
+        { label: 'Pending Commissions', sub: 'Accrued + pending', sql: "SELECT round(sum(commission_amount), 0) AS v FROM a1776271424351_partner_commissions WHERE _deleted=0 AND (status='[1]' OR status='[2]')", money: true },
+        { label: 'Tax Collected YTD', sub: 'Calendar year so far', sql: "SELECT round(sum(tax_amount), 0) AS v FROM a1776271424351_recharges WHERE _deleted=0 AND toYear(timestamp) = toYear(now())", money: true },
+        { label: 'Recharges Today', sub: 'Count today', sql: "SELECT count() AS v FROM a1776271424351_recharges WHERE _deleted=0 AND toDate(timestamp) = today()" },
+        { label: 'ARPU (month)', sub: 'Revenue / active subs', sql: "SELECT round(sum(amount) / greatest((SELECT count() FROM a1776271424351_subscriptions WHERE _deleted=0 AND status='[1]'), 1), 2) AS v FROM a1776271424351_recharges WHERE _deleted=0 AND toStartOfMonth(timestamp) = toStartOfMonth(now())", money: true },
+      ];
+      const results = await Promise.all(queries.map(q => runSql(q.sql)));
+      document.getElementById('cb-kpis').innerHTML = queries.map((q, i) => {
+        const rows = results[i]; let raw = null;
+        if (rows && rows.length) raw = rows[0].v ?? Object.values(rows[0])[0];
+        let display = '—';
+        if (raw != null && raw !== '') { const n = Number(raw); if (!isNaN(n)) display = q.money ? fmtMoney(n) : fmtInt(n); }
+        return `<div class="cb-kpi">
+          <div class="cb-kpi-label">${esc(q.label)}</div>
+          <div class="cb-kpi-val">${display}</div>
+          <div class="cb-kpi-sub">${esc(q.sub)}</div>
+        </div>`;
+      }).join('');
+      document.getElementById('cb-kpi-sub').textContent = 'Refreshed just now';
+    }
+
+    async function loadRevenueChart() {
+      // Try billing periods first
+      let rows = await runSql("SELECT period_start AS m, argMax(total_recharge_amount, _version) AS rev FROM a1776271424351_billing_periods WHERE _deleted=0 AND period_start > now() - INTERVAL 7 MONTH GROUP BY _id, period_start ORDER BY period_start ASC LIMIT 12");
+      const ctx = document.getElementById('cb-chart-rev');
+      if (!rows || !rows.length || rows.every(r => !r.rev || Number(r.rev) === 0)) {
+        // Fallback: aggregate recharges by month
+        rows = await runSql("SELECT toStartOfMonth(timestamp) AS m, sum(amount) AS rev FROM a1776271424351_recharges WHERE _deleted=0 AND timestamp > now() - INTERVAL 6 MONTH GROUP BY m ORDER BY m ASC");
+      }
+      if (!rows || !rows.length) { ctx.parentElement.innerHTML = '<div class="cb-empty">No revenue data yet.</div>'; return; }
+      const labels = rows.map(r => { const d = new Date((r.m || '').toString().replace(' ', 'T') + 'Z'); return isNaN(d) ? r.m : d.toLocaleDateString(undefined, { month: 'short', year: '2-digit' }); });
+      const data = rows.map(r => Number(r.rev) || 0);
+      new Chart(ctx, {
+        type: 'line',
+        data: { labels, datasets: [{ label: 'Revenue', data, borderColor: '#10b981', backgroundColor: 'rgba(16,185,129,0.1)', fill: true, tension: 0.3 }] },
+        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { callback: v => '$' + Number(v).toLocaleString() } } } }
+      });
+    }
+
+    async function loadCommChart() {
+      const rows = await runSql("SELECT status, count() AS c FROM a1776271424351_partner_commissions WHERE _deleted=0 GROUP BY status");
+      const ctx = document.getElementById('cb-chart-comm');
+      if (!rows || !rows.length) { ctx.parentElement.innerHTML = '<div class="cb-empty">No commissions yet.</div>'; return; }
+      const labels = rows.map(r => COMM_STATUS[r.status] || r.status || 'Unknown');
+      const data = rows.map(r => Number(r.c));
+      new Chart(ctx, {
+        type: 'doughnut',
+        data: { labels, datasets: [{ data, backgroundColor: ['#eab308', '#f97316', '#10b981', '#94a3b8'] }] },
+        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'right', labels: { font: { size: 11 } } } } }
+      });
+    }
+
+    async function loadTaxes() {
+      const rows = await runSql("SELECT tax_code, tax_name, `rate_%` AS rate, region, effective_from, effective_to FROM a1776271424351_tax_rates WHERE _deleted=0 ORDER BY effective_from DESC LIMIT 20");
+      const el = document.getElementById('cb-taxes');
+      const cnt = document.getElementById('cb-tax-count');
+      if (!rows) { el.innerHTML = `<div class="cb-empty">Unable to load tax calendar.</div>`; return; }
+      if (!rows.length) { el.innerHTML = `<div class="cb-empty">No tax rates configured.</div>`; return; }
+      cnt.textContent = `${rows.length} rates`;
+      el.innerHTML = `<table class="cb-table">
+        <thead><tr><th>Code</th><th>Name</th><th>Rate</th><th>Region</th><th>Effective</th></tr></thead>
+        <tbody>${rows.map(r => `<tr>
+          <td><span class="cb-mono">${esc(r.tax_code || '—')}</span></td>
+          <td>${esc(r.tax_name || '—')}</td>
+          <td class="cb-amount">${r.rate != null && r.rate !== '' ? Number(r.rate).toFixed(2) + '%' : '—'}</td>
+          <td class="cb-muted">${esc(r.region || '—')}</td>
+          <td class="cb-muted">${fmtDate(r.effective_from)}</td>
+        </tr>`).join('')}</tbody>
+      </table>`;
+    }
+
+    async function loadPendingCommissions() {
+      const rows = await runSql("SELECT pc.commission_type AS type, argMax(dp.partner_name, dp._version) AS partner, pc.base_amount AS base, pc.commission_amount AS amt, pc.accrued_date AS ad, pc.status AS status FROM a1776271424351_partner_commissions pc LEFT JOIN a1776271424351_distribution_partners dp ON dp._id = pc.partner WHERE pc._deleted=0 AND (pc.status='[1]' OR pc.status='[2]') GROUP BY pc._id, pc.commission_type, pc.base_amount, pc.commission_amount, pc.accrued_date, pc.status, pc.partner ORDER BY pc.accrued_date DESC LIMIT 15");
+      const el = document.getElementById('cb-pcomms');
+      const cnt = document.getElementById('cb-pcomm-count');
+      if (!rows) { el.innerHTML = `<div class="cb-empty">Unable to load commissions.</div>`; return; }
+      if (!rows.length) { el.innerHTML = `<div class="cb-empty">All commissions settled!</div>`; return; }
+      cnt.textContent = `${rows.length} pending`;
+      el.innerHTML = `<table class="cb-table">
+        <thead><tr><th>Partner</th><th>Status</th><th>Amount</th><th>Accrued</th></tr></thead>
+        <tbody>${rows.map(r => `<tr>
+          <td>${esc(r.partner || '—')}</td>
+          <td><span class="cb-pill">${esc(COMM_STATUS[r.status] || r.status || '—')}</span></td>
+          <td class="cb-amount">${fmtMoney(Number(r.amt))}</td>
+          <td class="cb-muted">${fmtDate(r.ad)}</td>
+        </tr>`).join('')}</tbody>
+      </table>`;
+    }
+
+    function setDate() {
+      const now = new Date();
+      document.getElementById('cb-today').textContent = now.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
+      document.getElementById('cb-refresh').textContent = `Last refresh: ${now.toLocaleTimeString()}`;
+    }
+
+    async function main() {
+      setDate();
+      await Promise.all([loadKpis(), loadRevenueChart(), loadCommChart(), loadTaxes(), loadPendingCommissions()]);
+      setDate();
+    }
+    main();
+  </script>
+</body>
+</html>

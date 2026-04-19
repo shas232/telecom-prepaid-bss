@@ -1,14 +1,23 @@
 # Telecom Prepaid BSS — Node Workflow Runner
 
-Three workflow scripts run as Node scripts (auto-builder API rejects PATs).
+Workflows run as Node scripts (auto-builder API rejects PATs).
 
 ## Scripts
 
 | Script | Purpose | Cadence |
 |---|---|---|
-| `loyalty-accrual.mjs` | Earn loyalty points per Recharge/Order, tier customers | Daily |
-| `commission-settlement.mjs` | Flip Pending Settlement → Settled, group by partner | Weekly (Monday) |
+| `loyalty-accrual.mjs` | Earn loyalty points per Recharge/Order, tier customers | Daily 02:00 |
+| `commission-settlement.mjs` | Flip Pending Settlement → Settled, group by partner | Weekly Mon 05:00 |
 | `fraud-scan.mjs` | Run 4 fraud rules, write Fraud Alerts | Every 15 min |
+| `compute-counters.mjs` | Daily counter/stat rebuild | Daily 01:00 |
+| `plan-expiry.mjs` | Expire plans, auto-renew, 3-day warnings | Daily 03:00 |
+| `period-rollover.mjs` | Monthly cycle rollover | Daily 04:00 |
+| `low-stock-alert.mjs` | Warehouse/batch SIM stock below reorder threshold → Notifications Sent | Daily 01:30 |
+| `cdr-reconcile.mjs` | Compare Usage Transactions sum vs CDRs sum per sub per day; flag deltas > 5% | Daily 02:30 |
+| `unbilled-cdr-report.mjs` | Find CDRs with units but no billed charges → JSON artifact + Cases | Daily 06:00 |
+| `bulk-recharge.mjs` | Import recharges from CSV (`msisdn,amount,channel,reference_id`) | On-demand |
+| `scheduled-reports.mjs` | Execute subscribed report SQL, write CSV/JSON under /tmp, roll next_run_at | Daily 06:30 |
+| `shrinkage-recon.mjs` | Weekly SIM allocation variance per partner → Cases | Weekly Mon 07:00 |
 | `seed-fraud-demo.mjs` | One-off: seed fraud-triggering demo data | Manual |
 
 All are idempotent — safe to re-run.
@@ -18,23 +27,41 @@ All are idempotent — safe to re-run.
 ```bash
 cd "/Users/shas232/Desktop/Projects/Telco billing system"
 node scripts/loyalty-accrual.mjs
-node scripts/commission-settlement.mjs          # production run
-node scripts/commission-settlement.mjs --dry-run   # preview
+node scripts/commission-settlement.mjs --dry-run
 node scripts/fraud-scan.mjs
+node scripts/low-stock-alert.mjs --dry-run
+node scripts/cdr-reconcile.mjs --dry-run --date 2026-04-18
+node scripts/unbilled-cdr-report.mjs --dry-run --days 7
+node scripts/bulk-recharge.mjs --csv scripts/bulk-recharge-sample.csv --dry-run
+node scripts/scheduled-reports.mjs --dry-run
+node scripts/shrinkage-recon.mjs --dry-run
 ```
+
+### bulk-recharge — on demand only (no schedule)
+
+```bash
+node scripts/bulk-recharge.mjs --csv /path/to/file.csv [--dry-run] [--batch-size 20] [--continue-on-error]
+```
+
+CSV header required: `msisdn,amount,channel,reference_id`.
+`channel` may be a name (`Voucher|USSD|App|Retail POS|IVR|Online|Bank Transfer`) or its numeric id (1-7).
+Ships with `scripts/bulk-recharge-sample.csv` (3 rows) as a starter.
 
 ## Scheduling via launchd (macOS)
 
 On macOS use `launchd` (user LaunchAgents) — `crontab` is deprecated for user jobs.
 
-Plist files live at `~/Library/LaunchAgents/com.telecom.<name>.plist` for all 6
-workflows: `fraud-scan`, `compute-counters`, `loyalty-accrual`, `plan-expiry`,
-`period-rollover`, `commission-settlement`.
+Plist files live at `~/Library/LaunchAgents/com.telecom.<name>.plist`.
+Loaded names: `fraud-scan`, `compute-counters`, `loyalty-accrual`, `plan-expiry`,
+`period-rollover`, `commission-settlement`, `low-stock-alert`, `cdr-reconcile`,
+`unbilled-cdr-report`, `scheduled-reports`, `shrinkage-recon` (11 total).
+`bulk-recharge` has **no plist** — run on demand with a CSV.
 
 ```bash
-# Install / (re)load all 6:
-ls ~/Library/LaunchAgents/com.telecom.*.plist  # verify 6 files
-for n in fraud-scan compute-counters loyalty-accrual plan-expiry period-rollover commission-settlement; do
+# Install / (re)load all 11:
+for n in fraud-scan compute-counters loyalty-accrual plan-expiry period-rollover \
+         commission-settlement low-stock-alert cdr-reconcile unbilled-cdr-report \
+         scheduled-reports shrinkage-recon; do
   launchctl load ~/Library/LaunchAgents/com.telecom.$n.plist
 done
 
@@ -57,18 +84,16 @@ bash scripts/uninstall-schedulers.sh
 |---|---|
 | `fraud-scan` | every 15 min (`:00, :15, :30, :45`) |
 | `compute-counters` | daily 01:00 |
+| `low-stock-alert` | daily 01:30 |
 | `loyalty-accrual` | daily 02:00 |
+| `cdr-reconcile` | daily 02:30 |
 | `plan-expiry` | daily 03:00 |
 | `period-rollover` | daily 04:00 |
 | `commission-settlement` | weekly Monday 05:00 |
-
-### Legacy: cron (not recommended on macOS)
-
-```cron
-*/15 * * * * cd "/Users/shas232/Desktop/Projects/Telco billing system" && /usr/bin/env node scripts/fraud-scan.mjs >> /tmp/telco-fraud-scan.log 2>&1
-0 2 * * *    cd "/Users/shas232/Desktop/Projects/Telco billing system" && /usr/bin/env node scripts/loyalty-accrual.mjs >> /tmp/telco-loyalty.log 2>&1
-0 5 * * 1    cd "/Users/shas232/Desktop/Projects/Telco billing system" && /usr/bin/env node scripts/commission-settlement.mjs >> /tmp/telco-commission.log 2>&1
-```
+| `unbilled-cdr-report` | daily 06:00 |
+| `scheduled-reports` | daily 06:30 |
+| `shrinkage-recon` | weekly Monday 07:00 |
+| `bulk-recharge` | on-demand (no plist) |
 
 ## Scheduling via ERPAI auto-builder (when PAT scope is fixed)
 
@@ -78,7 +103,8 @@ workflows by porting the logic via the `build-workflow` skill.
 
 ## Credentials
 
-Token + base URL are hard-coded at the top of each script. Rotate via:
+Token + base URL are hard-coded at the top of each script (or loaded from
+`process.env.TOKEN` via `scripts/lib-common.mjs`). Rotate via:
 ```bash
 BASE_URL=https://api.erpai.studio
 TOKEN=<new_pat>

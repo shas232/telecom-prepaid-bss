@@ -1,0 +1,43 @@
+<div id="erpai-ins-bal" style="font:13px/1.4 system-ui,-apple-system,Segoe UI,sans-serif;color:hsl(var(--foreground));background:hsl(var(--card));border:1px solid hsl(var(--border));border-radius:8px;padding:12px 14px;display:grid;grid-template-columns:1fr 1fr 1fr 1.4fr;gap:14px;align-items:center;min-height:130px">
+  <style>
+    #erpai-ins-bal .ti-h{font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:hsl(var(--muted-foreground));margin:0 0 6px}
+    #erpai-ins-bal .ti-v{font-size:22px;font-weight:600;line-height:1}
+    #erpai-ins-bal .ti-sub{font-size:11px;color:hsl(var(--muted-foreground));margin-top:4px}
+    #erpai-ins-bal .ti-badge{display:inline-block;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:500;margin-top:4px}
+    #erpai-ins-bal .ti-bars{display:flex;gap:6px;align-items:flex-end;height:60px;padding-top:8px}
+    #erpai-ins-bal .ti-bcol{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;min-width:0}
+    #erpai-ins-bal .ti-bh{width:100%;background:linear-gradient(180deg,hsl(var(--primary,221 83% 53%)),hsl(var(--primary,221 83% 53%)/.5));border-radius:3px 3px 0 0;min-height:3px;transition:height .4s}
+    #erpai-ins-bal .ti-bl{font-size:9px;color:hsl(var(--muted-foreground));white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+    @media(max-width:640px){#erpai-ins-bal{grid-template-columns:1fr 1fr;gap:12px}#erpai-ins-bal>.ti-spark{grid-column:1/-1}}
+  </style>
+  <div><div class="ti-h">Low Balance</div><div class="ti-v" id="bal-low" style="color:hsl(0 72% 51%)">3</div><div class="ti-sub">remaining &lt; 20%</div></div>
+  <div><div class="ti-h">Expiring</div><div class="ti-v" id="bal-exp" style="color:hsl(38 92% 50%)">0</div><div class="ti-sub">next 3 days</div></div>
+  <div><div class="ti-h">Active</div><div class="ti-v" id="bal-active">4</div><div class="ti-sub">by context</div></div>
+  <div class="ti-spark">
+    <div class="ti-h">Initial Amount by Service Context</div>
+    <div class="ti-bars" id="bal-bars">
+      <div class="ti-bcol"><div class="ti-bh" style="height:100%"></div><div class="ti-bl">Data</div></div>
+      <div class="ti-bcol"><div class="ti-bh" style="height:10%"></div><div class="ti-bl">Voice</div></div>
+      <div class="ti-bcol"><div class="ti-bh" style="height:10%"></div><div class="ti-bl">SMS</div></div>
+    </div>
+  </div>
+</div>
+<script>
+(function(){
+  if(!window.ERPAI||!window.ERPAI.token)return;
+  var CTX={"[1]":"Data","[2]":"Voice","[3]":"SMS","[4]":"MMS"};
+  var base=window.ERPAI.baseUrl,tok=window.ERPAI.token,app=window.ERPAI.appId;
+  function q(sql){return fetch(base+"/v1/agent/app/sql/execute",{method:"POST",headers:{Authorization:"Bearer "+tok,"Content-Type":"application/json"},body:JSON.stringify({appId:app,sqlQuery:sql,limit:50})}).then(function(r){return r.json()}).then(function(j){return (j.data&&j.data.rows)||[]});}
+  Promise.all([
+    q("SELECT sum(toFloat64OrZero(toString(p))<20) AS low, sum(et <= now()+INTERVAL 3 DAY) AS exp3, count() AS active FROM (SELECT argMax(`remaining_%`,_version) AS p, argMax(effective_to,_version) AS et, argMax(status,_version) AS s FROM a1776271424351_balances WHERE _deleted=0 GROUP BY _id) WHERE s='[1]'"),
+    q("SELECT service_context AS ctx, sum(toFloat64OrZero(toString(ia))) AS total FROM (SELECT argMax(initial_amount,_version) AS ia, argMax(service_context,_version) AS service_context, argMax(status,_version) AS s FROM a1776271424351_balances WHERE _deleted=0 GROUP BY _id) WHERE s='[1]' GROUP BY ctx ORDER BY total DESC")
+  ]).then(function(r){
+    var c=r[0][0]||{};
+    document.getElementById("bal-low").textContent=c.low||0;
+    document.getElementById("bal-exp").textContent=c.exp3||0;
+    document.getElementById("bal-active").textContent=c.active||0;
+    var b=r[1],max=Math.max.apply(null,b.map(function(x){return +x.total||0}))||1;
+    document.getElementById("bal-bars").innerHTML=b.map(function(x){var h=Math.max(3,Math.round((+x.total)/max*100));var label=CTX[x.ctx]||x.ctx||"?";return '<div class="ti-bcol"><div class="ti-bh" style="height:'+h+'%" title="'+label+': '+(+x.total).toLocaleString()+'"></div><div class="ti-bl">'+label+'</div></div>';}).join("");
+  }).catch(function(){});
+})();
+</script>

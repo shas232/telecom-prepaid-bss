@@ -1,0 +1,499 @@
+<script>
+window.ERPAI = {
+  token: 'erp_pat_live_REDACTED',
+  baseUrl: 'https://api.erpai.studio',
+  appId: 'afe8c4540708da6ca9e6fe79',
+  orgName: 'Telecom',
+  appName: 'telecom',
+  theme: 'light'
+};
+</script>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Daily CDR Settlement Report</title>
+  <link rel="stylesheet" href="/runtime/erpai-pages-runtime.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    body { padding: 20px; font-family: 'Geist Sans', system-ui, -apple-system, sans-serif; }
+    .cdr-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; margin-bottom: 20px; }
+    .cdr-title { font-size: 18px; font-weight: 600; letter-spacing: -0.02em; margin: 0; color: hsl(var(--foreground)); }
+    .cdr-subtitle { font-size: 13px; color: hsl(var(--muted-foreground)); margin-top: 2px; }
+    .cdr-date-row { display: flex; gap: 8px; align-items: center; }
+    .cdr-date-row input { padding: 8px 12px; font-size: 13px; border: 1px solid hsl(var(--border)); border-radius: 8px; background: hsl(var(--background)); color: hsl(var(--foreground)); }
+    .cdr-btn { display: inline-flex; align-items: center; gap: 6px; padding: 8px 14px; font-size: 13px; font-weight: 500; border-radius: 8px; border: 1px solid hsl(var(--border)); background: hsl(var(--background)); color: hsl(var(--foreground)); cursor: pointer; }
+    .cdr-btn:hover { background: hsl(var(--muted) / 0.4); }
+    .cdr-btn.primary { background: hsl(var(--foreground)); color: hsl(var(--background)); border: none; }
+
+    .cdr-stats { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; margin-bottom: 20px; }
+    @media (max-width: 900px) { .cdr-stats { grid-template-columns: repeat(2, 1fr); } }
+    .cdr-stat { background: hsl(var(--card)); border: 1px solid hsl(var(--border)); border-radius: 12px; padding: 14px; box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05); }
+    .cdr-stat-label { font-size: 11px; color: hsl(var(--muted-foreground)); text-transform: uppercase; letter-spacing: 0.04em; font-weight: 600; margin-bottom: 6px; display: flex; align-items: center; gap: 6px; }
+    .cdr-stat-val { font-size: 22px; font-weight: 600; font-variant-numeric: tabular-nums; color: hsl(var(--foreground)); }
+    .cdr-stat-sub { font-size: 11px; color: hsl(var(--muted-foreground)); margin-top: 2px; }
+
+    .cdr-section { margin-top: 20px; background: hsl(var(--card)); border: 1px solid hsl(var(--border)); border-radius: 12px; padding: 16px; box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05); }
+    .cdr-section h3 { margin: 0 0 12px; font-size: 14px; font-weight: 600; display: flex; align-items: center; gap: 8px; color: hsl(var(--foreground)); }
+
+    .cdr-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    .cdr-table thead { background: hsl(var(--muted) / 0.5); }
+    .cdr-table th { text-align: left; padding: 8px 12px; font-size: 11px; font-weight: 600; color: hsl(var(--muted-foreground)); text-transform: uppercase; letter-spacing: 0.04em; border-bottom: 1px solid hsl(var(--border)); }
+    .cdr-table td { padding: 8px 12px; border-bottom: 1px solid hsl(var(--border)); color: hsl(var(--foreground)); font-variant-numeric: tabular-nums; }
+    .cdr-table tr:last-child td { border-bottom: none; }
+    .cdr-table .num { text-align: right; font-family: 'SF Mono', Monaco, Menlo, monospace; font-size: 12px; }
+    .cdr-table tfoot td { font-weight: 600; background: hsl(var(--muted) / 0.3); }
+
+    .cdr-chart-wrap { position: relative; height: 240px; margin-top: 12px; }
+
+    .cdr-two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 20px; }
+    @media (max-width: 900px) { .cdr-two-col { grid-template-columns: 1fr; } }
+
+    .cdr-empty { padding: 30px; text-align: center; color: hsl(var(--muted-foreground)); font-size: 13px; }
+  </style>
+</head>
+<body>
+  <div class="cdr-header">
+    <div>
+      <h1 class="cdr-title">Daily CDR Settlement Report</h1>
+      <p class="cdr-subtitle">Reconciliation of charging sessions for a given date — used for finance, regulatory filing, and wholesale settlement.</p>
+    </div>
+    <div class="cdr-date-row">
+      <input type="date" id="date-picker">
+      <button class="cdr-btn primary" onclick="loadReport()">Load</button>
+      <button class="cdr-btn" onclick="exportCSV()">Export CSV</button>
+    </div>
+  </div>
+
+  <div class="cdr-stats" id="stats"></div>
+
+  <div class="cdr-section">
+    <h3>
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="color: hsl(var(--primary));"><path d="M3 3v18h18"/><path d="M18 17V9"/><path d="M13 17V5"/><path d="M8 17v-3"/></svg>
+      Sessions by Service Type
+    </h3>
+    <div class="cdr-chart-wrap"><canvas id="chart-service"></canvas></div>
+  </div>
+
+  <div class="cdr-section">
+    <h3>
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="color: #10b981;"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M3 12h18"/><path d="M12 3v18"/></svg>
+      Aggregated by Rating Group
+    </h3>
+    <div id="table-rg"></div>
+  </div>
+
+  <div class="cdr-two-col">
+    <div class="cdr-section" style="margin: 0;">
+      <h3>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="color: #f59e0b;"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        Hourly Volume
+      </h3>
+      <div class="cdr-chart-wrap"><canvas id="chart-hour"></canvas></div>
+    </div>
+    <div class="cdr-section" style="margin: 0;">
+      <h3>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="color: #8b5cf6;"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+        Termination Causes
+      </h3>
+      <div id="table-cause"></div>
+    </div>
+  </div>
+
+  <div class="cdr-section">
+    <h3>
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="color: #ef4444;"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2Z"/><polyline points="14 2 14 8 20 8"/></svg>
+      Individual CDR Records
+      <span style="margin-left: auto; font-size: 12px; color: hsl(var(--muted-foreground)); font-weight: 500;" id="cdr-count"></span>
+    </h3>
+    <div style="max-height: 500px; overflow-y: auto;" id="cdr-rows"></div>
+  </div>
+
+  <script src="/runtime/erpai-pages-runtime.js"></script>
+  <script>
+    const T = {
+      cdrs: '6208bfec7d2a7ff07f870188',
+      sessions: 'a12c328f7b9c5df56d12ec6c',
+      subscriptions: '495e7f2e36663583722c8ec8',
+      customers: 'aed243e6c13b8f5194724d76',
+      tariffs: 'f2e797515f347f862e71a641',
+      utxs: '5d81244b8bef791c68fdbb49',
+    };
+
+    const SERVICE_MAP = { '[1]':'Data','[2]':'Voice On-net','[3]':'Voice Off-net','[4]':'Voice Intl','[5]':'SMS Dom','[6]':'SMS Intl' };
+    const CAUSE_MAP = { '[1]':'LOGOUT','[2]':'SESSION_TIMEOUT','[3]':'USER_MOVED','[4]':'LINK_BROKEN','[5]':'AUTH_EXPIRED','[6]':'ADMIN_TERMINATED','[7]':'SERVICE_NOT_PROVIDED','[8]':'BAD_ANSWER' };
+    const SERVICE_COLORS = { 'Data':'#3b82f6','Voice On-net':'#10b981','Voice Off-net':'#059669','Voice Intl':'#047857','SMS Dom':'#f59e0b','SMS Intl':'#d97706' };
+
+    let state = { cdrs: [], sessions: [], subs: [], tariffs: [], utxs: [] };
+    let charts = {};
+
+    async function fetchAll(tid, pageSize = 300) {
+      const all = [];
+      let page = 1;
+      while (true) {
+        const r = await erpai.api('POST', `/v1/app-builder/table/${tid}/paged-record?pageNo=${page}&pageSize=${pageSize}`, {});
+        const batch = r?.data || [];
+        all.push(...batch);
+        if (batch.length < pageSize) break;
+        page++;
+      }
+      return all;
+    }
+    async function getCM(tid) {
+      const r = await erpai.api('GET', `/v1/app-builder/table/${tid}`);
+      const m = {};
+      for (const c of (r?.columnsMetaData || [])) m[c.name] = c.id;
+      return m;
+    }
+
+    async function loadReport() {
+      const dateInput = document.getElementById('date-picker').value;
+      const filterDate = dateInput ? new Date(dateInput).toISOString().slice(0, 10) : null;
+
+      const statsEl = document.getElementById('stats');
+      statsEl.innerHTML = `<div class="cdr-empty" style="grid-column: 1 / -1;">Loading…</div>`;
+
+      if (!state.loaded) {
+        const [cdrs, sessions, subs, tariffs, utxs] = await Promise.all([
+          fetchAll(T.cdrs), fetchAll(T.sessions), fetchAll(T.subscriptions), fetchAll(T.tariffs), fetchAll(T.utxs),
+        ]);
+        state.cdrs = cdrs; state.sessions = sessions; state.subs = subs; state.tariffs = tariffs; state.utxs = utxs;
+        state.mCdr = await getCM(T.cdrs);
+        state.mSess = await getCM(T.sessions);
+        state.mSub = await getCM(T.subscriptions);
+        state.mTariff = await getCM(T.tariffs);
+        state.mUtx = await getCM(T.utxs);
+        state.loaded = true;
+      }
+
+      // Filter CDRs by selected date (use Started At)
+      let filtered = state.cdrs;
+      if (filterDate) {
+        filtered = state.cdrs.filter(c => {
+          const started = c.cells[state.mCdr['Started At']];
+          if (!started) return false;
+          return new Date(started).toISOString().slice(0, 10) === filterDate;
+        });
+      }
+
+      // Also collect session data for context (sessions that ended today = their CDRs)
+      // Since our simulator only has same-day data right now, use all CDRs if filter returns 0
+      if (filtered.length === 0 && filterDate) {
+        document.getElementById('stats').innerHTML = `<div class="cdr-empty" style="grid-column: 1 / -1;">No CDRs on ${filterDate}. Showing overall report instead.</div>`;
+        filtered = state.cdrs;
+      }
+
+      renderStats(filtered);
+      renderServiceChart(filtered);
+      renderRatingGroupTable(filtered);
+      renderHourlyChart(filtered);
+      renderCauseTable(filtered);
+      renderCDRRows(filtered);
+      state.currentReport = filtered;
+    }
+
+    function renderStats(cdrs) {
+      const el = document.getElementById('stats');
+      const totalSessions = cdrs.length;
+      let totalMB = 0, totalMin = 0, totalSms = 0, totalDur = 0;
+      const subs = new Set();
+      for (const c of cdrs) {
+        totalMB += Number(c.cells[state.mCdr['Total MB']]) || 0;
+        totalMin += Number(c.cells[state.mCdr['Total Minutes']]) || 0;
+        totalSms += Number(c.cells[state.mCdr['Total Units']]) || 0;
+        totalDur += Number(c.cells[state.mCdr['Duration Seconds']]) || 0;
+        const sid = c.cells[state.mCdr['Subscription']]?.[0];
+        if (sid) subs.add(sid);
+      }
+
+      const stat = (icon, label, value, sub, color) => `
+        <div class="cdr-stat">
+          <div class="cdr-stat-label" style="color:${color}">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${icon}</svg>
+            ${label}
+          </div>
+          <div class="cdr-stat-val" style="color:${color}">${value}</div>
+          <div class="cdr-stat-sub">${sub}</div>
+        </div>`;
+
+      el.innerHTML = [
+        stat('<path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2Z"/>', 'CDRs',
+             totalSessions.toLocaleString(), `across ${subs.size} subscribers`, 'hsl(var(--primary))'),
+        stat('<line x1="22" x2="2" y1="12" y2="12"/><path d="m5.45 5.11 2 5"/>', 'Data',
+             totalMB >= 1024 ? `${(totalMB/1024).toFixed(2)} GB` : `${Math.round(totalMB)} MB`, 'total consumed', '#3b82f6'),
+        stat('<path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>', 'Voice',
+             `${totalMin.toFixed(1)} min`, 'total minutes', '#10b981'),
+        stat('<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>', 'SMS',
+             totalSms.toLocaleString(), 'total messages', '#f59e0b'),
+        stat('<circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>', 'Avg Duration',
+             totalSessions ? `${(totalDur/totalSessions/60).toFixed(1)} min` : '0', 'per session', '#8b5cf6'),
+      ].join('');
+    }
+
+    function renderServiceChart(cdrs) {
+      // Bucket service type + compute count, volume, duration
+      const byService = {};
+      for (const c of cdrs) {
+        const st = SERVICE_MAP[JSON.stringify(c.cells[state.mCdr['Service Type']])] || 'Unknown';
+        if (!byService[st]) byService[st] = { count: 0, mb: 0, min: 0, units: 0, dur: 0 };
+        byService[st].count++;
+        byService[st].mb    += Number(c.cells[state.mCdr['Total MB']])         || 0;
+        byService[st].min   += Number(c.cells[state.mCdr['Total Minutes']])    || 0;
+        byService[st].units += Number(c.cells[state.mCdr['Total Units']])      || 0;
+        byService[st].dur   += Number(c.cells[state.mCdr['Duration Seconds']]) || 0;
+      }
+
+      // Sort descending by count so the visual narrative is clean
+      const entries = Object.entries(byService).sort((a, b) => b[1].count - a[1].count);
+      const totalCdrs = entries.reduce((s, [, v]) => s + v.count, 0) || 1;
+
+      const labels = entries.map(([name]) => name);
+      const data = entries.map(([, v]) => v.count);
+      const colors = labels.map(l => SERVICE_COLORS[l] || '#64748b');
+      const percents = data.map(n => ((n / totalCdrs) * 100).toFixed(1));
+      const volumes = entries.map(([name, v]) => {
+        if (v.mb > 0)    return v.mb >= 1024 ? (v.mb / 1024).toFixed(2) + ' GB' : Math.round(v.mb) + ' MB';
+        if (v.min > 0)   return v.min.toFixed(1) + ' min';
+        if (v.units > 0) return v.units.toLocaleString() + ' msgs';
+        return '—';
+      });
+
+      if (charts.service) charts.service.destroy();
+      charts.service = new Chart(document.getElementById('chart-service').getContext('2d'), {
+        type: 'doughnut',
+        data: {
+          labels,
+          datasets: [{
+            data,
+            backgroundColor: colors,
+            borderColor: '#ffffff',
+            borderWidth: 2,
+            hoverOffset: 8,
+          }],
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          cutout: '62%',
+          plugins: {
+            legend: {
+              position: 'right',
+              labels: {
+                font: { size: 12 },
+                padding: 12,
+                usePointStyle: true,
+                generateLabels(chart) {
+                  const ds = chart.data.datasets[0];
+                  return chart.data.labels.map((label, i) => ({
+                    text: `${label}  —  ${ds.data[i]} CDRs (${percents[i]}%)  ·  ${volumes[i]}`,
+                    fillStyle: ds.backgroundColor[i],
+                    strokeStyle: ds.backgroundColor[i],
+                    pointStyle: 'rectRounded',
+                    index: i,
+                  }));
+                },
+              },
+            },
+            tooltip: {
+              callbacks: {
+                label(ctx) {
+                  const i = ctx.dataIndex;
+                  return `${ctx.label}: ${ctx.parsed} CDRs (${percents[i]}%) · ${volumes[i]}`;
+                },
+              },
+            },
+          },
+        },
+        plugins: [{
+          id: 'center-total',
+          beforeDraw(chart) {
+            const { ctx, chartArea } = chart;
+            if (!chartArea) return;
+            const cx = (chartArea.left + chartArea.right) / 2;
+            const cy = (chartArea.top + chartArea.bottom) / 2;
+            ctx.save();
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillStyle = '#111';
+            ctx.font = '600 22px system-ui, -apple-system, sans-serif';
+            ctx.fillText(String(totalCdrs), cx, cy - 8);
+            ctx.fillStyle = '#6b7280';
+            ctx.font = '11px system-ui, -apple-system, sans-serif';
+            ctx.fillText('TOTAL CDRs', cx, cy + 12);
+            ctx.restore();
+          },
+        }],
+      });
+    }
+
+    function renderRatingGroupTable(cdrs) {
+      const byRG = {};
+      for (const c of cdrs) {
+        const rg = Number(c.cells[state.mCdr['Rating Group']]) || 0;
+        if (!byRG[rg]) byRG[rg] = { count: 0, totalMB: 0, totalMin: 0, totalUnits: 0, totalDur: 0 };
+        byRG[rg].count++;
+        byRG[rg].totalMB += Number(c.cells[state.mCdr['Total MB']]) || 0;
+        byRG[rg].totalMin += Number(c.cells[state.mCdr['Total Minutes']]) || 0;
+        byRG[rg].totalUnits += Number(c.cells[state.mCdr['Total Units']]) || 0;
+        byRG[rg].totalDur += Number(c.cells[state.mCdr['Duration Seconds']]) || 0;
+      }
+      const RG_LABELS = { 10:'Data (general internet)', 20:'Data (zero-rated)', 30:'Data (bundle)', 100:'Voice on-net', 101:'Voice off-net', 102:'Voice international', 200:'SMS domestic', 201:'SMS international' };
+      const rows = Object.entries(byRG).sort((a,b) => a[0]-b[0]);
+      let totalC = 0, totalMBAll = 0, totalMinAll = 0, totalSmsAll = 0;
+      const body = rows.map(([rg, d]) => {
+        totalC += d.count; totalMBAll += d.totalMB; totalMinAll += d.totalMin; totalSmsAll += d.totalUnits;
+        return `<tr>
+          <td>${rg}</td>
+          <td>${RG_LABELS[rg] || 'Unknown'}</td>
+          <td class="num">${d.count}</td>
+          <td class="num">${d.totalMB ? (d.totalMB >= 1024 ? (d.totalMB/1024).toFixed(2)+' GB' : Math.round(d.totalMB)+' MB') : '—'}</td>
+          <td class="num">${d.totalMin ? d.totalMin.toFixed(1)+' min' : '—'}</td>
+          <td class="num">${d.totalUnits ? d.totalUnits : '—'}</td>
+          <td class="num">${(d.totalDur/60).toFixed(1)} min</td>
+        </tr>`;
+      }).join('');
+
+      document.getElementById('table-rg').innerHTML = rows.length ? `
+        <table class="cdr-table">
+          <thead><tr><th>RG</th><th>Description</th><th style="text-align:right">Sessions</th><th style="text-align:right">Data</th><th style="text-align:right">Voice</th><th style="text-align:right">SMS</th><th style="text-align:right">Total Duration</th></tr></thead>
+          <tbody>${body}</tbody>
+          <tfoot><tr>
+            <td colspan="2">TOTAL</td>
+            <td class="num">${totalC}</td>
+            <td class="num">${totalMBAll >= 1024 ? (totalMBAll/1024).toFixed(2)+' GB' : Math.round(totalMBAll)+' MB'}</td>
+            <td class="num">${totalMinAll.toFixed(1)} min</td>
+            <td class="num">${totalSmsAll}</td>
+            <td class="num">—</td>
+          </tr></tfoot>
+        </table>` : '<div class="cdr-empty">No CDRs in range.</div>';
+    }
+
+    function renderHourlyChart(cdrs) {
+      const hourly = Array(24).fill(0);
+      for (const c of cdrs) {
+        const started = c.cells[state.mCdr['Started At']];
+        if (!started) continue;
+        const h = new Date(started).getHours();
+        hourly[h]++;
+      }
+      const labels = Array.from({length:24}, (_,i) => `${String(i).padStart(2,'0')}:00`);
+
+      if (charts.hourly) charts.hourly.destroy();
+      charts.hourly = new Chart(document.getElementById('chart-hour').getContext('2d'), {
+        type: 'bar',
+        data: { labels, datasets: [{ data: hourly, backgroundColor: '#f59e0bcc', borderRadius: 4 }] },
+        options: {
+          responsive: true, maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: { x: { grid: { display: false }, ticks: { font: { size: 10 } } }, y: { beginAtZero: true, ticks: { stepSize: 1 } } },
+        },
+      });
+    }
+
+    function renderCauseTable(cdrs) {
+      const byCause = {};
+      for (const c of cdrs) {
+        const cause = c.cells[state.mCdr['Final Termination Cause']] || 'UNKNOWN';
+        byCause[cause] = (byCause[cause] || 0) + 1;
+      }
+      const rows = Object.entries(byCause).sort((a,b) => b[1]-a[1]);
+      const total = cdrs.length;
+      document.getElementById('table-cause').innerHTML = rows.length ? `
+        <table class="cdr-table">
+          <thead><tr><th>Cause</th><th style="text-align:right">Count</th><th style="text-align:right">%</th></tr></thead>
+          <tbody>${rows.map(([k,v]) => `
+            <tr>
+              <td>${erpai.esc(k)}</td>
+              <td class="num">${v}</td>
+              <td class="num">${total ? ((v/total)*100).toFixed(1) : 0}%</td>
+            </tr>
+          `).join('')}</tbody>
+        </table>` : '<div class="cdr-empty">No data.</div>';
+    }
+
+    function renderCDRRows(cdrs) {
+      document.getElementById('cdr-count').textContent = `${cdrs.length} records`;
+      if (!cdrs.length) { document.getElementById('cdr-rows').innerHTML = '<div class="cdr-empty">No CDRs in range.</div>'; return; }
+      const subById = new Map(state.subs.map(s => [s._id, s]));
+      const tariffById = new Map(state.tariffs.map(t => [t._id, t]));
+
+      const rows = cdrs.slice().sort((a,b) => new Date(b.cells[state.mCdr['Started At']] || 0) - new Date(a.cells[state.mCdr['Started At']] || 0));
+      document.getElementById('cdr-rows').innerHTML = `
+        <table class="cdr-table">
+          <thead><tr>
+            <th>CDR Code</th><th>MSISDN</th><th>Service</th><th style="text-align:right">Duration</th><th style="text-align:right">Volume</th><th>Plan</th><th>Started</th><th>Cause</th>
+          </tr></thead>
+          <tbody>${rows.slice(0, 100).map(c => {
+            const subId = c.cells[state.mCdr['Subscription']]?.[0];
+            const sub = subById.get(subId);
+            const msisdn = sub?.cells[state.mSub['MSISDN']] || '—';
+            const tpId = c.cells[state.mCdr['Tariff Plan']]?.[0];
+            const tariff = tariffById.get(tpId);
+            const planName = tariff?.cells[state.mTariff['Plan Name']] || '—';
+            const st = SERVICE_MAP[JSON.stringify(c.cells[state.mCdr['Service Type']])] || '—';
+            const mb = Number(c.cells[state.mCdr['Total MB']]) || 0;
+            const min = Number(c.cells[state.mCdr['Total Minutes']]) || 0;
+            const units = Number(c.cells[state.mCdr['Total Units']]) || 0;
+            const volume = mb ? (mb >= 1024 ? (mb/1024).toFixed(2) + ' GB' : Math.round(mb) + ' MB') : min ? min.toFixed(1) + ' min' : units ? units + ' SMS' : '—';
+            const dur = Number(c.cells[state.mCdr['Duration Seconds']]) || 0;
+            const started = c.cells[state.mCdr['Started At']];
+            return `<tr>
+              <td style="font-family: 'SF Mono', monospace; font-size: 11px;">${erpai.esc(c.cells[state.mCdr['CDR Code']] || '—')}</td>
+              <td style="font-family: 'SF Mono', monospace; font-size: 11px;">${erpai.esc(msisdn)}</td>
+              <td>${st}</td>
+              <td class="num">${(dur/60).toFixed(1)} min</td>
+              <td class="num">${volume}</td>
+              <td>${erpai.esc(planName)}</td>
+              <td style="font-size: 11px; color: hsl(var(--muted-foreground));">${started ? new Date(started).toLocaleString(undefined,{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'}) : '—'}</td>
+              <td style="font-size: 11px;">${erpai.esc(c.cells[state.mCdr['Final Termination Cause']] || '—')}</td>
+            </tr>`;
+          }).join('')}${rows.length > 100 ? `<tr><td colspan="8" style="text-align: center; color: hsl(var(--muted-foreground)); padding: 8px;">Showing first 100 of ${rows.length}. Export CSV for all.</td></tr>` : ''}</tbody>
+        </table>`;
+    }
+
+    window.exportCSV = function() {
+      const cdrs = state.currentReport || [];
+      if (!cdrs.length) { alert('No data to export'); return; }
+      const subById = new Map(state.subs.map(s => [s._id, s]));
+      const tariffById = new Map(state.tariffs.map(t => [t._id, t]));
+
+      const rows = [['CDR Code','MSISDN','Service Type','Rating Group','Started At','Ended At','Duration (sec)','Total MB','Total Minutes','Total Units','Plan Name','Termination Cause','Record Sequence']];
+      for (const c of cdrs) {
+        const subId = c.cells[state.mCdr['Subscription']]?.[0];
+        const sub = subById.get(subId);
+        const tpId = c.cells[state.mCdr['Tariff Plan']]?.[0];
+        const tariff = tariffById.get(tpId);
+        rows.push([
+          c.cells[state.mCdr['CDR Code']] || '',
+          sub?.cells[state.mSub['MSISDN']] || '',
+          SERVICE_MAP[JSON.stringify(c.cells[state.mCdr['Service Type']])] || '',
+          c.cells[state.mCdr['Rating Group']] || '',
+          c.cells[state.mCdr['Started At']] || '',
+          c.cells[state.mCdr['Ended At']] || '',
+          c.cells[state.mCdr['Duration Seconds']] || 0,
+          c.cells[state.mCdr['Total MB']] || 0,
+          c.cells[state.mCdr['Total Minutes']] || 0,
+          c.cells[state.mCdr['Total Units']] || 0,
+          tariff?.cells[state.mTariff['Plan Name']] || '',
+          c.cells[state.mCdr['Final Termination Cause']] || '',
+          c.cells[state.mCdr['Record Sequence Number']] || '',
+        ]);
+      }
+      const csv = rows.map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(',')).join('\n');
+      const blob = new Blob([csv], { type: 'text/csv' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `cdr-settlement-${new Date().toISOString().slice(0, 10)}.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
+    };
+
+    // Init — default date is today
+    const today = new Date().toISOString().slice(0, 10);
+    document.getElementById('date-picker').value = today;
+    loadReport();
+  </script>
+</body>
+</html>

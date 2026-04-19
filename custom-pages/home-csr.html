@@ -1,0 +1,293 @@
+<script>
+window.ERPAI = {
+  token: 'erp_pat_live_REDACTED',
+  baseUrl: 'https://api.erpai.studio',
+  appId: 'afe8c4540708da6ca9e6fe79',
+  orgName: 'Telecom',
+  appName: 'telecom',
+  theme: 'light'
+};
+</script>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CSR Home</title>
+  <link rel="stylesheet" href="/runtime/erpai-pages-runtime.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    body { padding: 20px; font-family: 'Geist Sans', system-ui, -apple-system, sans-serif; }
+    .cb-header { margin-bottom: 20px; display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+    .cb-title { font-size: 20px; font-weight: 600; color: hsl(var(--foreground)); letter-spacing: -0.02em; margin: 0; }
+    .cb-subtitle { font-size: 13px; color: hsl(var(--muted-foreground)); margin-top: 4px; max-width: 720px; }
+    .cb-header-right { display: flex; align-items: center; gap: 10px; }
+    .cb-date { font-size: 13px; color: hsl(var(--muted-foreground)); font-variant-numeric: tabular-nums; }
+    .cb-btn { display: inline-flex; align-items: center; gap: 6px; padding: 8px 12px; font-size: 13px; font-weight: 500; border-radius: 8px; border: 1px solid hsl(var(--border)); background: hsl(var(--background)); color: hsl(var(--foreground)); cursor: pointer; }
+    .cb-btn:hover { background: hsl(var(--muted) / 0.4); }
+
+    .cb-kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 24px; }
+    @media (max-width: 900px) { .cb-kpis { grid-template-columns: repeat(2, 1fr); } }
+    .cb-kpi { background: hsl(var(--card)); border: 1px solid hsl(var(--border)); border-radius: 12px; padding: 14px; box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05); }
+    .cb-kpi-label { font-size: 11px; color: hsl(var(--muted-foreground)); text-transform: uppercase; letter-spacing: 0.04em; font-weight: 600; margin-bottom: 6px; }
+    .cb-kpi-val { font-size: 24px; font-weight: 600; font-variant-numeric: tabular-nums; color: hsl(var(--foreground)); line-height: 1.1; }
+    .cb-kpi-sub { font-size: 11px; color: hsl(var(--muted-foreground)); margin-top: 4px; }
+    .cb-kpi.alert { border-color: #ef4444; background: rgba(239, 68, 68, 0.05); }
+    .cb-kpi.alert .cb-kpi-val { color: #ef4444; }
+
+    .cb-section-head { display: flex; align-items: center; gap: 8px; margin: 24px 0 12px; }
+    .cb-section-title { font-size: 14px; font-weight: 600; margin: 0; color: hsl(var(--foreground)); }
+    .cb-section-sub { font-size: 12px; color: hsl(var(--muted-foreground)); font-weight: 500; }
+
+    .cb-search-wrap { background: hsl(var(--card)); border: 1px solid hsl(var(--border)); border-radius: 12px; padding: 14px; margin-bottom: 16px; }
+    .cb-search-input { width: 100%; padding: 10px 12px; font-size: 13px; border: 1px solid hsl(var(--border)); border-radius: 8px; background: hsl(var(--background)); color: hsl(var(--foreground)); outline: none; font-family: inherit; }
+    .cb-search-input:focus { border-color: hsl(var(--primary)); }
+    .cb-search-results { margin-top: 10px; }
+
+    .cb-feed { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 24px; }
+    @media (max-width: 900px) { .cb-feed { grid-template-columns: 1fr; } }
+    .cb-feed-card { background: hsl(var(--card)); border: 1px solid hsl(var(--border)); border-radius: 12px; overflow: hidden; box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05); }
+    .cb-feed-head { padding: 12px 14px; border-bottom: 1px solid hsl(var(--border)); display: flex; align-items: center; gap: 8px; background: hsl(var(--muted) / 0.3); }
+    .cb-feed-head h3 { font-size: 13px; font-weight: 600; margin: 0; color: hsl(var(--foreground)); }
+    .cb-feed-head .cb-feed-count { margin-left: auto; font-size: 11px; color: hsl(var(--muted-foreground)); }
+
+    .cb-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+    .cb-table th { text-align: left; font-size: 10px; font-weight: 600; color: hsl(var(--muted-foreground)); text-transform: uppercase; letter-spacing: 0.04em; padding: 8px 12px; border-bottom: 1px solid hsl(var(--border)); background: hsl(var(--muted) / 0.2); }
+    .cb-table td { padding: 8px 12px; border-bottom: 1px solid hsl(var(--border)); color: hsl(var(--foreground)); vertical-align: middle; font-variant-numeric: tabular-nums; }
+    .cb-table tbody tr:hover { background: hsl(var(--muted) / 0.4); }
+    .cb-table tbody tr:last-child td { border-bottom: none; }
+    .cb-mono { font-family: 'SF Mono', Monaco, Menlo, monospace; font-size: 11px; color: hsl(var(--muted-foreground)); }
+    .cb-amount { font-weight: 600; }
+    .cb-muted { color: hsl(var(--muted-foreground)); }
+    .cb-empty { padding: 24px 12px; text-align: center; color: hsl(var(--muted-foreground)); font-size: 12px; }
+    .cb-loading { padding: 16px; color: hsl(var(--muted-foreground)); font-size: 12px; }
+
+    .cb-pill { display: inline-block; padding: 2px 8px; font-size: 10px; font-weight: 600; border-radius: 9999px; text-transform: uppercase; letter-spacing: 0.04em; }
+    .cb-pill.p-critical { background: rgba(239, 68, 68, 0.12); color: #dc2626; }
+    .cb-pill.p-high { background: rgba(249, 115, 22, 0.12); color: #ea580c; }
+    .cb-pill.p-medium { background: rgba(234, 179, 8, 0.15); color: #ca8a04; }
+    .cb-pill.p-low { background: rgba(16, 185, 129, 0.12); color: #059669; }
+    .cb-pill.sla-bad { background: rgba(239, 68, 68, 0.12); color: #dc2626; }
+    .cb-pill.sla-ok { background: rgba(16, 185, 129, 0.12); color: #059669; }
+    .cb-pill.stat { background: hsl(var(--muted) / 0.5); color: hsl(var(--foreground)); }
+
+    .cb-quick-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+    @media (max-width: 700px) { .cb-quick-grid { grid-template-columns: 1fr; } }
+    .cb-quick-btn { padding: 14px; border: 1px dashed hsl(var(--border)); border-radius: 10px; background: hsl(var(--card)); text-align: left; cursor: pointer; font-family: inherit; color: hsl(var(--foreground)); transition: border-color 0.15s, background 0.15s; }
+    .cb-quick-btn:hover { border-color: hsl(var(--primary)); background: hsl(var(--muted) / 0.3); }
+    .cb-quick-title { font-size: 13px; font-weight: 600; margin: 0 0 4px; }
+    .cb-quick-desc { font-size: 11px; color: hsl(var(--muted-foreground)); margin: 0; }
+
+    .cb-footer { margin-top: 28px; padding-top: 14px; border-top: 1px solid hsl(var(--border)); font-size: 11px; color: hsl(var(--muted-foreground)); display: flex; justify-content: space-between; align-items: center; }
+  </style>
+</head>
+<body>
+  <div class="cb-header">
+    <div>
+      <h1 class="cb-title">Customer Service <span style="color: hsl(var(--muted-foreground)); font-weight: 400;">·</span> <span id="cb-user-name">Agent</span></h1>
+      <p class="cb-subtitle">Your command center for case work, recharges, and customer lookups.</p>
+    </div>
+    <div class="cb-header-right">
+      <span class="cb-date" id="cb-today"></span>
+      <button class="cb-btn" onclick="window.location.reload()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M3 21v-5h5"/></svg>
+        Refresh
+      </button>
+    </div>
+  </div>
+
+  <div class="cb-section-head">
+    <h2 class="cb-section-title">Today's Queue</h2>
+    <span class="cb-section-sub" id="cb-kpi-sub">Loading…</span>
+  </div>
+  <div class="cb-kpis" id="cb-kpis"></div>
+
+  <div class="cb-section-head">
+    <h2 class="cb-section-title">Customer Lookup</h2>
+    <span class="cb-section-sub">Search by name / MSISDN / phone</span>
+  </div>
+  <div class="cb-search-wrap">
+    <input id="cb-search" class="cb-search-input" type="text" placeholder="Type at least 2 characters..." autocomplete="off"/>
+    <div id="cb-search-results" class="cb-search-results"></div>
+  </div>
+
+  <div class="cb-feed">
+    <div class="cb-feed-card">
+      <div class="cb-feed-head">
+        <h3>Recent Recharges</h3>
+        <span class="cb-feed-count" id="cb-rch-count"></span>
+      </div>
+      <div id="cb-recharges"><div class="cb-loading">Loading…</div></div>
+    </div>
+    <div class="cb-feed-card">
+      <div class="cb-feed-head">
+        <h3>Open Cases</h3>
+        <span class="cb-feed-count" id="cb-cases-count"></span>
+      </div>
+      <div id="cb-cases"><div class="cb-loading">Loading…</div></div>
+    </div>
+  </div>
+
+  <div class="cb-section-head">
+    <h2 class="cb-section-title">Quick Actions</h2>
+    <span class="cb-section-sub">Common CSR tasks</span>
+  </div>
+  <div class="cb-quick-grid">
+    <button class="cb-quick-btn" onclick="alert('PIN reset flow — stub')">
+      <p class="cb-quick-title">Reset Customer PIN</p>
+      <p class="cb-quick-desc">Issue a new temporary PIN to the customer.</p>
+    </button>
+    <button class="cb-quick-btn" onclick="alert('Add note — stub')">
+      <p class="cb-quick-title">Add Note to Customer</p>
+      <p class="cb-quick-desc">Attach a follow-up note to a customer record.</p>
+    </button>
+    <button class="cb-quick-btn" onclick="alert('Create case — stub')">
+      <p class="cb-quick-title">Create Case</p>
+      <p class="cb-quick-desc">Log a new support case against a subscription.</p>
+    </button>
+  </div>
+
+  <div class="cb-footer">
+    <span id="cb-refresh">Last refresh: —</span>
+    <span>Data source: ERPAI live ClickHouse views</span>
+  </div>
+
+  <script src="/runtime/erpai-pages-runtime.js"></script>
+  <script>
+    const PRIORITY_LABEL = { '[1]': 'Critical', '[2]': 'High', '[3]': 'Medium', '[4]': 'Low' };
+    const CASE_STATUS    = { '[1]': 'New', '[2]': 'In Progress', '[3]': 'Waiting', '[4]': 'Resolved', '[5]': 'Closed' };
+
+    const fmtInt = n => n == null || isNaN(n) ? '—' : Number(n).toLocaleString();
+    const fmtMoney = n => n == null || isNaN(n) ? '—' : '$' + Number(n).toLocaleString(undefined, { maximumFractionDigits: 0 });
+    const fmtDateTime = ts => { if (!ts || ts.startsWith('1970')) return '—'; const d = new Date(ts.replace(' ', 'T') + 'Z'); if (isNaN(d)) return ts; return d.toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }); };
+    const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+    async function runSql(sql, limit = 100) {
+      try {
+        const r = await erpai.api('POST', '/v1/agent/app/sql/execute', { appId: window.ERPAI.appId, sqlQuery: sql, limit });
+        return r?.data?.rows || r?.rows || [];
+      } catch (e) { console.warn('SQL fail:', sql, e); return null; }
+    }
+
+    async function loadUser() {
+      try {
+        const r = await erpai.api('GET', '/v1/agent/user/me');
+        const u = r?.data || r;
+        const name = u?.name || u?.email || u?.firstName || 'Agent';
+        document.getElementById('cb-user-name').textContent = name.split('@')[0];
+      } catch (e) { /* silent */ }
+    }
+
+    async function loadKpis() {
+      const queries = [
+        { label: 'All Open Cases', sub: 'Status ≠ Resolved/Closed', sql: "SELECT count() AS v FROM a1776271424351_cases WHERE _deleted=0 AND status != '[4]' AND status != '[5]'" },
+        { label: 'Unresolved >24h', sub: 'Opened more than 24h ago', sql: "SELECT count() AS v FROM a1776271424351_cases WHERE _deleted=0 AND status != '[4]' AND status != '[5]' AND opened_at < now() - INTERVAL 1 DAY", alertIfGt: 0 },
+        { label: 'Avg CSAT (7d)', sub: 'Interactions, last 7 days', sql: "SELECT round(avg(csat_score), 2) AS v FROM a1776271424351_customer_interactions WHERE _deleted=0 AND csat_score > 0 AND timestamp > now() - INTERVAL 7 DAY" },
+        { label: "Today's Interactions", sub: 'Across all channels', sql: "SELECT count() AS v FROM a1776271424351_customer_interactions WHERE _deleted=0 AND toDate(timestamp)=today()" },
+      ];
+      const results = await Promise.all(queries.map(q => runSql(q.sql)));
+      document.getElementById('cb-kpis').innerHTML = queries.map((q, i) => {
+        const rows = results[i]; let raw = null;
+        if (rows && rows.length) raw = rows[0].v ?? Object.values(rows[0])[0];
+        let display = '—';
+        if (raw != null && raw !== '') { const n = Number(raw); if (!isNaN(n)) display = fmtInt(n); }
+        const alert = q.alertIfGt != null && raw != null && Number(raw) > q.alertIfGt;
+        return `<div class="cb-kpi ${alert ? 'alert' : ''}">
+          <div class="cb-kpi-label">${esc(q.label)}</div>
+          <div class="cb-kpi-val">${display}</div>
+          <div class="cb-kpi-sub">${esc(q.sub)}</div>
+        </div>`;
+      }).join('');
+      document.getElementById('cb-kpi-sub').textContent = 'Refreshed just now';
+    }
+
+    async function loadRecharges() {
+      const rows = await runSql("SELECT r.recharge_code AS code, r.amount AS amount, r.status AS status, r.timestamp AS ts, r.wallet AS wallet FROM a1776271424351_recharges r WHERE r._deleted=0 ORDER BY r.timestamp DESC LIMIT 10");
+      const el = document.getElementById('cb-recharges');
+      const cnt = document.getElementById('cb-rch-count');
+      if (!rows) { el.innerHTML = `<div class="cb-empty">Unable to load recharges.</div>`; return; }
+      if (!rows.length) { el.innerHTML = `<div class="cb-empty">No recharges yet.</div>`; return; }
+      cnt.textContent = `${rows.length} shown`;
+
+      // Fetch wallet -> customer name via join query
+      const walletIds = [...new Set(rows.map(r => r.wallet).filter(Boolean))];
+      let walletToName = {};
+      if (walletIds.length) {
+        const inList = walletIds.map(id => `'${id}'`).join(',');
+        const wrows = await runSql(`SELECT w._id AS wid, c.name AS name FROM a1776271424351_wallets w LEFT JOIN a1776271424351_customers c ON c._id = w.customer WHERE w._id IN (${inList})`);
+        if (wrows) walletToName = Object.fromEntries(wrows.map(w => [w.wid, w.name]));
+      }
+
+      const RCH_STATUS = { '[1]': 'Pending', '[2]': 'Success', '[3]': 'Failed', '[4]': 'Reversed' };
+      el.innerHTML = `<table class="cb-table">
+        <thead><tr><th>Code</th><th>Customer</th><th>Amount</th><th>Status</th><th>Time</th></tr></thead>
+        <tbody>${rows.map(r => `<tr>
+          <td><span class="cb-mono">${esc(r.code || '—')}</span></td>
+          <td>${esc(walletToName[r.wallet] || '—')}</td>
+          <td class="cb-amount">${r.amount != null ? fmtMoney(Number(r.amount)) : '—'}</td>
+          <td><span class="cb-pill stat">${esc(RCH_STATUS[r.status] || r.status || '—')}</span></td>
+          <td class="cb-muted">${fmtDateTime(r.ts)}</td>
+        </tr>`).join('')}</tbody>
+      </table>`;
+    }
+
+    async function loadCases() {
+      const rows = await runSql("SELECT case_code, priority, customer_name, opened_at, due_date, sla_breached, subject FROM a1776271424351_cases WHERE _deleted=0 AND status != '[4]' AND status != '[5]' ORDER BY opened_at DESC LIMIT 15");
+      const el = document.getElementById('cb-cases');
+      const cnt = document.getElementById('cb-cases-count');
+      if (!rows) { el.innerHTML = `<div class="cb-empty">Unable to load cases.</div>`; return; }
+      if (!rows.length) { el.innerHTML = `<div class="cb-empty">No open cases — nice!</div>`; return; }
+      cnt.textContent = `${rows.length} open`;
+      const pClass = p => ({ '[1]': 'p-critical', '[2]': 'p-high', '[3]': 'p-medium', '[4]': 'p-low' }[p] || 'stat');
+      el.innerHTML = `<table class="cb-table">
+        <thead><tr><th>Priority</th><th>Customer</th><th>Opened</th><th>Due</th><th>SLA</th></tr></thead>
+        <tbody>${rows.map(r => `<tr>
+          <td><span class="cb-pill ${pClass(r.priority)}">${esc(PRIORITY_LABEL[r.priority] || r.priority || '—')}</span></td>
+          <td title="${esc(r.subject || '')}">${esc(r.customer_name || '—')}</td>
+          <td class="cb-muted">${fmtDateTime(r.opened_at)}</td>
+          <td class="cb-muted">${fmtDateTime(r.due_date)}</td>
+          <td>${Number(r.sla_breached) > 0 ? '<span class="cb-pill sla-bad">Breached</span>' : '<span class="cb-pill sla-ok">OK</span>'}</td>
+        </tr>`).join('')}</tbody>
+      </table>`;
+    }
+
+    let searchTimer = null;
+    function wireSearch() {
+      const inp = document.getElementById('cb-search');
+      const out = document.getElementById('cb-search-results');
+      inp.addEventListener('input', () => {
+        clearTimeout(searchTimer);
+        const q = inp.value.trim();
+        if (q.length < 2) { out.innerHTML = ''; return; }
+        searchTimer = setTimeout(async () => {
+          const safe = q.replace(/'/g, "''");
+          const rows = await runSql(`SELECT _id, name, phone, email FROM a1776271424351_customers WHERE _deleted=0 AND (name ILIKE '%${safe}%' OR phone ILIKE '%${safe}%' OR email ILIKE '%${safe}%') LIMIT 10`);
+          if (!rows || !rows.length) { out.innerHTML = `<div class="cb-empty" style="padding:14px 4px;">No matches.</div>`; return; }
+          out.innerHTML = `<table class="cb-table">
+            <thead><tr><th>Name</th><th>Phone</th><th>Email</th><th></th></tr></thead>
+            <tbody>${rows.map(r => `<tr>
+              <td>${esc(r.name || '—')}</td>
+              <td class="cb-mono">${esc(r.phone || '—')}</td>
+              <td class="cb-muted">${esc(r.email || '—')}</td>
+              <td><a href="/custom-pages/customer-360?id=${encodeURIComponent(r._id)}" class="cb-btn" style="padding:4px 10px; font-size:11px;">Open 360 →</a></td>
+            </tr>`).join('')}</tbody>
+          </table>`;
+        }, 280);
+      });
+    }
+
+    function setDate() {
+      const now = new Date();
+      document.getElementById('cb-today').textContent = now.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
+      document.getElementById('cb-refresh').textContent = `Last refresh: ${now.toLocaleTimeString()}`;
+    }
+
+    async function main() {
+      setDate(); wireSearch();
+      await Promise.all([loadUser(), loadKpis(), loadRecharges(), loadCases()]);
+      setDate();
+    }
+    main();
+  </script>
+</body>
+</html>

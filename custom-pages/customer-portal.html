@@ -1,0 +1,206 @@
+<script>
+window.ERPAI = {
+  token: 'erp_pat_live_REDACTED',
+  baseUrl: 'https://api.erpai.studio',
+  appId: 'afe8c4540708da6ca9e6fe79',
+  orgName: 'Telecom',
+  appName: 'telecom',
+  theme: 'light'
+};
+</script>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Customer Portal</title>
+  <link rel="stylesheet" href="/runtime/erpai-pages-runtime.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    body { padding: 20px; font-family: 'Geist Sans', system-ui, -apple-system, sans-serif; }
+    .cb-header { margin-bottom: 20px; display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+    .cb-title { font-size: 20px; font-weight: 600; color: hsl(var(--foreground)); letter-spacing: -0.02em; margin: 0; }
+    .cb-subtitle { font-size: 13px; color: hsl(var(--muted-foreground)); margin-top: 4px; max-width: 760px; }
+    .cb-select { padding: 8px 12px; font-size: 13px; border-radius: 8px; border: 1px solid hsl(var(--border)); background: hsl(var(--background)); min-width: 260px; }
+
+    .cb-section-head { display: flex; align-items: center; gap: 8px; margin: 24px 0 12px; }
+    .cb-section-title { font-size: 14px; font-weight: 600; margin: 0; }
+    .cb-section-sub { font-size: 12px; color: hsl(var(--muted-foreground)); font-weight: 500; }
+
+    .cb-grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px; }
+    @media (max-width: 900px) { .cb-grid2 { grid-template-columns: 1fr; } }
+
+    .cb-card { padding: 16px; background: hsl(var(--card)); border: 1px solid hsl(var(--border)); border-radius: 12px; box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05); }
+
+    .cb-bal-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
+    .cb-bal-label { font-size: 12px; font-weight: 600; color: hsl(var(--foreground)); }
+    .cb-bal-val { font-size: 12px; font-variant-numeric: tabular-nums; color: hsl(var(--muted-foreground)); }
+    .cb-bal-bar { height: 8px; background: hsl(var(--muted) / 0.5); border-radius: 999px; overflow: hidden; margin-bottom: 14px; }
+    .cb-bal-fill { height: 100%; border-radius: 999px; transition: width 0.4s ease; }
+
+    .cb-table { width: 100%; border-collapse: collapse; }
+    .cb-table th { text-align: left; font-size: 11px; font-weight: 600; color: hsl(var(--muted-foreground)); text-transform: uppercase; letter-spacing: 0.04em; padding: 8px 10px; border-bottom: 1px solid hsl(var(--border)); }
+    .cb-table td { padding: 8px 10px; border-bottom: 1px solid hsl(var(--border)); font-size: 13px; vertical-align: middle; }
+    .cb-table tbody tr:last-child td { border-bottom: none; }
+
+    .cb-empty { padding: 20px 12px; text-align: center; color: hsl(var(--muted-foreground)); font-size: 13px; }
+    .cb-muted { color: hsl(var(--muted-foreground)); }
+    .cb-code { font-family: 'SF Mono', Monaco, Menlo, monospace; font-size: 12px; }
+
+    .cb-pill { display: inline-flex; align-items: center; padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 600; }
+    .cb-pill-open { background: #fee2e2; color: #b91c1c; }
+    .cb-pill-progress { background: #fef9c3; color: #854d0e; }
+    .cb-pill-resolved { background: #dcfce7; color: #166534; }
+    .cb-pill-closed { background: #e5e7eb; color: #4b5563; }
+    .cb-pill-wait { background: #dbeafe; color: #1e40af; }
+
+    .cb-hero { background: linear-gradient(135deg, hsl(var(--primary) / 0.1), hsl(var(--primary) / 0.02)); border: 1px solid hsl(var(--border)); border-radius: 12px; padding: 20px; margin-bottom: 20px; }
+    .cb-hero-name { font-size: 18px; font-weight: 600; margin: 0; color: hsl(var(--foreground)); }
+    .cb-hero-meta { font-size: 12px; color: hsl(var(--muted-foreground)); margin-top: 4px; }
+
+    .cb-notif { padding: 10px 12px; border-bottom: 1px solid hsl(var(--border)); }
+    .cb-notif:last-child { border-bottom: none; }
+    .cb-notif-body { font-size: 13px; color: hsl(var(--foreground)); }
+    .cb-notif-time { font-size: 11px; color: hsl(var(--muted-foreground)); margin-top: 2px; }
+
+    .cb-disclaimer { font-size: 11px; color: hsl(var(--muted-foreground)); padding: 10px 12px; background: hsl(var(--muted) / 0.3); border-radius: 8px; margin-bottom: 20px; }
+  </style>
+</head>
+<body>
+  <div class="cb-header">
+    <div>
+      <h1 class="cb-title">Customer Portal</h1>
+      <p class="cb-subtitle">Preview of what an end customer would see in their self-service portal — balances, recharges, tickets, and notifications.</p>
+    </div>
+    <select class="cb-select" id="cb-picker"><option>Loading customers…</option></select>
+  </div>
+
+  <div class="cb-disclaimer">This is an internal preview of the customer-facing portal view. Not a production customer endpoint.</div>
+
+  <div id="cb-hero"></div>
+
+  <div class="cb-section-head"><h2 class="cb-section-title">My Balances</h2></div>
+  <div class="cb-card" id="cb-balances"><div class="cb-empty">Select a customer to view balances…</div></div>
+
+  <div class="cb-grid2" style="margin-top:20px;">
+    <div>
+      <div class="cb-section-head"><h2 class="cb-section-title">My Recent Recharges</h2></div>
+      <div class="cb-card" id="cb-recharges"><div class="cb-empty">—</div></div>
+    </div>
+    <div>
+      <div class="cb-section-head"><h2 class="cb-section-title">My Open Tickets</h2></div>
+      <div class="cb-card" id="cb-tickets"><div class="cb-empty">—</div></div>
+    </div>
+  </div>
+
+  <div class="cb-section-head"><h2 class="cb-section-title">My Notifications</h2></div>
+  <div class="cb-card" id="cb-notifs"><div class="cb-empty">—</div></div>
+
+  <script src="/runtime/erpai-pages-runtime.js"></script>
+  <script>
+    const esc = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+    const fmtInt = n => n == null || isNaN(n) ? '—' : Number(n).toLocaleString();
+    const fmtMoney = n => n == null || isNaN(n) ? '—' : '$' + Number(n).toLocaleString(undefined, { maximumFractionDigits: 2 });
+    const fmtDT = ts => { if (!ts || String(ts).startsWith('1970')) return '—'; const d = new Date(String(ts).replace(' ','T')+'Z'); return isNaN(d) ? ts : d.toLocaleString(undefined,{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'}); };
+
+    async function sql(q) {
+      try {
+        const r = await fetch(`${window.ERPAI.baseUrl}/v1/agent/app/sql/execute`, {
+          method:'POST',
+          headers:{'Authorization':`Bearer ${window.ERPAI.token}`,'Content-Type':'application/json'},
+          body: JSON.stringify({ appId: window.ERPAI.appId, sqlQuery: q, limit: 500 })
+        });
+        const j = await r.json();
+        if (!j.success) { console.warn('SQL fail:', j.message, q); return null; }
+        return j.data.rows;
+      } catch (e) { console.warn(e); return null; }
+    }
+
+    const CASE_STATUS = { '[1]':'New','[2]':'Open','[3]':'In Progress','[4]':'Waiting','[5]':'Resolved','[6]':'Closed' };
+    const CASE_STATUS_CLASS = { '[1]':'cb-pill-open','[2]':'cb-pill-open','[3]':'cb-pill-progress','[4]':'cb-pill-wait','[5]':'cb-pill-resolved','[6]':'cb-pill-closed' };
+
+    let currentCustomer = null;
+    let customers = [];
+
+    async function loadCustomers() {
+      const rows = await sql(`SELECT _id, argMax(customer_code,_version) AS code, argMax(full_name,_version) AS name, argMax(email,_version) AS email, argMax(status,_version) AS st FROM a1776271424351_customers WHERE _deleted=0 GROUP BY _id HAVING st='[1]' ORDER BY name LIMIT 100`);
+      const sel = document.getElementById('cb-picker');
+      if (!rows || !rows.length) { sel.innerHTML = '<option>No customers</option>'; return; }
+      customers = rows;
+      sel.innerHTML = rows.map((c,i) => `<option value="${esc(c._id)}">${esc(c.name || c.code || c._id)}</option>`).join('');
+      sel.addEventListener('change', e => { currentCustomer = customers.find(c => c._id === e.target.value); renderAll(); });
+      currentCustomer = rows[0];
+      renderAll();
+    }
+
+    function renderHero() {
+      const c = currentCustomer;
+      if (!c) { document.getElementById('cb-hero').innerHTML = ''; return; }
+      document.getElementById('cb-hero').innerHTML = `<div class="cb-hero">
+        <h2 class="cb-hero-name">${esc(c.name || 'Customer')}</h2>
+        <div class="cb-hero-meta">${esc(c.code || '')} · ${esc(c.email || '—')}</div>
+      </div>`;
+    }
+
+    async function loadBalances() {
+      const c = currentCustomer; if (!c) return;
+      const rows = await sql(`SELECT _id, argMax(balance_type,_version) AS bt, argMax(current_balance,_version) AS curr, argMax(initial_balance,_version) AS init, argMax(units,_version) AS units FROM a1776271424351_balances WHERE _deleted=0 AND customer='${c._id}' GROUP BY _id`);
+      const el = document.getElementById('cb-balances');
+      if (!rows || !rows.length) { el.innerHTML = '<div class="cb-empty">No active balances for this customer.</div>'; return; }
+      const BAL_TYPE = { '[1]':'Data','[2]':'Voice','[3]':'SMS','[4]':'Wallet','[5]':'Bonus' };
+      el.innerHTML = rows.map(r => {
+        const curr = Number(r.curr)||0, init = Number(r.init)||curr||1;
+        const pct = Math.max(0, Math.min(100, (curr/Math.max(init,1))*100));
+        const units = r.units || '';
+        const label = BAL_TYPE[r.bt] || (r.bt || 'Balance');
+        const color = pct > 50 ? '#10b981' : (pct > 20 ? '#f59e0b' : '#ef4444');
+        return `<div class="cb-bal-row"><span class="cb-bal-label">${esc(label)}</span><span class="cb-bal-val">${fmtInt(curr)}${units ? ' '+esc(units) : ''} / ${fmtInt(init)}</span></div>
+          <div class="cb-bal-bar"><div class="cb-bal-fill" style="width:${pct}%;background:${color};"></div></div>`;
+      }).join('');
+    }
+
+    async function loadRecharges() {
+      const c = currentCustomer; if (!c) return;
+      const rows = await sql(`SELECT _id, argMax(recharge_code,_version) AS code, argMax(amount,_version) AS amt, argMax(timestamp,_version) AS ts, argMax(channel,_version) AS ch FROM a1776271424351_recharges WHERE _deleted=0 AND customer='${c._id}' GROUP BY _id ORDER BY ts DESC LIMIT 10`);
+      const el = document.getElementById('cb-recharges');
+      if (!rows || !rows.length) { el.innerHTML = '<div class="cb-empty">No recharges on record.</div>'; return; }
+      el.innerHTML = `<table class="cb-table"><thead><tr><th>Code</th><th>Amount</th><th>When</th></tr></thead><tbody>${rows.map(r=>`<tr><td><span class="cb-code">${esc(r.code||'—')}</span></td><td>${fmtMoney(r.amt)}</td><td class="cb-muted">${fmtDT(r.ts)}</td></tr>`).join('')}</tbody></table>`;
+    }
+
+    async function loadTickets() {
+      const c = currentCustomer; if (!c) return;
+      // Try with is_customer_portal_visible column (added in W1-B); fallback without it
+      let rows = await sql(`SELECT _id, argMax(case_code,_version) AS code, argMax(subject,_version) AS subject, argMax(status,_version) AS st, argMax(opened_at,_version) AS opened, argMax(resolution_notes,_version) AS res, argMax(is_customer_portal_visible,_version) AS vis FROM a1776271424351_cases WHERE _deleted=0 AND customer='${c._id}' GROUP BY _id HAVING vis=1 AND (st='[1]' OR st='[2]' OR st='[3]' OR st='[4]') ORDER BY opened DESC LIMIT 10`);
+      if (rows == null) {
+        // Fallback: ignore vis column
+        rows = await sql(`SELECT _id, argMax(case_code,_version) AS code, argMax(subject,_version) AS subject, argMax(status,_version) AS st, argMax(opened_at,_version) AS opened, argMax(resolution_notes,_version) AS res FROM a1776271424351_cases WHERE _deleted=0 AND customer='${c._id}' GROUP BY _id HAVING (st='[1]' OR st='[2]' OR st='[3]' OR st='[4]') ORDER BY opened DESC LIMIT 10`);
+      }
+      const el = document.getElementById('cb-tickets');
+      if (!rows || !rows.length) { el.innerHTML = '<div class="cb-empty">No open tickets.</div>'; return; }
+      el.innerHTML = `<table class="cb-table"><thead><tr><th>Code</th><th>Subject</th><th>Status</th><th>Age</th></tr></thead><tbody>${rows.map(r=>{
+        const age = (() => { if (!r.opened || String(r.opened).startsWith('1970')) return '—'; const d = new Date(String(r.opened).replace(' ','T')+'Z'); const days = Math.floor((Date.now()-d.getTime())/86400000); return isNaN(days) ? '—' : days+'d'; })();
+        const pill = `<span class="cb-pill ${CASE_STATUS_CLASS[r.st]||'cb-pill-open'}">${esc(CASE_STATUS[r.st]||r.st||'—')}</span>`;
+        return `<tr><td><span class="cb-code">${esc(r.code||'—')}</span></td><td>${esc((r.subject||'').slice(0,50))}</td><td>${pill}</td><td class="cb-muted">${age}</td></tr>`;
+      }).join('')}</tbody></table>`;
+    }
+
+    async function loadNotifs() {
+      const c = currentCustomer; if (!c) return;
+      let rows = await sql(`SELECT _id, argMax(content_snapshot,_version) AS body, argMax(sent_at,_version) AS ts, argMax(status,_version) AS st, argMax(is_customer_portal_visible,_version) AS vis FROM a1776271424351_notifications_sent WHERE _deleted=0 AND customer='${c._id}' GROUP BY _id HAVING vis=1 ORDER BY ts DESC LIMIT 10`);
+      if (rows == null) {
+        rows = await sql(`SELECT _id, argMax(content_snapshot,_version) AS body, argMax(sent_at,_version) AS ts, argMax(status,_version) AS st FROM a1776271424351_notifications_sent WHERE _deleted=0 AND customer='${c._id}' GROUP BY _id ORDER BY ts DESC LIMIT 10`);
+      }
+      const el = document.getElementById('cb-notifs');
+      if (!rows || !rows.length) { el.innerHTML = '<div class="cb-empty">No notifications.</div>'; return; }
+      el.innerHTML = rows.map(r => `<div class="cb-notif"><div class="cb-notif-body">${esc(r.body||'—')}</div><div class="cb-notif-time">${fmtDT(r.ts)}</div></div>`).join('');
+    }
+
+    async function renderAll() {
+      renderHero();
+      await Promise.all([loadBalances(), loadRecharges(), loadTickets(), loadNotifs()]);
+    }
+
+    loadCustomers();
+  </script>
+</body>
+</html>

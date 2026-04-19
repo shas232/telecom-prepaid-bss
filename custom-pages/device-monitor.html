@@ -1,0 +1,311 @@
+<script>
+window.ERPAI = {
+  token: 'erp_pat_live_REDACTED',
+  baseUrl: 'https://api.erpai.studio',
+  appId: 'afe8c4540708da6ca9e6fe79',
+  orgName: 'Telecom',
+  appName: 'telecom',
+  theme: 'light'
+};
+</script>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Device &amp; Fraud Monitor</title>
+  <link rel="stylesheet" href="/runtime/erpai-pages-runtime.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    body { padding: 20px; font-family: 'Geist Sans', system-ui, -apple-system, sans-serif; }
+    .dv-header { margin-bottom: 20px; display: flex; justify-content: space-between; gap: 16px; align-items:flex-start; }
+    .dv-title { font-size: 18px; font-weight: 600; margin: 0; letter-spacing: -0.02em; color: hsl(var(--foreground)); }
+    .dv-subtitle { font-size: 13px; color: hsl(var(--muted-foreground)); margin-top: 2px; }
+    .dv-btn { display: inline-flex; align-items: center; gap: 6px; padding: 8px 12px; font-size: 13px; font-weight: 500; border-radius: 8px; border: 1px solid hsl(var(--border)); background: hsl(var(--background)); color: hsl(var(--foreground)); cursor: pointer; }
+    .dv-btn:hover { background: hsl(var(--muted) / 0.4); }
+
+    .dv-kpis { display: grid; grid-template-columns: repeat(6, 1fr); gap: 12px; margin-bottom: 20px; }
+    @media (max-width: 900px) { .dv-kpis { grid-template-columns: repeat(2, 1fr); } }
+    .dv-kpi { background: hsl(var(--card)); border: 1px solid hsl(var(--border)); border-radius: 12px; padding: 14px; }
+    .dv-kpi-label { font-size: 11px; color: hsl(var(--muted-foreground)); text-transform: uppercase; letter-spacing: 0.04em; font-weight: 600; margin-bottom: 6px; }
+    .dv-kpi-val { font-size: 22px; font-weight: 600; font-variant-numeric: tabular-nums; }
+    .dv-kpi-sub { font-size: 11px; color: hsl(var(--muted-foreground)); margin-top: 2px; }
+    .dv-kpi.warn .dv-kpi-val { color: #b45309; }
+    .dv-kpi.crit .dv-kpi-val { color: #b91c1c; }
+
+    .dv-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px; }
+    @media (max-width: 900px) { .dv-grid-2 { grid-template-columns: 1fr; } }
+    .dv-card { padding: 16px; background: hsl(var(--card)); border: 1px solid hsl(var(--border)); border-radius: 12px; }
+    .dv-card-title { font-size: 14px; font-weight: 600; margin: 0 0 12px; }
+    .dv-card-chart { position: relative; height: 240px; }
+
+    .dv-section { margin-top: 24px; }
+    .dv-section-head { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; }
+    .dv-section-title { font-size: 14px; font-weight: 600; margin: 0; }
+    .dv-count-chip { font-size: 12px; color: hsl(var(--muted-foreground)); font-weight: 500; background: hsl(var(--muted) / 0.6); padding: 2px 8px; border-radius: 99px; }
+
+    .dv-table { width: 100%; border-collapse: collapse; background: hsl(var(--card)); border: 1px solid hsl(var(--border)); border-radius: 12px; overflow: hidden; }
+    .dv-table thead { background: hsl(var(--muted) / 0.5); }
+    .dv-table th { text-align: left; font-size: 12px; font-weight: 600; color: hsl(var(--muted-foreground)); text-transform: uppercase; letter-spacing: 0.04em; padding: 10px 12px; border-bottom: 1px solid hsl(var(--border)); }
+    .dv-table td { padding: 10px 12px; border-bottom: 1px solid hsl(var(--border)); font-size: 13px; vertical-align: middle; }
+    .dv-table tbody tr:last-child td { border-bottom: none; }
+    .dv-mono { font-family: 'SF Mono', Monaco, monospace; font-size: 12px; }
+    .dv-num { text-align: right; font-variant-numeric: tabular-nums; }
+
+    .dv-badge { display: inline-block; font-size: 10px; font-weight: 600; padding: 2px 8px; border-radius: 99px; letter-spacing: 0.02em; }
+    .dv-badge-green { background: #dcfce7; color: #166534; }
+    .dv-badge-amber { background: #fef3c7; color: #92400e; }
+    .dv-badge-red   { background: #fee2e2; color: #991b1b; }
+    .dv-badge-blue  { background: #dbeafe; color: #1e40af; }
+    .dv-badge-gray  { background: #e5e7eb; color: #374151; }
+
+    .dv-empty { padding: 40px; text-align: center; color: hsl(var(--muted-foreground)); font-size: 13px; }
+    .dv-row-suspect { background: #fef2f2; }
+  </style>
+</head>
+<body>
+  <div class="dv-header">
+    <div>
+      <h1 class="dv-title">Device &amp; Fraud Monitor</h1>
+      <p class="dv-subtitle">IMEI tracking, device inventory, EIR blacklist, and suspicious change detection.</p>
+    </div>
+    <button class="dv-btn" onclick="window.location.reload()">↻ Refresh</button>
+  </div>
+
+  <div class="dv-kpis" id="kpis"></div>
+
+  <div class="dv-grid-2">
+    <div class="dv-card">
+      <h3 class="dv-card-title">Device Share by Manufacturer</h3>
+      <div class="dv-card-chart"><canvas id="mfrChart"></canvas></div>
+    </div>
+    <div class="dv-card">
+      <h3 class="dv-card-title">Network Capability</h3>
+      <div class="dv-card-chart"><canvas id="capChart"></canvas></div>
+    </div>
+  </div>
+
+  <div class="dv-section">
+    <div class="dv-section-head">
+      <h3 class="dv-section-title">EIR Blacklist / Graylist</h3>
+      <span class="dv-count-chip" id="eirCount">—</span>
+    </div>
+    <table class="dv-table">
+      <thead>
+        <tr><th>IMEI</th><th>List Type</th><th>Reason</th><th>Device Status</th><th>Reported</th><th>Police Case</th><th>Reported By</th></tr>
+      </thead>
+      <tbody id="eirBody"></tbody>
+    </table>
+  </div>
+
+  <div class="dv-section">
+    <div class="dv-section-head">
+      <h3 class="dv-section-title">Recent IMEI Changes</h3>
+      <span class="dv-count-chip" id="chgCount">—</span>
+    </div>
+    <table class="dv-table">
+      <thead>
+        <tr><th>Event</th><th>MSISDN</th><th>Old IMEI</th><th>New IMEI</th><th>Changed</th><th class="dv-num">Hours Between</th><th>Suspicious</th><th>Review</th></tr>
+      </thead>
+      <tbody id="chgBody"></tbody>
+    </table>
+  </div>
+
+  <div class="dv-section">
+    <div class="dv-section-head">
+      <h3 class="dv-section-title">Top Device Models</h3>
+      <span class="dv-count-chip" id="topCount">—</span>
+    </div>
+    <table class="dv-table">
+      <thead>
+        <tr><th>Model</th><th>Manufacturer</th><th>Year</th><th>VoLTE</th><th>5G</th><th class="dv-num">Active Devices</th></tr>
+      </thead>
+      <tbody id="topBody"></tbody>
+    </table>
+  </div>
+
+<script>
+const { token, baseUrl, appId } = window.ERPAI;
+const hdrs = { Authorization: 'Bearer ' + token, 'Content-Type': 'application/json' };
+
+async function apiGet(url) { return (await fetch(baseUrl + url, { headers: hdrs })).json(); }
+async function apiPost(url, body) { return (await fetch(baseUrl + url, { method: 'POST', headers: hdrs, body: JSON.stringify(body) })).json(); }
+async function fetchTableByName(name) {
+  const list = await apiGet(`/v1/app-builder/table?appId=${appId}&pageSize=200`);
+  return (list.data || []).find(t => t.name === name);
+}
+async function fetchAllRows(id) {
+  const all = []; let p = 1;
+  while (true) { const r = await apiPost(`/v1/app-builder/table/${id}/paged-record?pageNo=${p}&pageSize=300`, {}); const b = r.data || []; all.push(...b); if (b.length < 300) break; p++; }
+  return all;
+}
+async function schemaCols(id) { const r = await apiGet(`/v1/app-builder/table/${id}`); return r.columnsMetaData || r.data?.columnsMetaData || []; }
+const colByName = (cols, n) => cols.find(c => c.name === n);
+const val = c => Array.isArray(c) ? (c.length ? (typeof c[0] === 'object' ? c[0].name || c[0] : c[0]) : null) : (c && typeof c === 'object' && 'name' in c ? c.name : c);
+function resolveSelects(rows, cols) {
+  const map = {};
+  for (const c of cols) {
+    if ((c.type === 'select' || c.type === 'multi-select') && c.options) {
+      map[c.id] = Object.fromEntries(c.options.map(o => { const x = o.value || o; return [x.id, x.name]; }));
+    }
+  }
+  for (const r of rows) {
+    for (const cid of Object.keys(map)) {
+      const v = r.cells[cid];
+      if (v == null) continue;
+      if (Array.isArray(v)) r.cells[cid] = v.map(x => typeof x === 'number' ? map[cid][x] : (typeof x === 'object' ? x.name || x : x)).filter(x => x != null);
+      else if (typeof v === 'number') r.cells[cid] = [map[cid][v]];
+    }
+  }
+}
+const fmtNum = n => n == null || n === 0 ? '—' : Number(n).toLocaleString('en-BW');
+const fmtDate = ms => !ms ? '—' : new Date(typeof ms === 'string' ? ms : Number(ms)).toLocaleDateString('en-BW', { day:'2-digit', month:'short', year:'numeric' });
+const daysAgo = ms => { if(!ms) return '—'; const n = Math.round((Date.now() - Number(ms))/86400000); return n === 0 ? 'today' : n + 'd ago'; };
+
+async function load() {
+  const [devT, tacT, eirT, chgT] = await Promise.all([
+    fetchTableByName('Devices'), fetchTableByName('Device TAC Database'),
+    fetchTableByName('Equipment Identity Register'), fetchTableByName('IMEI Change Events')
+  ]);
+  const [dCols, tCols, eCols, cCols] = await Promise.all([
+    schemaCols(devT._id), schemaCols(tacT._id), schemaCols(eirT._id), schemaCols(chgT._id)
+  ]);
+  const [devices, tacs, eirs, changes] = await Promise.all([
+    fetchAllRows(devT._id), fetchAllRows(tacT._id),
+    fetchAllRows(eirT._id), fetchAllRows(chgT._id)
+  ]);
+
+  resolveSelects(devices, dCols);
+  resolveSelects(tacs, tCols);
+  resolveSelects(eirs, eCols);
+  resolveSelects(changes, cCols);
+
+  const D = Object.fromEntries(dCols.map(c => [c.name, c.id]));
+  const T = Object.fromEntries(tCols.map(c => [c.name, c.id]));
+  const E = Object.fromEntries(eCols.map(c => [c.name, c.id]));
+  const C = Object.fromEntries(cCols.map(c => [c.name, c.id]));
+
+  // Build TAC lookup: id -> {manufacturer, marketing, volte, 5g, year, active}
+  const tacById = {};
+  for (const t of tacs) {
+    tacById[t._id] = {
+      tac: t.cells[T['TAC']],
+      mfr: t.cells[T['Manufacturer']],
+      name: t.cells[T['Marketing Name']],
+      year: t.cells[T['Release Year']],
+      volte: t.cells[T['VoLTE Support']] === true,
+      g5: t.cells[T['5G Support']] === true,
+      active: Number(t.cells[T['Active Devices']] || 0),
+    };
+  }
+
+  const stolen = devices.filter(d => val(d.cells[D['Status']]) === 'Stolen').length;
+  const lost = devices.filter(d => val(d.cells[D['Status']]) === 'Lost').length;
+  const blocked = devices.filter(d => val(d.cells[D['Status']]) === 'Blocked').length;
+  const active = devices.filter(d => val(d.cells[D['Status']]) === 'Active').length;
+  const suspicious = changes.filter(c => c.cells[C['Suspicious']] === true).length;
+  const fiveG = devices.filter(d => {
+    const tacRef = val(d.cells[D['Device TAC']]);
+    return tacById[tacRef]?.g5;
+  }).length;
+
+  document.getElementById('kpis').innerHTML = `
+    <div class="dv-kpi"><div class="dv-kpi-label">Total Devices</div><div class="dv-kpi-val">${devices.length}</div><div class="dv-kpi-sub">in registry</div></div>
+    <div class="dv-kpi"><div class="dv-kpi-label">Active</div><div class="dv-kpi-val">${active}</div><div class="dv-kpi-sub">on network</div></div>
+    <div class="dv-kpi crit"><div class="dv-kpi-label">Stolen / Lost</div><div class="dv-kpi-val">${stolen + lost}</div><div class="dv-kpi-sub">${stolen} stolen · ${lost} lost</div></div>
+    <div class="dv-kpi warn"><div class="dv-kpi-label">Blocked</div><div class="dv-kpi-val">${blocked}</div><div class="dv-kpi-sub">EIR blocklist</div></div>
+    <div class="dv-kpi crit"><div class="dv-kpi-label">Suspicious Changes</div><div class="dv-kpi-val">${suspicious}</div><div class="dv-kpi-sub">fraud-flagged</div></div>
+    <div class="dv-kpi"><div class="dv-kpi-label">5G Devices</div><div class="dv-kpi-val">${fiveG}</div><div class="dv-kpi-sub">${((fiveG/Math.max(1,devices.length))*100).toFixed(0)}% of fleet</div></div>`;
+
+  // Manufacturer pie
+  const mfrCounts = {};
+  for (const d of devices) {
+    const tacRef = val(d.cells[D['Device TAC']]);
+    const mfr = tacById[tacRef]?.mfr || 'Unknown';
+    mfrCounts[mfr] = (mfrCounts[mfr] || 0) + 1;
+  }
+  new Chart(document.getElementById('mfrChart'), {
+    type: 'doughnut',
+    data: { labels: Object.keys(mfrCounts),
+            datasets: [{ data: Object.values(mfrCounts), backgroundColor: ['#3b82f6','#10b981','#f59e0b','#ef4444','#8b5cf6','#ec4899','#14b8a6','#f97316','#84cc16','#06b6d4'] }] },
+    options: { plugins: { legend: { position: 'right', labels: { font: { size: 11 } } } }, maintainAspectRatio: false }
+  });
+
+  // Capability bar
+  let volteC = 0, g5C = 0, legacy = 0;
+  for (const d of devices) {
+    const tac = tacById[val(d.cells[D['Device TAC']])];
+    if (!tac) { legacy++; continue; }
+    if (tac.g5) g5C++;
+    else if (tac.volte) volteC++;
+    else legacy++;
+  }
+  new Chart(document.getElementById('capChart'), {
+    type: 'bar',
+    data: { labels: ['5G Ready','VoLTE Only','Legacy / Unknown'],
+            datasets: [{ data: [g5C, volteC, legacy], backgroundColor: ['#10b981','#3b82f6','#9ca3af'] }] },
+    options: { plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } }, indexAxis: 'y', maintainAspectRatio: false }
+  });
+
+  // EIR table
+  document.getElementById('eirCount').textContent = eirs.length;
+  document.getElementById('eirBody').innerHTML = eirs.length === 0 ? `<tr><td colspan="7" class="dv-empty">No EIR entries</td></tr>` :
+    eirs.map(e => {
+      const listType = val(e.cells[E['List Type']]) || '—';
+      const reason = val(e.cells[E['Reason']]) || '—';
+      const lClass = listType === 'Blacklist' ? 'dv-badge-red' : listType === 'Graylist' ? 'dv-badge-amber' : 'dv-badge-green';
+      return `<tr>
+        <td class="dv-mono">${e.cells[E['IMEI']] || '—'}</td>
+        <td><span class="dv-badge ${lClass}">${listType}</span></td>
+        <td>${reason}</td>
+        <td><span class="dv-badge dv-badge-gray">${val(e.cells[E['Device Status']]) || '—'}</span></td>
+        <td>${fmtDate(e.cells[E['Reported At']])}</td>
+        <td class="dv-mono">${e.cells[E['Police Case Number']] || '—'}</td>
+        <td>${e.cells[E['Reported By']] || '—'}</td>
+      </tr>`;
+    }).join('');
+
+  // IMEI changes
+  document.getElementById('chgCount').textContent = changes.length;
+  const sortedChg = changes.slice().sort((a,b)=>(Number(b.cells[C['Changed At']])||0)-(Number(a.cells[C['Changed At']])||0));
+  document.getElementById('chgBody').innerHTML = sortedChg.length === 0 ? `<tr><td colspan="8" class="dv-empty">No IMEI changes recorded</td></tr>` :
+    sortedChg.map(e => {
+      const sus = e.cells[C['Suspicious']] === true;
+      const reviewName = val(e.cells[C['Review Status']]) || '—';
+      const rClass = reviewName === 'Confirmed Fraud' || reviewName === 'Escalated' ? 'dv-badge-red' :
+                     reviewName === 'Pending' ? 'dv-badge-amber' :
+                     reviewName === 'Cleared' || reviewName === 'Reviewed' ? 'dv-badge-green' : 'dv-badge-gray';
+      return `<tr ${sus ? 'class="dv-row-suspect"' : ''}>
+        <td class="dv-mono">${e.cells[C['Event Code']] || '—'}</td>
+        <td class="dv-mono">${e.cells[C['MSISDN']] || '—'}</td>
+        <td class="dv-mono">${e.cells[C['Old IMEI']] || '—'}</td>
+        <td class="dv-mono">${e.cells[C['New IMEI']] || '—'}</td>
+        <td>${daysAgo(e.cells[C['Changed At']])}</td>
+        <td class="dv-num">${(Number(e.cells[C['Hours Since Previous']]) || 0).toFixed(1)}</td>
+        <td>${sus ? '<span class="dv-badge dv-badge-red">⚠ FLAGGED</span>' : '<span class="dv-badge dv-badge-green">clean</span>'}</td>
+        <td><span class="dv-badge ${rClass}">${reviewName}</span></td>
+      </tr>`;
+    }).join('');
+
+  // Top devices (TAC w/ most active)
+  const withActive = tacs.slice().sort((a,b) => (Number(b.cells[T['Active Devices']])||0) - (Number(a.cells[T['Active Devices']])||0));
+  const top = withActive.filter(t => (Number(t.cells[T['Active Devices']])||0) > 0);
+  document.getElementById('topCount').textContent = top.length;
+  document.getElementById('topBody').innerHTML = top.length === 0 ? `<tr><td colspan="6" class="dv-empty">No TACs with active devices</td></tr>` :
+    top.map(t => `<tr>
+      <td><strong>${t.cells[T['Marketing Name']] || '—'}</strong></td>
+      <td>${t.cells[T['Manufacturer']] || '—'}</td>
+      <td>${t.cells[T['Release Year']] || '—'}</td>
+      <td>${t.cells[T['VoLTE Support']] === true ? '<span class="dv-badge dv-badge-green">✓</span>' : '<span class="dv-badge dv-badge-gray">—</span>'}</td>
+      <td>${t.cells[T['5G Support']] === true ? '<span class="dv-badge dv-badge-blue">5G</span>' : '<span class="dv-badge dv-badge-gray">4G</span>'}</td>
+      <td class="dv-num"><strong>${fmtNum(t.cells[T['Active Devices']])}</strong></td>
+    </tr>`).join('');
+}
+
+load().catch(e => {
+  document.body.insertAdjacentHTML('beforeend', `<div class="dv-card" style="color:#991b1b; background:#fef2f2"><strong>Load error:</strong> ${e.message}<pre>${e.stack}</pre></div>`);
+  console.error(e);
+});
+</script>
+</body>
+</html>

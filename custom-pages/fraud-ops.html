@@ -1,0 +1,350 @@
+<script>
+window.ERPAI = {
+  token: 'erp_pat_live_REDACTED',
+  baseUrl: 'https://api.erpai.studio',
+  appId: 'afe8c4540708da6ca9e6fe79',
+  orgName: 'Telecom',
+  appName: 'telecom',
+  theme: 'light'
+};
+</script>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Fraud Operations</title>
+  <link rel="stylesheet" href="/runtime/erpai-pages-runtime.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    body { padding: 20px; font-family: 'Geist Sans', system-ui, -apple-system, sans-serif; }
+    .cb-header { margin-bottom: 20px; display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
+    .cb-title { font-size: 18px; font-weight: 600; color: hsl(var(--foreground)); letter-spacing: -0.02em; margin: 0; }
+    .cb-subtitle { font-size: 13px; color: hsl(var(--muted-foreground)); margin-top: 2px; }
+    .cb-btn { display: inline-flex; align-items: center; gap: 6px; padding: 8px 12px; font-size: 13px; font-weight: 500; border-radius: 8px; border: 1px solid hsl(var(--border)); background: hsl(var(--background)); color: hsl(var(--foreground)); cursor: pointer; }
+    .cb-btn:hover { background: hsl(var(--muted) / 0.4); }
+
+    .cb-stats { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; margin-bottom: 20px; }
+    @media (max-width: 900px) { .cb-stats { grid-template-columns: repeat(2, 1fr); } }
+    .cb-stat { background: hsl(var(--card)); border: 1px solid hsl(var(--border)); border-radius: 12px; padding: 14px; box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05); }
+    .cb-stat-label { font-size: 11px; color: hsl(var(--muted-foreground)); text-transform: uppercase; letter-spacing: 0.04em; font-weight: 600; margin-bottom: 6px; display: flex; align-items: center; gap: 6px; }
+    .cb-stat-val { font-size: 22px; font-weight: 600; font-variant-numeric: tabular-nums; }
+
+    .cb-chart-row { display: grid; grid-template-columns: 1fr 2fr; gap: 16px; margin-bottom: 20px; }
+    @media (max-width: 900px) { .cb-chart-row { grid-template-columns: 1fr; } }
+    .cb-chart-card { padding: 16px; background: hsl(var(--card)); border: 1px solid hsl(var(--border)); border-radius: 12px; box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05); }
+    .cb-chart-head { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; }
+    .cb-chart-title { font-size: 14px; font-weight: 600; margin: 0; color: hsl(var(--foreground)); }
+    .cb-chart-canvas-wrap { position: relative; height: 260px; }
+
+    .cb-section-head { display: flex; align-items: center; gap: 8px; margin: 20px 0 12px; }
+    .cb-section-title { font-size: 14px; font-weight: 600; margin: 0; color: hsl(var(--foreground)); }
+    .cb-section-count { font-size: 12px; color: hsl(var(--muted-foreground)); font-weight: 500; }
+
+    .cb-grid-tables { display: grid; grid-template-columns: 3fr 2fr; gap: 16px; align-items: start; }
+    @media (max-width: 1100px) { .cb-grid-tables { grid-template-columns: 1fr; } }
+
+    .cb-table { width: 100%; border-collapse: collapse; background: hsl(var(--card)); border: 1px solid hsl(var(--border)); border-radius: 12px; overflow: hidden; box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05); }
+    .cb-table thead { background: hsl(var(--muted) / 0.5); }
+    .cb-table th { text-align: left; font-size: 12px; font-weight: 600; color: hsl(var(--muted-foreground)); text-transform: uppercase; letter-spacing: 0.04em; padding: 10px 12px; border-bottom: 1px solid hsl(var(--border)); }
+    .cb-table td { padding: 10px 12px; border-bottom: 1px solid hsl(var(--border)); font-size: 13px; color: hsl(var(--foreground)); vertical-align: middle; }
+    .cb-table tbody tr:last-child td { border-bottom: none; }
+    .cb-table tbody tr { transition: background 0.12s; }
+    .cb-table tbody tr:hover { background: hsl(var(--muted) / 0.4); }
+
+    .cb-empty { padding: 32px 16px; text-align: center; color: hsl(var(--muted-foreground)); font-size: 13px; }
+    .cb-msisdn { font-variant-numeric: tabular-nums; font-family: 'SF Mono', Monaco, Menlo, monospace; font-size: 12px; color: hsl(var(--muted-foreground)); }
+    .cb-code { font-family: 'SF Mono', Monaco, Menlo, monospace; font-size: 12px; font-weight: 500; }
+
+    .cb-pill { display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 600; line-height: 1.6; }
+    .cb-pill-low    { background: #ecfdf5; color: #047857; }
+    .cb-pill-medium { background: #fef9c3; color: #854d0e; }
+    .cb-pill-high   { background: #ffedd5; color: #c2410c; }
+    .cb-pill-critical { background: #fee2e2; color: #b91c1c; }
+    .cb-pill-neutral  { background: hsl(var(--muted) / 0.6); color: hsl(var(--muted-foreground)); }
+    .cb-pill-on { background: #dcfce7; color: #166534; }
+    .cb-pill-off { background: #f3f4f6; color: #6b7280; }
+
+    .cb-score { font-weight: 600; font-variant-numeric: tabular-nums; }
+
+    .cb-rule-list { list-style: none; margin: 0; padding: 0; }
+    .cb-rule-item { padding: 10px 12px; border-bottom: 1px solid hsl(var(--border)); display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
+    .cb-rule-item:last-child { border-bottom: none; }
+    .cb-rule-name { font-size: 13px; font-weight: 500; color: hsl(var(--foreground)); }
+    .cb-rule-sub { font-size: 11px; color: hsl(var(--muted-foreground)); margin-top: 2px; display: flex; gap: 8px; flex-wrap: wrap; }
+    .cb-rule-meta { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
+  </style>
+</head>
+<body>
+  <div class="cb-header">
+    <div>
+      <h1 class="cb-title">Fraud Operations</h1>
+      <p class="cb-subtitle">Real-time fraud detection and investigation queue</p>
+    </div>
+    <button class="cb-btn" onclick="window.location.reload()">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M3 21v-5h5"/></svg>
+      Refresh
+    </button>
+  </div>
+
+  <div class="cb-stats" id="stats"></div>
+
+  <div class="cb-chart-row">
+    <div class="cb-chart-card">
+      <div class="cb-chart-head">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="color: hsl(var(--primary));"><path d="M12 2 2 22h20L12 2z"/><line x1="12" x2="12" y1="9" y2="13"/><line x1="12" x2="12.01" y1="17" y2="17"/></svg>
+        <h2 class="cb-chart-title">Alerts by Severity</h2>
+      </div>
+      <div class="cb-chart-canvas-wrap"><canvas id="sevChart"></canvas></div>
+    </div>
+    <div class="cb-chart-card">
+      <div class="cb-chart-head">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="color: hsl(var(--primary));"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+        <h2 class="cb-chart-title">Alert Trend — Last 14 Days</h2>
+      </div>
+      <div class="cb-chart-canvas-wrap"><canvas id="trendChart"></canvas></div>
+    </div>
+  </div>
+
+  <div class="cb-grid-tables">
+    <div>
+      <div class="cb-section-head">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="color: hsl(var(--primary));"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="M12 8v4"/><path d="M12 16h.01"/></svg>
+        <h2 class="cb-section-title">Active Fraud Alerts</h2>
+        <span class="cb-section-count" id="alert-count"></span>
+      </div>
+      <div id="alerts-wrap"></div>
+    </div>
+
+    <div>
+      <div class="cb-section-head">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="color: hsl(var(--primary));"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" x2="8" y1="13" y2="13"/><line x1="16" x2="8" y1="17" y2="17"/></svg>
+        <h2 class="cb-section-title">Fraud Rules</h2>
+        <span class="cb-section-count" id="rule-count"></span>
+      </div>
+      <div class="cb-chart-card" style="padding: 0;">
+        <ul class="cb-rule-list" id="rules-list"></ul>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const SEV_MAP = { 1: 'Low', 2: 'Medium', 3: 'High', 4: 'Critical' };
+    const SEV_COLOR = { 1: '#10b981', 2: '#f59e0b', 3: '#f97316', 4: '#ef4444' };
+    const SEV_PILL = { 1: 'cb-pill-low', 2: 'cb-pill-medium', 3: 'cb-pill-high', 4: 'cb-pill-critical' };
+    const STATUS_MAP = { 1: 'New', 2: 'Under Investigation', 3: 'Confirmed Fraud', 4: 'False Positive', 5: 'Resolved', 6: 'Auto-Closed' };
+    const ACTION_MAP = { 1: 'None', 2: 'Subscription Suspended', 3: 'Transaction Blocked', 4: 'Customer Notified', 5: 'Throttled' };
+    const RULE_TYPE_MAP = { 1: 'Velocity', 2: 'Amount Threshold', 3: 'Geography', 4: 'Device Change', 5: 'SIM Swap', 6: 'Dealer Anomaly', 7: 'Roaming Anomaly', 8: 'IMEI Change', 9: 'Recharge Pattern', 10: 'Balance Depletion' };
+    const RULE_ACTION_MAP = { 1: 'Alert Only', 2: 'Suspend', 3: 'Flag For Review', 4: 'Block Transaction', 5: 'Throttle', 6: 'Notify Customer' };
+
+    function esc(s) { if (s === null || s === undefined) return ''; return String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
+    function asArrayFirst(v) {
+      if (v === null || v === undefined || v === '') return null;
+      if (Array.isArray(v)) return v[0] ?? null;
+      const s = String(v).trim();
+      if (s.startsWith('[') && s.endsWith(']')) {
+        const inner = s.slice(1, -1).trim();
+        if (!inner) return null;
+        return Number(inner.split(',')[0]) || inner.split(',')[0];
+      }
+      const n = Number(s);
+      return Number.isFinite(n) ? n : s;
+    }
+    function fmtNum(n) { return (Number(n) || 0).toLocaleString(); }
+    function fmtCur(n) { const v = Number(n) || 0; return '$' + v.toLocaleString(undefined, { maximumFractionDigits: 0 }); }
+    function fmtDate(s) { if (!s) return '—'; const d = new Date(s); if (isNaN(+d)) return '—'; return d.toISOString().slice(0, 10) + ' ' + d.toISOString().slice(11, 16); }
+
+    async function sql(q) {
+      const r = await fetch(`${window.ERPAI.baseUrl}/v1/agent/app/sql/execute`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${window.ERPAI.token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ appId: window.ERPAI.appId, sqlQuery: q, limit: 500 })
+      });
+      const j = await r.json();
+      if (!j.success) { console.warn('SQL failed:', q, j); return []; }
+      return j.data?.rows || [];
+    }
+
+    function renderStats(s) {
+      const stat = (label, value, icon, color) => `
+        <div class="cb-stat">
+          <div class="cb-stat-label" style="color:${color}">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${icon}</svg>
+            ${label}
+          </div>
+          <div class="cb-stat-val" style="color:${color}">${value}</div>
+        </div>`;
+      document.getElementById('stats').innerHTML = [
+        stat('Open Alerts', fmtNum(s.open), '<path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" x2="12" y1="9" y2="13"/><line x1="12" x2="12.01" y1="17" y2="17"/>', 'hsl(var(--primary))'),
+        stat('Critical Alerts', fmtNum(s.critical), '<circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/>', s.critical > 0 ? '#ef4444' : 'hsl(var(--muted-foreground))'),
+        stat('Confirmed (30d)', fmtNum(s.confirmed30), '<polyline points="20 6 9 17 4 12"/>', '#f97316'),
+        stat('Loss Estimate (30d)', fmtCur(s.loss30), '<line x1="12" x2="12" y1="1" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>', '#ef4444'),
+        stat('Rules Active', fmtNum(s.rulesActive), '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" x2="8" y1="13" y2="13"/>', '#3b82f6'),
+      ].join('');
+    }
+
+    function renderSevChart(sevCounts) {
+      const ctx = document.getElementById('sevChart');
+      const labels = [1, 2, 3, 4].map(i => SEV_MAP[i]);
+      const data = [1, 2, 3, 4].map(i => sevCounts[i] || 0);
+      const colors = [1, 2, 3, 4].map(i => SEV_COLOR[i]);
+      new Chart(ctx, {
+        type: 'bar',
+        data: { labels, datasets: [{ data, backgroundColor: colors, borderRadius: 6, barThickness: 28 }] },
+        options: {
+          responsive: true, maintainAspectRatio: false,
+          plugins: { legend: { display: false }, tooltip: { backgroundColor: 'rgba(17,24,39,0.9)' } },
+          scales: {
+            x: { grid: { display: false }, ticks: { color: '#6b7280', font: { size: 11 } } },
+            y: { beginAtZero: true, ticks: { color: '#6b7280', font: { size: 11 }, precision: 0 }, grid: { color: 'rgba(0,0,0,0.05)' } }
+          }
+        }
+      });
+    }
+
+    function renderTrend(trendRows) {
+      const labels = [];
+      const counts = [];
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const byDay = new Map(trendRows.map(r => [String(r.d).slice(0, 10), Number(r.c) || 0]));
+      for (let i = 13; i >= 0; i--) {
+        const d = new Date(today);
+        d.setDate(d.getDate() - i);
+        const k = d.toISOString().slice(0, 10);
+        labels.push(k.slice(5));
+        counts.push(byDay.get(k) || 0);
+      }
+      const ctx = document.getElementById('trendChart');
+      new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels,
+          datasets: [{
+            label: 'Alerts',
+            data: counts,
+            borderColor: '#ef4444',
+            backgroundColor: 'rgba(239,68,68,0.1)',
+            tension: 0.35, fill: true, pointRadius: 3, borderWidth: 2
+          }]
+        },
+        options: {
+          responsive: true, maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: {
+            x: { grid: { display: false }, ticks: { color: '#6b7280', font: { size: 11 } } },
+            y: { beginAtZero: true, ticks: { color: '#6b7280', font: { size: 11 }, precision: 0 }, grid: { color: 'rgba(0,0,0,0.05)' } }
+          }
+        }
+      });
+    }
+
+    function renderAlerts(alerts) {
+      document.getElementById('alert-count').textContent = `${alerts.length} active`;
+      if (!alerts.length) {
+        document.getElementById('alerts-wrap').innerHTML = `<div class="cb-chart-card"><div class="cb-empty">No active alerts. The detection engine is running; alerts will appear here when triggered.</div></div>`;
+        return;
+      }
+      const rows = alerts.map(a => {
+        const sev = asArrayFirst(a.severity);
+        const st = asArrayFirst(a.status);
+        const act = asArrayFirst(a.auto_action_taken);
+        const sevLabel = SEV_MAP[sev] || '—';
+        const sevCls = SEV_PILL[sev] || 'cb-pill-neutral';
+        const stLabel = STATUS_MAP[st] || '—';
+        const actLabel = ACTION_MAP[act] || '—';
+        return `<tr>
+          <td><span class="cb-code">${esc(a.alert_code || '—')}</span></td>
+          <td>${esc(fmtDate(a.triggered_at))}</td>
+          <td><span class="cb-msisdn">${esc(a.msisdn || '—')}</span></td>
+          <td><span class="cb-pill ${sevCls}">${esc(sevLabel)}</span></td>
+          <td><span class="cb-pill cb-pill-neutral">${esc(stLabel)}</span></td>
+          <td><span class="cb-score">${a.score !== undefined && a.score !== null && a.score !== '' ? esc(a.score) : '—'}</span></td>
+          <td>${esc(actLabel)}</td>
+          <td>${esc(a.assigned_to || '—')}</td>
+        </tr>`;
+      }).join('');
+      document.getElementById('alerts-wrap').innerHTML = `
+        <table class="cb-table">
+          <thead><tr>
+            <th>Alert Code</th><th>Triggered At</th><th>MSISDN</th>
+            <th>Severity</th><th>Status</th><th>Score</th>
+            <th>Auto Action</th><th>Assigned To</th>
+          </tr></thead>
+          <tbody>${rows}</tbody>
+        </table>`;
+    }
+
+    function renderRules(rules) {
+      document.getElementById('rule-count').textContent = `${rules.length} total`;
+      if (!rules.length) {
+        document.getElementById('rules-list').innerHTML = `<li class="cb-empty">No fraud rules defined yet.</li>`;
+        return;
+      }
+      rules.sort((a, b) => (Number(b.enabled) || 0) - (Number(a.enabled) || 0) || (Number(a.priority) || 0) - (Number(b.priority) || 0));
+      document.getElementById('rules-list').innerHTML = rules.map(r => {
+        const type = asArrayFirst(r.rule_type);
+        const action = asArrayFirst(r.action);
+        const sev = asArrayFirst(r.severity);
+        const enabled = r.enabled === true || r.enabled === 1 || r.enabled === '1' || r.enabled === 'true';
+        const sevCls = SEV_PILL[sev] || 'cb-pill-neutral';
+        return `<li class="cb-rule-item">
+          <div style="min-width: 0; flex: 1;">
+            <div class="cb-rule-name">${esc(r.rule_name || r.rule_code || '—')}</div>
+            <div class="cb-rule-sub">
+              <span class="cb-code">${esc(r.rule_code || '')}</span>
+              <span>${esc(RULE_TYPE_MAP[type] || '—')}</span>
+              <span>Threshold: ${r.threshold_value !== undefined && r.threshold_value !== null && r.threshold_value !== '' ? esc(r.threshold_value) : '—'}</span>
+              <span>Action: ${esc(RULE_ACTION_MAP[action] || '—')}</span>
+            </div>
+          </div>
+          <div class="cb-rule-meta">
+            <span class="cb-pill ${enabled ? 'cb-pill-on' : 'cb-pill-off'}">${enabled ? 'Enabled' : 'Disabled'}</span>
+            <span class="cb-pill ${sevCls}">${esc(SEV_MAP[sev] || '—')}</span>
+          </div>
+        </li>`;
+      }).join('');
+    }
+
+    async function main() {
+      document.getElementById('stats').innerHTML = '<div class="cb-stat">Loading…</div>';
+
+      const openStatuses = '1,2'; // New, Under Investigation
+      const [openRows, critRows, confirmedRows, lossRows, rulesActiveRows, sevRows, trendRows, alerts, rules] = await Promise.all([
+        sql(`SELECT count() AS c FROM a1776271424351_fraud_alerts WHERE _deleted=0 AND status IN ('[1]','[2]')`),
+        sql(`SELECT count() AS c FROM a1776271424351_fraud_alerts WHERE _deleted=0 AND severity = '[4]'`),
+        sql(`SELECT count() AS c FROM a1776271424351_fraud_alerts WHERE _deleted=0 AND status = '[3]' AND triggered_at >= now() - INTERVAL 30 DAY`),
+        sql(`SELECT sum(loss_estimate) AS s FROM a1776271424351_fraud_alerts WHERE _deleted=0 AND status = '[3]' AND triggered_at >= now() - INTERVAL 30 DAY`),
+        sql(`SELECT count() AS c FROM a1776271424351_fraud_rules_1 WHERE _deleted=0 AND enabled = true`),
+        sql(`SELECT severity AS s, count() AS c FROM a1776271424351_fraud_alerts WHERE _deleted=0 GROUP BY severity`),
+        sql(`SELECT toDate(triggered_at) AS d, count() AS c FROM a1776271424351_fraud_alerts WHERE _deleted=0 AND triggered_at >= now() - INTERVAL 14 DAY GROUP BY d ORDER BY d`),
+        sql(`SELECT alert_code, triggered_at, msisdn, severity, status, score, auto_action_taken, assigned_to FROM a1776271424351_fraud_alerts WHERE _deleted=0 ORDER BY triggered_at DESC LIMIT 200`),
+        sql(`SELECT rule_code, rule_name, rule_type, threshold_value, action, severity, enabled, priority FROM a1776271424351_fraud_rules_1 WHERE _deleted=0 ORDER BY priority ASC LIMIT 200`),
+      ]);
+
+      const sevCounts = {};
+      for (const r of sevRows) {
+        const k = asArrayFirst(r.s);
+        if (k != null) sevCounts[k] = (sevCounts[k] || 0) + (Number(r.c) || 0);
+      }
+
+      renderStats({
+        open: Number(openRows[0]?.c) || 0,
+        critical: Number(critRows[0]?.c) || 0,
+        confirmed30: Number(confirmedRows[0]?.c) || 0,
+        loss30: Number(lossRows[0]?.s) || 0,
+        rulesActive: Number(rulesActiveRows[0]?.c) || 0,
+      });
+      renderSevChart(sevCounts);
+      renderTrend(trendRows);
+      renderAlerts(alerts);
+      renderRules(rules);
+    }
+
+    main().catch(err => {
+      console.error(err);
+      document.getElementById('stats').innerHTML = `<div class="cb-stat" style="color:#ef4444;">Error: ${String(err.message || err)}</div>`;
+    });
+  </script>
+</body>
+</html>

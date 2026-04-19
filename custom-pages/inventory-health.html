@@ -1,0 +1,263 @@
+<script>
+window.ERPAI = {
+  token: 'erp_pat_live_REDACTED',
+  baseUrl: 'https://api.erpai.studio',
+  appId: 'afe8c4540708da6ca9e6fe79',
+  orgName: 'Telecom',
+  appName: 'telecom',
+  theme: 'light'
+};
+</script>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Inventory Health</title>
+  <link rel="stylesheet" href="/runtime/erpai-pages-runtime.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    body { padding: 20px; font-family: 'Geist Sans', system-ui, -apple-system, sans-serif; }
+    .cb-header { margin-bottom: 20px; display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+    .cb-title { font-size: 20px; font-weight: 600; color: hsl(var(--foreground)); letter-spacing: -0.02em; margin: 0; }
+    .cb-subtitle { font-size: 13px; color: hsl(var(--muted-foreground)); margin-top: 4px; max-width: 760px; }
+    .cb-btn { padding: 8px 12px; font-size: 13px; font-weight: 500; border-radius: 8px; border: 1px solid hsl(var(--border)); background: hsl(var(--background)); cursor: pointer; }
+
+    .cb-stats { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; margin-bottom: 20px; }
+    @media (max-width: 1100px) { .cb-stats { grid-template-columns: repeat(3, 1fr); } }
+    @media (max-width: 700px)  { .cb-stats { grid-template-columns: repeat(2, 1fr); } }
+    .cb-stat { background: hsl(var(--card)); border: 1px solid hsl(var(--border)); border-radius: 12px; padding: 14px; }
+    .cb-stat-label { font-size: 11px; color: hsl(var(--muted-foreground)); text-transform: uppercase; letter-spacing: 0.04em; font-weight: 600; margin-bottom: 6px; }
+    .cb-stat-val { font-size: 22px; font-weight: 600; font-variant-numeric: tabular-nums; line-height: 1.1; }
+    .cb-stat-sub { font-size: 11px; color: hsl(var(--muted-foreground)); margin-top: 4px; }
+    .cb-stat.alert { border-color: #ef4444; background: rgba(239, 68, 68, 0.05); }
+    .cb-stat.alert .cb-stat-val { color: #ef4444; }
+
+    .cb-section-head { display: flex; align-items: center; gap: 8px; margin: 24px 0 12px; }
+    .cb-section-title { font-size: 14px; font-weight: 600; margin: 0; }
+    .cb-section-sub { font-size: 12px; color: hsl(var(--muted-foreground)); font-weight: 500; }
+
+    .cb-chart-row { display: grid; grid-template-columns: 2fr 1fr 2fr; gap: 16px; margin-bottom: 20px; }
+    @media (max-width: 1100px) { .cb-chart-row { grid-template-columns: 1fr; } }
+    .cb-chart-card { padding: 16px; background: hsl(var(--card)); border: 1px solid hsl(var(--border)); border-radius: 12px; }
+    .cb-chart-title { font-size: 13px; font-weight: 600; margin: 0 0 12px 0; }
+    .cb-chart-canvas-wrap { position: relative; height: 280px; }
+
+    .cb-twocol { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px; }
+    @media (max-width: 900px) { .cb-twocol { grid-template-columns: 1fr; } }
+
+    .cb-table { width: 100%; border-collapse: collapse; background: hsl(var(--card)); border: 1px solid hsl(var(--border)); border-radius: 12px; overflow: hidden; }
+    .cb-table thead { background: hsl(var(--muted) / 0.5); }
+    .cb-table th { text-align: left; font-size: 11px; font-weight: 600; color: hsl(var(--muted-foreground)); text-transform: uppercase; letter-spacing: 0.04em; padding: 10px 12px; border-bottom: 1px solid hsl(var(--border)); }
+    .cb-table td { padding: 10px 12px; border-bottom: 1px solid hsl(var(--border)); font-size: 13px; vertical-align: middle; }
+    .cb-table tbody tr:last-child td { border-bottom: none; }
+    .cb-table tbody tr:hover { background: hsl(var(--muted) / 0.4); }
+
+    .cb-empty { padding: 32px 16px; text-align: center; color: hsl(var(--muted-foreground)); font-size: 13px; background: hsl(var(--card)); border: 1px dashed hsl(var(--border)); border-radius: 12px; }
+    .cb-muted { color: hsl(var(--muted-foreground)); }
+    .cb-pill { display: inline-flex; align-items: center; padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 600; }
+    .cb-pill-ok { background: #dcfce7; color: #166534; }
+    .cb-pill-warn { background: #fef9c3; color: #854d0e; }
+    .cb-pill-bad { background: #fee2e2; color: #b91c1c; }
+
+    .cb-sim-types { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+    @media (max-width: 700px) { .cb-sim-types { grid-template-columns: 1fr; } }
+    .cb-sim-card { padding: 14px; background: hsl(var(--card)); border: 1px solid hsl(var(--border)); border-radius: 12px; }
+    .cb-sim-card-label { font-size: 11px; color: hsl(var(--muted-foreground)); text-transform: uppercase; letter-spacing: 0.04em; font-weight: 600; margin-bottom: 6px; }
+    .cb-sim-card-val { font-size: 20px; font-weight: 600; font-variant-numeric: tabular-nums; }
+    .cb-sim-card-sub { font-size: 11px; color: hsl(var(--muted-foreground)); margin-top: 4px; }
+  </style>
+</head>
+<body>
+  <div class="cb-header">
+    <div>
+      <h1 class="cb-title">Inventory Health</h1>
+      <p class="cb-subtitle">SIM, eSIM, and CPE stock posture across warehouses — low-stock alerts, shrinkage, and activation velocity.</p>
+    </div>
+    <button class="cb-btn" onclick="window.location.reload()">Refresh</button>
+  </div>
+
+  <div class="cb-section-head"><h2 class="cb-section-title">KPIs</h2><span class="cb-section-sub" id="cb-kpi-sub">Loading…</span></div>
+  <div class="cb-stats" id="cb-stats"></div>
+
+  <div class="cb-section-head"><h2 class="cb-section-title">SIM Form Factor</h2><span class="cb-section-sub">Physical vs eSIM vs iSIM</span></div>
+  <div class="cb-sim-types" id="cb-sim-types"></div>
+
+  <div class="cb-section-head"><h2 class="cb-section-title">Distribution</h2></div>
+  <div class="cb-chart-row">
+    <div class="cb-chart-card">
+      <h3 class="cb-chart-title">Stock by Warehouse Location</h3>
+      <div class="cb-chart-canvas-wrap"><canvas id="ch-loc"></canvas></div>
+    </div>
+    <div class="cb-chart-card">
+      <h3 class="cb-chart-title">Stock by Status</h3>
+      <div class="cb-chart-canvas-wrap"><canvas id="ch-status"></canvas></div>
+    </div>
+    <div class="cb-chart-card">
+      <h3 class="cb-chart-title">Activations (last 30 days)</h3>
+      <div class="cb-chart-canvas-wrap"><canvas id="ch-act"></canvas></div>
+    </div>
+  </div>
+
+  <div class="cb-twocol">
+    <div>
+      <div class="cb-section-head"><h2 class="cb-section-title">Low Stock Alerts</h2></div>
+      <div id="cb-low-wrap"><div class="cb-empty">Loading…</div></div>
+    </div>
+    <div>
+      <div class="cb-section-head"><h2 class="cb-section-title">CPE Inventory Summary</h2></div>
+      <div id="cb-cpe-wrap"><div class="cb-empty">Loading…</div></div>
+    </div>
+  </div>
+
+  <script src="/runtime/erpai-pages-runtime.js"></script>
+  <script>
+    let TBL = 'a1776271424351_sim_inventory';
+    const CPE_TBL_TRY = ['a1776271424351_devices', 'a1776271424351_cpe_inventory'];
+
+    const esc = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+    const fmtInt = n => n == null || isNaN(n) ? '—' : Number(n).toLocaleString();
+
+    async function sql(q) {
+      try {
+        const r = await fetch(`${window.ERPAI.baseUrl}/v1/agent/app/sql/execute`, {
+          method:'POST',
+          headers:{'Authorization':`Bearer ${window.ERPAI.token}`,'Content-Type':'application/json'},
+          body: JSON.stringify({ appId: window.ERPAI.appId, sqlQuery: q, limit: 500 })
+        });
+        const j = await r.json();
+        if (!j.success) {
+          if (j.message && /Unknown table/i.test(j.message) && !q.includes(TBL+'_1')) {
+            const retry = q.replaceAll(TBL, TBL+'_1'); TBL = TBL+'_1'; return sql(retry);
+          }
+          console.warn('SQL fail:', j.message, q); return null;
+        }
+        return j.data.rows;
+      } catch (e) { console.warn(e); return null; }
+    }
+
+    const SIM_STATUS = { '[1]':'In Stock','[2]':'Allocated','[3]':'Activated','[4]':'Damaged','[5]':'Retired' };
+    const SIM_TYPE = { '[1]':'Physical','[2]':'eSIM','[3]':'iSIM' };
+
+    async function loadKpis() {
+      // argMax per row then aggregate
+      const stock = await sql(`SELECT count() AS v FROM (SELECT argMax(status,_version) AS st FROM ${TBL} WHERE _deleted=0 GROUP BY _id) WHERE st='[1]'`);
+      const total = await sql(`SELECT count() AS v FROM (SELECT _id FROM ${TBL} WHERE _deleted=0 GROUP BY _id)`);
+      const activated = await sql(`SELECT count() AS v FROM (SELECT argMax(status,_version) AS st FROM ${TBL} WHERE _deleted=0 GROUP BY _id) WHERE st='[3]'`);
+      const lowLoc = await sql(`SELECT count() AS v FROM (SELECT loc, count() AS n FROM (SELECT argMax(warehouse_location,_version) AS loc, argMax(status,_version) AS st FROM ${TBL} WHERE _deleted=0 GROUP BY _id) WHERE st='[1]' GROUP BY loc HAVING n < 10)`);
+      const reorder = await sql(`SELECT count() AS v FROM (SELECT argMax(reorder_threshold,_version) AS t, argMax(reorder_alert_sent_at,_version) AS a FROM ${TBL} WHERE _deleted=0 GROUP BY _id) WHERE t>0 AND toDate(a) > toDate('1970-01-02')`);
+      const shrink = await sql(`SELECT count() AS v FROM (SELECT argMax(status,_version) AS st, argMax(updated_at,_version) AS u FROM ${TBL} WHERE _deleted=0 GROUP BY _id) WHERE st='[4]' AND toYear(u)=toYear(today())`);
+
+      const totalN = total && total[0] ? Number(total[0].v) : 0;
+      const actN = activated && activated[0] ? Number(activated[0].v) : 0;
+      const pct = totalN > 0 ? (actN*100/totalN) : null;
+
+      const kpis = [
+        { label:'Total SIMs In Stock', val: fmtInt(stock && stock[0] ? stock[0].v : 0) },
+        { label:'Activated %', val: pct == null ? '—' : pct.toFixed(1) + '%' },
+        { label:'Low-Stock Locations', val: fmtInt(lowLoc && lowLoc[0] ? lowLoc[0].v : 0), alert: (lowLoc && lowLoc[0] && Number(lowLoc[0].v) > 0) },
+        { label:'Pending Reorders', val: fmtInt(reorder && reorder[0] ? reorder[0].v : 0) },
+        { label:'Shrinkage YTD', val: fmtInt(shrink && shrink[0] ? shrink[0].v : 0) }
+      ];
+      document.getElementById('cb-stats').innerHTML = kpis.map(k => `<div class="cb-stat ${k.alert?'alert':''}"><div class="cb-stat-label">${k.label}</div><div class="cb-stat-val">${k.val}</div></div>`).join('');
+      document.getElementById('cb-kpi-sub').textContent = 'Refreshed just now';
+    }
+
+    async function loadSimTypes() {
+      const rows = await sql(`SELECT t, count() AS n FROM (SELECT argMax(sim_type,_version) AS t FROM ${TBL} WHERE _deleted=0 GROUP BY _id) GROUP BY t`);
+      const el = document.getElementById('cb-sim-types');
+      const total = (rows||[]).reduce((s,r)=>s+Number(r.n),0);
+      const types = ['[1]','[2]','[3]'];
+      el.innerHTML = types.map(t => {
+        const row = (rows||[]).find(r => r.t === t);
+        const n = row ? Number(row.n) : 0;
+        const pct = total > 0 ? (n*100/total).toFixed(1)+'%' : '—';
+        return `<div class="cb-sim-card"><div class="cb-sim-card-label">${SIM_TYPE[t]}</div><div class="cb-sim-card-val">${fmtInt(n)}</div><div class="cb-sim-card-sub">${pct} of total</div></div>`;
+      }).join('');
+    }
+
+    async function loadLocChart() {
+      const rows = await sql(`SELECT loc, count() AS n FROM (SELECT argMax(warehouse_location,_version) AS loc, argMax(status,_version) AS st FROM ${TBL} WHERE _deleted=0 GROUP BY _id) WHERE st='[1]' GROUP BY loc ORDER BY n DESC LIMIT 10`);
+      const el = document.getElementById('ch-loc').parentElement;
+      if (!rows || !rows.length) { el.innerHTML = '<div class="cb-empty" style="height:280px;display:flex;align-items:center;justify-content:center;">No stock data</div>'; return; }
+      new Chart(document.getElementById('ch-loc'), {
+        type:'bar',
+        data:{ labels: rows.map(r=>r.loc||'—'), datasets:[{ label:'In Stock', data: rows.map(r=>Number(r.n)), backgroundColor:'#3b82f6' }]},
+        options:{ indexAxis:'y', responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}}, scales:{x:{beginAtZero:true}} }
+      });
+    }
+
+    async function loadStatusChart() {
+      const rows = await sql(`SELECT st, count() AS n FROM (SELECT argMax(status,_version) AS st FROM ${TBL} WHERE _deleted=0 GROUP BY _id) GROUP BY st`);
+      const el = document.getElementById('ch-status').parentElement;
+      if (!rows || !rows.length) { el.innerHTML = '<div class="cb-empty" style="height:280px;display:flex;align-items:center;justify-content:center;">No data</div>'; return; }
+      new Chart(document.getElementById('ch-status'), {
+        type:'doughnut',
+        data:{ labels: rows.map(r=>SIM_STATUS[r.st]||r.st||'—'), datasets:[{ data: rows.map(r=>Number(r.n)), backgroundColor:['#3b82f6','#f59e0b','#10b981','#ef4444','#6b7280'] }]},
+        options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{position:'bottom',labels:{boxWidth:10,font:{size:11}}}} }
+      });
+    }
+
+    async function loadActChart() {
+      // Use subscriptions as proxy for SIM activation events
+      const rows = await sql(`SELECT d, count() AS n FROM (SELECT _id, toDate(argMax(updated_at,_version)) AS d, argMax(status,_version) AS st FROM ${TBL} WHERE _deleted=0 AND updated_at > now() - INTERVAL 30 DAY GROUP BY _id) WHERE st='[3]' GROUP BY d ORDER BY d`);
+      const el = document.getElementById('ch-act').parentElement;
+      if (!rows || !rows.length) { el.innerHTML = '<div class="cb-empty" style="height:280px;display:flex;align-items:center;justify-content:center;">No activations in 30d</div>'; return; }
+      new Chart(document.getElementById('ch-act'), {
+        type:'line',
+        data:{ labels: rows.map(r=>r.d), datasets:[{ label:'Activations', data: rows.map(r=>Number(r.n)), borderColor:'#10b981', backgroundColor:'rgba(16,185,129,0.15)', tension:0.3, fill:true }]},
+        options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}}, scales:{y:{beginAtZero:true}} }
+      });
+    }
+
+    async function loadLowStock() {
+      const rows = await sql(`SELECT loc, count() AS n, max(alert) AS last_alert FROM (SELECT argMax(warehouse_location,_version) AS loc, argMax(status,_version) AS st, argMax(reorder_alert_sent_at,_version) AS alert, argMax(reorder_threshold,_version) AS thr FROM ${TBL} WHERE _deleted=0 GROUP BY _id) WHERE st='[1]' GROUP BY loc ORDER BY n ASC LIMIT 10`);
+      const el = document.getElementById('cb-low-wrap');
+      if (!rows || !rows.length) { el.innerHTML = '<div class="cb-empty">No low-stock alerts.</div>'; return; }
+      el.innerHTML = `<table class="cb-table"><thead><tr><th>Location</th><th>Current</th><th>Threshold</th><th>Last Alert</th></tr></thead><tbody>${rows.map(r=>{
+        const n = Number(r.n);
+        const pill = n < 10 ? '<span class="cb-pill cb-pill-bad">Low</span>' : (n<25 ? '<span class="cb-pill cb-pill-warn">Watch</span>' : '<span class="cb-pill cb-pill-ok">OK</span>');
+        return `<tr><td>${esc(r.loc||'—')} ${pill}</td><td>${fmtInt(n)}</td><td class="cb-muted">10</td><td class="cb-muted">${r.last_alert && !String(r.last_alert).startsWith('1970') ? esc(r.last_alert) : '—'}</td></tr>`;
+      }).join('')}</tbody></table>`;
+    }
+
+    async function loadCpe() {
+      // Try Devices table summary
+      let rows = null;
+      for (const t of CPE_TBL_TRY) {
+        rows = await sqlRaw(`SELECT argMax(device_type,_version) AS t, argMax(status,_version) AS s FROM ${t} WHERE _deleted=0 GROUP BY _id`);
+        if (rows != null) break;
+      }
+      const el = document.getElementById('cb-cpe-wrap');
+      if (!rows || !rows.length) { el.innerHTML = '<div class="cb-empty">No CPE records found.</div>'; return; }
+      const byType = {}; const byStatus = {};
+      rows.forEach(r => { const t = r.t||'—', s = r.s||'—'; byType[t]=(byType[t]||0)+1; byStatus[s]=(byStatus[s]||0)+1; });
+      const typeRows = Object.entries(byType).sort((a,b)=>b[1]-a[1]).slice(0,5);
+      const statRows = Object.entries(byStatus).sort((a,b)=>b[1]-a[1]).slice(0,5);
+      el.innerHTML = `<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+        <table class="cb-table"><thead><tr><th>Type</th><th>Count</th></tr></thead><tbody>${typeRows.map(([k,v])=>`<tr><td>${esc(k)}</td><td>${fmtInt(v)}</td></tr>`).join('')}</tbody></table>
+        <table class="cb-table"><thead><tr><th>Status</th><th>Count</th></tr></thead><tbody>${statRows.map(([k,v])=>`<tr><td>${esc(k)}</td><td>${fmtInt(v)}</td></tr>`).join('')}</tbody></table>
+      </div>`;
+    }
+
+    async function sqlRaw(q) {
+      try {
+        const r = await fetch(`${window.ERPAI.baseUrl}/v1/agent/app/sql/execute`, {
+          method:'POST',
+          headers:{'Authorization':`Bearer ${window.ERPAI.token}`,'Content-Type':'application/json'},
+          body: JSON.stringify({ appId: window.ERPAI.appId, sqlQuery: q, limit: 500 })
+        });
+        const j = await r.json();
+        if (!j.success) return null;
+        return j.data.rows;
+      } catch { return null; }
+    }
+
+    async function main() {
+      await loadKpis();
+      await Promise.all([loadSimTypes(), loadLocChart(), loadStatusChart(), loadActChart(), loadLowStock(), loadCpe()]);
+    }
+    main();
+  </script>
+</body>
+</html>

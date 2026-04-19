@@ -1,0 +1,234 @@
+<script>
+window.ERPAI = {
+  token: 'erp_pat_live_REDACTED',
+  baseUrl: 'https://api.erpai.studio',
+  appId: 'afe8c4540708da6ca9e6fe79',
+  orgName: 'Telecom',
+  appName: 'telecom',
+  theme: 'light'
+};
+</script>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Manager Home</title>
+  <link rel="stylesheet" href="/runtime/erpai-pages-runtime.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    body { padding: 20px; font-family: 'Geist Sans', system-ui, -apple-system, sans-serif; }
+    .cb-header { margin-bottom: 20px; display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+    .cb-title { font-size: 20px; font-weight: 600; color: hsl(var(--foreground)); letter-spacing: -0.02em; margin: 0; }
+    .cb-subtitle { font-size: 13px; color: hsl(var(--muted-foreground)); margin-top: 4px; max-width: 720px; }
+    .cb-header-right { display: flex; align-items: center; gap: 10px; }
+    .cb-date { font-size: 13px; color: hsl(var(--muted-foreground)); font-variant-numeric: tabular-nums; }
+    .cb-btn { display: inline-flex; align-items: center; gap: 6px; padding: 8px 12px; font-size: 13px; font-weight: 500; border-radius: 8px; border: 1px solid hsl(var(--border)); background: hsl(var(--background)); color: hsl(var(--foreground)); cursor: pointer; }
+    .cb-btn:hover { background: hsl(var(--muted) / 0.4); }
+
+    .cb-kpis { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; margin-bottom: 24px; }
+    @media (max-width: 1100px) { .cb-kpis { grid-template-columns: repeat(3, 1fr); } }
+    @media (max-width: 700px) { .cb-kpis { grid-template-columns: repeat(2, 1fr); } }
+    .cb-kpi { background: hsl(var(--card)); border: 1px solid hsl(var(--border)); border-radius: 12px; padding: 14px; box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05); }
+    .cb-kpi-label { font-size: 11px; color: hsl(var(--muted-foreground)); text-transform: uppercase; letter-spacing: 0.04em; font-weight: 600; margin-bottom: 6px; }
+    .cb-kpi-val { font-size: 22px; font-weight: 600; font-variant-numeric: tabular-nums; color: hsl(var(--foreground)); line-height: 1.1; }
+    .cb-kpi-sub { font-size: 11px; color: hsl(var(--muted-foreground)); margin-top: 4px; }
+    .cb-kpi.alert { border-color: #ef4444; background: rgba(239, 68, 68, 0.05); }
+    .cb-kpi.alert .cb-kpi-val { color: #ef4444; }
+
+    .cb-section-head { display: flex; align-items: center; gap: 8px; margin: 24px 0 12px; }
+    .cb-section-title { font-size: 14px; font-weight: 600; margin: 0; color: hsl(var(--foreground)); }
+    .cb-section-sub { font-size: 12px; color: hsl(var(--muted-foreground)); font-weight: 500; }
+
+    .cb-charts { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 24px; }
+    @media (max-width: 900px) { .cb-charts { grid-template-columns: 1fr; } }
+    .cb-chart-card { background: hsl(var(--card)); border: 1px solid hsl(var(--border)); border-radius: 12px; padding: 14px; box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05); }
+    .cb-chart-card h3 { margin: 0 0 10px; font-size: 13px; font-weight: 600; color: hsl(var(--foreground)); }
+    .cb-chart-wrap { position: relative; height: 240px; }
+
+    .cb-feed { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 24px; }
+    @media (max-width: 900px) { .cb-feed { grid-template-columns: 1fr; } }
+    .cb-feed-card { background: hsl(var(--card)); border: 1px solid hsl(var(--border)); border-radius: 12px; overflow: hidden; box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05); }
+    .cb-feed-head { padding: 12px 14px; border-bottom: 1px solid hsl(var(--border)); display: flex; align-items: center; gap: 8px; background: hsl(var(--muted) / 0.3); }
+    .cb-feed-head h3 { font-size: 13px; font-weight: 600; margin: 0; }
+    .cb-feed-head .cb-feed-count { margin-left: auto; font-size: 11px; color: hsl(var(--muted-foreground)); }
+
+    .cb-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+    .cb-table th { text-align: left; font-size: 10px; font-weight: 600; color: hsl(var(--muted-foreground)); text-transform: uppercase; letter-spacing: 0.04em; padding: 8px 12px; border-bottom: 1px solid hsl(var(--border)); background: hsl(var(--muted) / 0.2); }
+    .cb-table td { padding: 8px 12px; border-bottom: 1px solid hsl(var(--border)); color: hsl(var(--foreground)); vertical-align: middle; font-variant-numeric: tabular-nums; }
+    .cb-table tbody tr:hover { background: hsl(var(--muted) / 0.4); }
+    .cb-table tbody tr:last-child td { border-bottom: none; }
+    .cb-mono { font-family: 'SF Mono', Monaco, Menlo, monospace; font-size: 11px; color: hsl(var(--muted-foreground)); }
+    .cb-muted { color: hsl(var(--muted-foreground)); }
+    .cb-amount { font-weight: 600; }
+    .cb-empty { padding: 24px 12px; text-align: center; color: hsl(var(--muted-foreground)); font-size: 12px; }
+    .cb-loading { padding: 16px; color: hsl(var(--muted-foreground)); font-size: 12px; }
+    .cb-pill { display: inline-block; padding: 2px 8px; font-size: 10px; font-weight: 600; border-radius: 9999px; text-transform: uppercase; letter-spacing: 0.04em; background: hsl(var(--muted) / 0.5); color: hsl(var(--foreground)); }
+    .cb-pill.p-critical { background: rgba(239, 68, 68, 0.12); color: #dc2626; }
+    .cb-pill.p-high { background: rgba(249, 115, 22, 0.12); color: #ea580c; }
+    .cb-footer { margin-top: 28px; padding-top: 14px; border-top: 1px solid hsl(var(--border)); font-size: 11px; color: hsl(var(--muted-foreground)); display: flex; justify-content: space-between; align-items: center; }
+  </style>
+</head>
+<body>
+  <div class="cb-header">
+    <div>
+      <h1 class="cb-title">Team Management</h1>
+      <p class="cb-subtitle">CSAT, SLA, escalations, dealer performance, and churn risk — at a glance.</p>
+    </div>
+    <div class="cb-header-right">
+      <span class="cb-date" id="cb-today"></span>
+      <button class="cb-btn" onclick="window.location.reload()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M3 21v-5h5"/></svg>
+        Refresh
+      </button>
+    </div>
+  </div>
+
+  <div class="cb-section-head">
+    <h2 class="cb-section-title">Team Health</h2>
+    <span class="cb-section-sub" id="cb-kpi-sub">Loading…</span>
+  </div>
+  <div class="cb-kpis" id="cb-kpis"></div>
+
+  <div class="cb-charts">
+    <div class="cb-chart-card">
+      <h3>Cases by Priority</h3>
+      <div class="cb-chart-wrap"><canvas id="cb-chart-priority"></canvas></div>
+    </div>
+    <div class="cb-chart-card">
+      <h3>Agent Workload (open cases)</h3>
+      <div class="cb-chart-wrap"><canvas id="cb-chart-workload"></canvas></div>
+    </div>
+  </div>
+
+  <div class="cb-feed">
+    <div class="cb-feed-card">
+      <div class="cb-feed-head"><h3>Escalations (Critical)</h3><span class="cb-feed-count" id="cb-esc-count"></span></div>
+      <div id="cb-escalations"><div class="cb-loading">Loading…</div></div>
+    </div>
+    <div class="cb-feed-card">
+      <div class="cb-feed-head"><h3>Top Dealers (7d commission)</h3><span class="cb-feed-count" id="cb-dealers-count"></span></div>
+      <div id="cb-dealers"><div class="cb-loading">Loading…</div></div>
+    </div>
+  </div>
+
+  <div class="cb-footer">
+    <span id="cb-refresh">Last refresh: —</span>
+    <span>Data source: ERPAI live ClickHouse views</span>
+  </div>
+
+  <script src="/runtime/erpai-pages-runtime.js"></script>
+  <script>
+    const PRIORITY_LABEL = { '[1]': 'Critical', '[2]': 'High', '[3]': 'Medium', '[4]': 'Low' };
+
+    const fmtInt = n => n == null || isNaN(n) ? '—' : Number(n).toLocaleString();
+    const fmtMoney = n => n == null || isNaN(n) ? '—' : '$' + Number(n).toLocaleString(undefined, { maximumFractionDigits: 0 });
+    const fmtDateTime = ts => { if (!ts || ts.startsWith('1970')) return '—'; const d = new Date(ts.replace(' ', 'T') + 'Z'); if (isNaN(d)) return ts; return d.toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }); };
+    const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+    async function runSql(sql, limit = 200) {
+      try {
+        const r = await erpai.api('POST', '/v1/agent/app/sql/execute', { appId: window.ERPAI.appId, sqlQuery: sql, limit });
+        return r?.data?.rows || r?.rows || [];
+      } catch (e) { console.warn('SQL fail:', sql, e); return null; }
+    }
+
+    async function loadKpis() {
+      const queries = [
+        { label: 'Team CSAT (30d)', sub: 'Avg customer_interactions.csat_score', sql: "SELECT round(avg(csat_score), 2) AS v FROM a1776271424351_customer_interactions WHERE _deleted=0 AND csat_score > 0 AND timestamp > now() - INTERVAL 30 DAY" },
+        { label: 'SLA Breaches', sub: 'Cases.sla_breached = 1', sql: "SELECT count() AS v FROM a1776271424351_cases WHERE _deleted=0 AND sla_breached = 1", alertIfGt: 0 },
+        { label: 'Escalations', sub: 'Priority = Critical, open', sql: "SELECT count() AS v FROM a1776271424351_cases WHERE _deleted=0 AND priority='[1]' AND status != '[4]' AND status != '[5]'", alertIfGt: 0 },
+        { label: 'Dealer Comm (7d)', sub: 'Settled commissions last 7d', sql: "SELECT round(sum(commission_amount), 0) AS v FROM a1776271424351_partner_commissions WHERE _deleted=0 AND status='[3]' AND settled_date > now() - INTERVAL 7 DAY", money: true },
+        { label: 'Churn Risk', sub: 'Suspended/dormant customers', sql: "SELECT count() AS v FROM a1776271424351_customers WHERE _deleted=0 AND (status='[3]' OR status='[4]')" },
+      ];
+      const results = await Promise.all(queries.map(q => runSql(q.sql)));
+      document.getElementById('cb-kpis').innerHTML = queries.map((q, i) => {
+        const rows = results[i]; let raw = null;
+        if (rows && rows.length) raw = rows[0].v ?? Object.values(rows[0])[0];
+        let display = '—';
+        if (raw != null && raw !== '') { const n = Number(raw); if (!isNaN(n)) display = q.money ? fmtMoney(n) : fmtInt(n); }
+        const alert = q.alertIfGt != null && raw != null && Number(raw) > q.alertIfGt;
+        return `<div class="cb-kpi ${alert ? 'alert' : ''}">
+          <div class="cb-kpi-label">${esc(q.label)}</div>
+          <div class="cb-kpi-val">${display}</div>
+          <div class="cb-kpi-sub">${esc(q.sub)}</div>
+        </div>`;
+      }).join('');
+      document.getElementById('cb-kpi-sub').textContent = 'Refreshed just now';
+    }
+
+    async function loadPriorityChart() {
+      const rows = await runSql("SELECT priority, count() AS c FROM a1776271424351_cases WHERE _deleted=0 AND status != '[4]' AND status != '[5]' GROUP BY priority");
+      const ctx = document.getElementById('cb-chart-priority');
+      if (!rows || !rows.length) { ctx.parentElement.innerHTML = '<div class="cb-empty">No open cases.</div>'; return; }
+      const labels = rows.map(r => PRIORITY_LABEL[r.priority] || r.priority || 'Unknown');
+      const data = rows.map(r => Number(r.c));
+      new Chart(ctx, {
+        type: 'doughnut',
+        data: { labels, datasets: [{ data, backgroundColor: ['#ef4444', '#f97316', '#eab308', '#10b981', '#94a3b8'] }] },
+        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'right', labels: { font: { size: 11 } } } } }
+      });
+    }
+
+    async function loadWorkloadChart() {
+      const rows = await runSql("SELECT assigned_to AS a, count() AS c FROM a1776271424351_cases WHERE _deleted=0 AND status != '[4]' AND status != '[5]' GROUP BY assigned_to ORDER BY c DESC LIMIT 10");
+      const ctx = document.getElementById('cb-chart-workload');
+      if (!rows || !rows.length) { ctx.parentElement.innerHTML = '<div class="cb-empty">No assignments yet.</div>'; return; }
+      const labels = rows.map(r => (r.a || 'Unassigned').toString().split('@')[0].slice(0, 20));
+      const data = rows.map(r => Number(r.c));
+      new Chart(ctx, {
+        type: 'bar',
+        data: { labels, datasets: [{ label: 'Open Cases', data, backgroundColor: '#6366f1' }] },
+        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { precision: 0 } } } }
+      });
+    }
+
+    async function loadEscalations() {
+      const rows = await runSql("SELECT case_code, customer_name, opened_at, due_date, subject, sla_breached FROM a1776271424351_cases WHERE _deleted=0 AND priority='[1]' AND status != '[4]' AND status != '[5]' ORDER BY opened_at DESC LIMIT 15");
+      const el = document.getElementById('cb-escalations');
+      const cnt = document.getElementById('cb-esc-count');
+      if (!rows) { el.innerHTML = `<div class="cb-empty">Unable to load.</div>`; return; }
+      if (!rows.length) { el.innerHTML = `<div class="cb-empty">No critical escalations.</div>`; return; }
+      cnt.textContent = `${rows.length} open`;
+      el.innerHTML = `<table class="cb-table">
+        <thead><tr><th>Code</th><th>Customer / Subject</th><th>Opened</th><th>SLA</th></tr></thead>
+        <tbody>${rows.map(r => `<tr>
+          <td><span class="cb-mono">${esc(r.case_code || '—')}</span></td>
+          <td>${esc(r.customer_name || '—')}<div class="cb-muted" style="font-size:11px;">${esc((r.subject || '').slice(0, 60))}</div></td>
+          <td class="cb-muted">${fmtDateTime(r.opened_at)}</td>
+          <td>${Number(r.sla_breached) > 0 ? '<span class="cb-pill p-critical">Breached</span>' : '<span class="cb-pill">OK</span>'}</td>
+        </tr>`).join('')}</tbody>
+      </table>`;
+    }
+
+    async function loadDealers() {
+      const rows = await runSql("SELECT argMax(p.partner_name, p._version) AS name, pc.partner AS pid, sum(pc.commission_amount) AS total FROM a1776271424351_partner_commissions pc LEFT JOIN a1776271424351_distribution_partners p ON p._id = pc.partner WHERE pc._deleted=0 AND pc.settled_date > now() - INTERVAL 7 DAY GROUP BY pc.partner ORDER BY total DESC LIMIT 10");
+      const el = document.getElementById('cb-dealers');
+      const cnt = document.getElementById('cb-dealers-count');
+      if (!rows) { el.innerHTML = `<div class="cb-empty">Unable to load dealers.</div>`; return; }
+      if (!rows.length) { el.innerHTML = `<div class="cb-empty">No dealer commissions in last 7 days.</div>`; return; }
+      cnt.textContent = `top ${rows.length}`;
+      el.innerHTML = `<table class="cb-table">
+        <thead><tr><th>Dealer</th><th>Total Commission</th></tr></thead>
+        <tbody>${rows.map(r => `<tr>
+          <td>${esc(r.name || '—')}</td>
+          <td class="cb-amount">${fmtMoney(Number(r.total))}</td>
+        </tr>`).join('')}</tbody>
+      </table>`;
+    }
+
+    function setDate() {
+      const now = new Date();
+      document.getElementById('cb-today').textContent = now.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
+      document.getElementById('cb-refresh').textContent = `Last refresh: ${now.toLocaleTimeString()}`;
+    }
+
+    async function main() {
+      setDate();
+      await Promise.all([loadKpis(), loadPriorityChart(), loadWorkloadChart(), loadEscalations(), loadDealers()]);
+      setDate();
+    }
+    main();
+  </script>
+</body>
+</html>

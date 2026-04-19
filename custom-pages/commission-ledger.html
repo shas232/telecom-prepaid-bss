@@ -1,0 +1,435 @@
+<script>
+window.ERPAI = {
+  token: 'erp_pat_live_REDACTED',
+  baseUrl: 'https://api.erpai.studio',
+  appId: 'afe8c4540708da6ca9e6fe79',
+  orgName: 'Telecom',
+  appName: 'telecom',
+  theme: 'light'
+};
+</script>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Commission Ledger</title>
+  <link rel="stylesheet" href="/runtime/erpai-pages-runtime.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    body { padding: 20px; font-family: 'Geist Sans', system-ui, -apple-system, sans-serif; }
+    .cb-header { margin-bottom: 20px; display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
+    .cb-title { font-size: 18px; font-weight: 600; color: hsl(var(--foreground)); letter-spacing: -0.02em; margin: 0; }
+    .cb-subtitle { font-size: 13px; color: hsl(var(--muted-foreground)); margin-top: 2px; }
+    .cb-btn { display: inline-flex; align-items: center; gap: 6px; padding: 8px 12px; font-size: 13px; font-weight: 500; border-radius: 8px; border: 1px solid hsl(var(--border)); background: hsl(var(--background)); color: hsl(var(--foreground)); cursor: pointer; }
+    .cb-btn:hover { background: hsl(var(--muted) / 0.4); }
+
+    .cb-stats { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; margin-bottom: 20px; }
+    @media (max-width: 1100px) { .cb-stats { grid-template-columns: repeat(3, 1fr); } }
+    @media (max-width: 700px) { .cb-stats { grid-template-columns: repeat(2, 1fr); } }
+    .cb-stat { background: hsl(var(--card)); border: 1px solid hsl(var(--border)); border-radius: 12px; padding: 14px; box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05); }
+    .cb-stat-label { font-size: 11px; color: hsl(var(--muted-foreground)); text-transform: uppercase; letter-spacing: 0.04em; font-weight: 600; margin-bottom: 6px; display: flex; align-items: center; gap: 6px; }
+    .cb-stat-val { font-size: 22px; font-weight: 600; font-variant-numeric: tabular-nums; }
+
+    .cb-chart-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 16px; margin-bottom: 20px; }
+    @media (max-width: 900px) { .cb-chart-grid { grid-template-columns: 1fr; } }
+    .cb-chart-card { padding: 16px; background: hsl(var(--card)); border: 1px solid hsl(var(--border)); border-radius: 12px; box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05); }
+    .cb-chart-head { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; }
+    .cb-chart-title { font-size: 14px; font-weight: 600; margin: 0; color: hsl(var(--foreground)); }
+    .cb-chart-sub { font-size: 12px; color: hsl(var(--muted-foreground)); margin-left: auto; }
+    .cb-chart-canvas-wrap { position: relative; height: 280px; }
+    .cb-chart-canvas-wrap.tall { height: 360px; }
+
+    .cb-section-head { display: flex; align-items: center; gap: 8px; margin: 24px 0 12px; }
+    .cb-section-title { font-size: 14px; font-weight: 600; margin: 0; color: hsl(var(--foreground)); }
+    .cb-section-count { font-size: 12px; color: hsl(var(--muted-foreground)); font-weight: 500; }
+
+    .cb-table { width: 100%; border-collapse: collapse; background: hsl(var(--card)); border: 1px solid hsl(var(--border)); border-radius: 12px; overflow: hidden; box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05); }
+    .cb-table thead { background: hsl(var(--muted) / 0.5); }
+    .cb-table th { text-align: left; font-size: 12px; font-weight: 600; color: hsl(var(--muted-foreground)); text-transform: uppercase; letter-spacing: 0.04em; padding: 10px 12px; border-bottom: 1px solid hsl(var(--border)); }
+    .cb-table td { padding: 10px 12px; border-bottom: 1px solid hsl(var(--border)); font-size: 13px; color: hsl(var(--foreground)); vertical-align: middle; }
+    .cb-table tbody tr:last-child td { border-bottom: none; }
+    .cb-table .num { text-align: right; font-variant-numeric: tabular-nums; }
+    .cb-table .code { font-family: 'SF Mono', Monaco, Menlo, monospace; font-size: 12px; color: hsl(var(--muted-foreground)); }
+
+    .cb-badge { display: inline-flex; align-items: center; padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 600; letter-spacing: 0.02em; }
+    .cb-badge-pending { background: #fef3c7; color: #92400e; }
+    .cb-badge-settled { background: #d1fae5; color: #065f46; }
+    .cb-badge-disputed { background: #fee2e2; color: #991b1b; }
+    .cb-badge-accrued { background: #dbeafe; color: #1e40af; }
+    .cb-badge-reversed { background: #f3f4f6; color: #4b5563; }
+    .cb-badge-tier { background: hsl(var(--muted) / 0.6); color: hsl(var(--foreground)); }
+
+    .cb-empty { padding: 32px 20px; text-align: center; font-size: 13px; color: hsl(var(--muted-foreground)); background: hsl(var(--card)); border: 1px dashed hsl(var(--border)); border-radius: 12px; }
+  </style>
+</head>
+<body>
+  <div class="cb-header">
+    <div>
+      <h1 class="cb-title">Commission Ledger</h1>
+      <p class="cb-subtitle">Partner commission accruals, settlements, and dispute tracking</p>
+    </div>
+    <button class="cb-btn" onclick="window.location.reload()">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M3 21v-5h5"/></svg>
+      Refresh
+    </button>
+  </div>
+
+  <div class="cb-stats" id="stats"></div>
+
+  <div class="cb-chart-grid">
+    <div class="cb-chart-card">
+      <div class="cb-chart-head">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="color: hsl(var(--primary));"><line x1="12" x2="12" y1="2" y2="22"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+        <h2 class="cb-chart-title">Commission by Partner — Top 10 (YTD)</h2>
+      </div>
+      <div class="cb-chart-canvas-wrap tall"><canvas id="chartPartners"></canvas></div>
+    </div>
+    <div class="cb-chart-card">
+      <div class="cb-chart-head">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="color: hsl(var(--primary));"><circle cx="12" cy="12" r="10"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/><path d="M2 12h20"/></svg>
+        <h2 class="cb-chart-title">By Event Type</h2>
+      </div>
+      <div class="cb-chart-canvas-wrap tall"><canvas id="chartType"></canvas></div>
+    </div>
+  </div>
+
+  <div class="cb-chart-card" style="margin-bottom:20px;">
+    <div class="cb-chart-head">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="color: hsl(var(--primary));"><path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/></svg>
+      <h2 class="cb-chart-title">Commission Trend — Last 90 Days</h2>
+      <span class="cb-chart-sub" id="trendSum"></span>
+    </div>
+    <div class="cb-chart-canvas-wrap"><canvas id="chartTrend"></canvas></div>
+  </div>
+
+  <div class="cb-section-head">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="color: hsl(var(--primary));"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/></svg>
+    <h2 class="cb-section-title">Top 20 Partners</h2>
+    <span class="cb-section-count" id="partnersCount"></span>
+  </div>
+  <div id="partnersTable"></div>
+
+  <div class="cb-section-head">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="color: #f59e0b;"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+    <h2 class="cb-section-title">Pending Commissions</h2>
+    <span class="cb-section-count" id="pendingCount"></span>
+  </div>
+  <div id="pendingTable"></div>
+
+  <div class="cb-section-head">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="color: hsl(var(--primary));"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+    <h2 class="cb-section-title">Commission Rules</h2>
+    <span class="cb-section-count" id="rulesCount"></span>
+  </div>
+  <div id="rulesTable"></div>
+
+  <script>
+    const API = { base: window.ERPAI.baseUrl, token: window.ERPAI.token, appId: window.ERPAI.appId };
+
+    const STATUS_LABELS = { 1: 'Accrued', 2: 'Pending', 3: 'Settled', 4: 'Reversed', 5: 'Disputed' };
+    const TYPE_LABELS = { 1: 'Percentage', 2: 'Flat', 3: 'Slab', 4: 'Tiered', 5: 'Bonus' };
+    const EVENT_LABELS = { 1: 'Recharge', 2: 'Activation', 3: 'Retention', 4: 'Upgrade', 5: 'Referral', 6: 'Bundle' };
+    const TIER_LABELS = { 1: 'Silver', 2: 'Gold', 3: 'Platinum', 4: 'Diamond' };
+    const PARTNER_STATUS = { 1: 'Active', 2: 'Suspended', 3: 'Terminated', 4: 'Pending' };
+
+    function esc(s) { return String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+    function fmt(n) { return (Number(n) || 0).toLocaleString('en-IN', { maximumFractionDigits: 2 }); }
+    function fmtCurrency(n) { return '₹' + (Number(n) || 0).toLocaleString('en-IN', { maximumFractionDigits: 2 }); }
+    function fmtDate(s) { if (!s || String(s).startsWith('1970')) return '—'; const d = new Date(s); if (isNaN(d)) return '—'; return d.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }); }
+    function parseArr(v) {
+      if (v == null || v === '') return null;
+      if (typeof v === 'number') return v;
+      const s = String(v).trim();
+      const m = s.match(/\d+/);
+      return m ? Number(m[0]) : null;
+    }
+    function decodeStatus(v) { const n = parseArr(v); return n != null ? STATUS_LABELS[n] || `Status ${n}` : '—'; }
+    function decodeType(v) { const n = parseArr(v); return n != null ? TYPE_LABELS[n] || `Type ${n}` : '—'; }
+    function decodeEvent(v) { const n = parseArr(v); return n != null ? EVENT_LABELS[n] || `Event ${n}` : '—'; }
+    function decodeTier(v) { const n = parseArr(v); return n != null ? TIER_LABELS[n] || `T${n}` : '—'; }
+    function decodePartnerStatus(v) { const n = parseArr(v); return n != null ? PARTNER_STATUS[n] || `Status ${n}` : '—'; }
+
+    async function sql(query) {
+      const r = await fetch(`${API.base}/v1/agent/app/sql/execute`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${API.token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ appId: API.appId, sqlQuery: query, limit: 500 })
+      });
+      const j = await r.json();
+      if (!j.success) { console.error('SQL error:', j.message, '\nQuery:', query); return []; }
+      return j.data?.rows || [];
+    }
+
+    function statusBadge(v) {
+      const n = parseArr(v);
+      const label = STATUS_LABELS[n] || '—';
+      const cls = n === 1 ? 'cb-badge-accrued' : n === 2 ? 'cb-badge-pending' : n === 3 ? 'cb-badge-settled' : n === 4 ? 'cb-badge-reversed' : n === 5 ? 'cb-badge-disputed' : 'cb-badge-reversed';
+      return `<span class="cb-badge ${cls}">${esc(label)}</span>`;
+    }
+    function partnerStatusBadge(v) {
+      const n = parseArr(v);
+      const label = PARTNER_STATUS[n] || '—';
+      const cls = n === 1 ? 'cb-badge-settled' : n === 2 ? 'cb-badge-pending' : n === 3 ? 'cb-badge-disputed' : 'cb-badge-accrued';
+      return `<span class="cb-badge ${cls}">${esc(label)}</span>`;
+    }
+
+    function renderStats(s) {
+      const el = document.getElementById('stats');
+      const stat = (label, value, icon, color) => `
+        <div class="cb-stat">
+          <div class="cb-stat-label" style="color:${color}">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${icon}</svg>
+            ${label}
+          </div>
+          <div class="cb-stat-val" style="color:${color}">${value}</div>
+        </div>`;
+      el.innerHTML = [
+        stat('Total Accrued (YTD)', fmtCurrency(s.ytd), '<line x1="12" x2="12" y1="2" y2="22"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>', 'hsl(var(--primary))'),
+        stat('Pending Settlement', fmtCurrency(s.pending), '<circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>', '#f59e0b'),
+        stat('Settled This Month', fmtCurrency(s.settledMonth), '<polyline points="20 6 9 17 4 12"/>', '#10b981'),
+        stat('Partners Earning', fmt(s.partnersEarning), '<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/>', '#3b82f6'),
+        stat('Avg per Recharge', fmtCurrency(s.avgPerRecharge), '<path d="M12 2v20"/><path d="M5 9h14"/><path d="M5 15h14"/>', '#8b5cf6'),
+      ].join('');
+    }
+
+    function emptyTable(msg) {
+      return `<div class="cb-empty">${esc(msg)}</div>`;
+    }
+
+    function renderPartnersTable(rows) {
+      document.getElementById('partnersCount').textContent = rows.length ? `${rows.length} partners` : '';
+      if (!rows.length) { document.getElementById('partnersTable').innerHTML = emptyTable('No partners yet — this table will light up as commissions accrue.'); return; }
+      document.getElementById('partnersTable').innerHTML = `
+        <table class="cb-table">
+          <thead><tr>
+            <th>Partner Name</th><th>Tier</th>
+            <th class="num">Commission (YTD)</th><th class="num">Recharges</th>
+            <th class="num">Recharge Volume</th><th>Status</th>
+          </tr></thead>
+          <tbody>${rows.map(r => `
+            <tr>
+              <td style="font-weight:500;">${esc(r.partner_name || '—')}</td>
+              <td><span class="cb-badge cb-badge-tier">${esc(decodeTier(r.tier))}</span></td>
+              <td class="num">${fmtCurrency(r.commission_ytd)}</td>
+              <td class="num">${fmt(r.recharges_count)}</td>
+              <td class="num">${fmtCurrency(r.recharge_volume)}</td>
+              <td>${partnerStatusBadge(r.status)}</td>
+            </tr>`).join('')}
+          </tbody>
+        </table>`;
+    }
+
+    function renderPendingTable(rows) {
+      document.getElementById('pendingCount').textContent = rows.length ? `${rows.length} pending` : '';
+      if (!rows.length) { document.getElementById('pendingTable').innerHTML = emptyTable('No pending commissions. When partners accrue commissions they will appear here.'); return; }
+      document.getElementById('pendingTable').innerHTML = `
+        <table class="cb-table">
+          <thead><tr>
+            <th>Partner</th><th>Recharge Code</th>
+            <th class="num">Base Amount</th><th class="num">Commission</th>
+            <th>Type</th><th>Accrued Date</th>
+          </tr></thead>
+          <tbody>${rows.map(r => `
+            <tr>
+              <td>${esc(r.partner_name || '—')}</td>
+              <td><span class="code">${esc(r.recharge_code || '—')}</span></td>
+              <td class="num">${fmtCurrency(r.base_amount)}</td>
+              <td class="num" style="font-weight:600;">${fmtCurrency(r.commission_amount)}</td>
+              <td>${esc(decodeType(r.commission_type))}</td>
+              <td>${fmtDate(r.accrued_date)}</td>
+            </tr>`).join('')}
+          </tbody>
+        </table>`;
+    }
+
+    function renderRulesTable(rows) {
+      document.getElementById('rulesCount').textContent = rows.length ? `${rows.length} rules` : '';
+      if (!rows.length) { document.getElementById('rulesTable').innerHTML = emptyTable('No commission rules configured.'); return; }
+      document.getElementById('rulesTable').innerHTML = `
+        <table class="cb-table">
+          <thead><tr>
+            <th>Rule Name</th><th>Event Type</th><th>Partner Tier</th>
+            <th>Commission Type</th><th class="num">Percentage</th><th class="num">Flat Amount</th><th>Status</th>
+          </tr></thead>
+          <tbody>${rows.map(r => `
+            <tr>
+              <td style="font-weight:500;">${esc(r.rule_name || '—')}</td>
+              <td>${esc(decodeEvent(r.event_type))}</td>
+              <td><span class="cb-badge cb-badge-tier">${esc(decodeTier(r.partner_tier))}</span></td>
+              <td>${esc(decodeType(r.commission_type))}</td>
+              <td class="num">${r.percentage_value ? Number(r.percentage_value).toFixed(2) + '%' : '—'}</td>
+              <td class="num">${r.flat_amount ? fmtCurrency(r.flat_amount) : '—'}</td>
+              <td>${statusBadge(r.status)}</td>
+            </tr>`).join('')}
+          </tbody>
+        </table>`;
+    }
+
+    function drawHBar(rows) {
+      const ctx = document.getElementById('chartPartners');
+      const labels = rows.map(r => r.partner_name || '—');
+      const data = rows.map(r => Number(r.commission_ytd) || 0);
+      new Chart(ctx, {
+        type: 'bar',
+        data: { labels, datasets: [{ label: 'Commission YTD', data, backgroundColor: '#3b82f6', borderRadius: 6 }] },
+        options: {
+          indexAxis: 'y', responsive: true, maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: { x: { ticks: { callback: v => '₹' + v.toLocaleString('en-IN') } } }
+        }
+      });
+    }
+    function drawDonut(byType) {
+      const ctx = document.getElementById('chartType');
+      const labels = Object.keys(byType);
+      const data = labels.map(k => byType[k]);
+      new Chart(ctx, {
+        type: 'doughnut',
+        data: { labels, datasets: [{ data, backgroundColor: ['#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#ef4444', '#06b6d4'] }] },
+        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } } }
+      });
+    }
+    function drawTrend(buckets) {
+      const ctx = document.getElementById('chartTrend');
+      const labels = buckets.map(b => b.day);
+      const data = buckets.map(b => Number(b.total) || 0);
+      new Chart(ctx, {
+        type: 'line',
+        data: { labels, datasets: [{ label: 'Daily Commission', data, borderColor: '#3b82f6', backgroundColor: 'rgba(59,130,246,.10)', fill: true, tension: 0.3, pointRadius: 0 }] },
+        options: {
+          responsive: true, maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: { y: { ticks: { callback: v => '₹' + v.toLocaleString('en-IN') } }, x: { ticks: { maxRotation: 0, autoSkip: true, maxTicksLimit: 10 } } }
+        }
+      });
+    }
+
+    async function main() {
+      document.getElementById('stats').innerHTML = '<div class="cb-stat">Loading…</div>';
+
+      // Pull all commissions and partners in parallel
+      const [commissions, partners, rules, recharges] = await Promise.all([
+        sql(`SELECT _id, status, commission_amount, base_amount, commission_type, accrued_date, settled_date, partner, recharge FROM a1776271424351_partner_commissions WHERE _deleted=0`),
+        sql(`SELECT _id, partner_name, tier, status FROM a1776271424351_distribution_partners WHERE _deleted=0`),
+        sql(`SELECT rule_name, event_type, partner_tier, commission_type, percentage_value, flat_amount, status FROM a1776271424351_commission_rules WHERE _deleted=0 ORDER BY rec_created_at DESC`),
+        sql(`SELECT _id, recharge_code, amount FROM a1776271424351_recharges WHERE _deleted=0`),
+      ]);
+
+      const partnerById = new Map(partners.map(p => [p._id, p]));
+      const rechargeById = new Map(recharges.map(r => [r._id, r]));
+
+      // KPIs
+      const yearStart = new Date(new Date().getFullYear(), 0, 1);
+      const monthStart = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
+      let ytd = 0, pending = 0, settledMonth = 0;
+      const partnersEarningSet = new Set();
+      let totalCommissionSum = 0, rechargesCount = 0;
+
+      for (const c of commissions) {
+        const amt = Number(c.commission_amount) || 0;
+        const st = parseArr(c.status);
+        const accrued = c.accrued_date && !String(c.accrued_date).startsWith('1970') ? new Date(c.accrued_date) : null;
+        const settled = c.settled_date && !String(c.settled_date).startsWith('1970') ? new Date(c.settled_date) : null;
+        if (accrued && accrued >= yearStart) ytd += amt;
+        if (st === 2 || st === 1) pending += amt; // Accrued or Pending treated as not-yet-settled
+        if (st === 3 && settled && settled >= monthStart) settledMonth += amt;
+        if (c.partner) partnersEarningSet.add(c.partner);
+        totalCommissionSum += amt;
+        if (c.recharge) rechargesCount++;
+      }
+      const avgPerRecharge = rechargesCount > 0 ? totalCommissionSum / rechargesCount : 0;
+
+      renderStats({ ytd, pending, settledMonth, partnersEarning: partnersEarningSet.size, avgPerRecharge });
+
+      // Commission by partner — top 10
+      const byPartner = new Map();
+      for (const c of commissions) {
+        const amt = Number(c.commission_amount) || 0;
+        const accrued = c.accrued_date && !String(c.accrued_date).startsWith('1970') ? new Date(c.accrued_date) : null;
+        if (!accrued || accrued < yearStart) continue;
+        const p = partnerById.get(c.partner);
+        const name = p?.partner_name || 'Unknown';
+        byPartner.set(name, (byPartner.get(name) || 0) + amt);
+      }
+      const topPartners = [...byPartner.entries()]
+        .sort((a, b) => b[1] - a[1]).slice(0, 10)
+        .map(([partner_name, commission_ytd]) => ({ partner_name, commission_ytd }));
+      if (topPartners.length) drawHBar(topPartners);
+      else document.getElementById('chartPartners').parentElement.innerHTML = '<div class="cb-empty" style="height:100%;display:flex;align-items:center;justify-content:center;">No commissions accrued yet this year</div>';
+
+      // Commission by event type (use commission_type as proxy since event isn't on ledger rows)
+      const byType = {};
+      for (const c of commissions) {
+        const t = decodeType(c.commission_type);
+        byType[t] = (byType[t] || 0) + (Number(c.commission_amount) || 0);
+      }
+      if (Object.keys(byType).length) drawDonut(byType);
+      else document.getElementById('chartType').parentElement.innerHTML = '<div class="cb-empty" style="height:100%;display:flex;align-items:center;justify-content:center;">No data</div>';
+
+      // 90-day trend
+      const today = new Date(); today.setHours(0, 0, 0, 0);
+      const start90 = new Date(today); start90.setDate(today.getDate() - 89);
+      const buckets = [];
+      const bmap = new Map();
+      for (let i = 0; i < 90; i++) {
+        const d = new Date(start90); d.setDate(start90.getDate() + i);
+        const k = d.toISOString().slice(0, 10);
+        const label = d.toLocaleDateString('en-IN', { day: '2-digit', month: 'short' });
+        buckets.push({ day: label, key: k, total: 0 });
+        bmap.set(k, buckets[buckets.length - 1]);
+      }
+      let trendSum = 0;
+      for (const c of commissions) {
+        if (!c.accrued_date || String(c.accrued_date).startsWith('1970')) continue;
+        const k = new Date(c.accrued_date).toISOString().slice(0, 10);
+        const b = bmap.get(k);
+        if (b) { const amt = Number(c.commission_amount) || 0; b.total += amt; trendSum += amt; }
+      }
+      document.getElementById('trendSum').textContent = `Total ${fmtCurrency(trendSum)}`;
+      drawTrend(buckets);
+
+      // Top 20 partners table — build from partners list with aggregated commissions
+      const rechargesByPartnerAgg = new Map(); // from commissions (distinct recharges per partner) + volume
+      for (const c of commissions) {
+        if (!c.partner) continue;
+        if (!rechargesByPartnerAgg.has(c.partner)) rechargesByPartnerAgg.set(c.partner, { count: 0, volume: 0 });
+        const agg = rechargesByPartnerAgg.get(c.partner);
+        agg.count++;
+        agg.volume += Number(c.base_amount) || 0;
+      }
+      const partnerRows = partners.map(p => {
+        const agg = rechargesByPartnerAgg.get(p._id) || { count: 0, volume: 0 };
+        const commission_ytd = byPartner.get(p.partner_name) || 0;
+        return {
+          partner_name: p.partner_name,
+          tier: p.tier,
+          commission_ytd,
+          recharges_count: agg.count,
+          recharge_volume: agg.volume,
+          status: p.status,
+        };
+      }).sort((a, b) => b.commission_ytd - a.commission_ytd).slice(0, 20);
+      renderPartnersTable(partnerRows);
+
+      // Pending commissions table (status 1 Accrued or 2 Pending)
+      const pendingRows = commissions
+        .filter(c => { const s = parseArr(c.status); return s === 1 || s === 2; })
+        .sort((a, b) => new Date(b.accrued_date) - new Date(a.accrued_date))
+        .slice(0, 50)
+        .map(c => ({
+          partner_name: partnerById.get(c.partner)?.partner_name || '—',
+          recharge_code: rechargeById.get(c.recharge)?.recharge_code || '—',
+          base_amount: c.base_amount,
+          commission_amount: c.commission_amount,
+          commission_type: c.commission_type,
+          accrued_date: c.accrued_date,
+        }));
+      renderPendingTable(pendingRows);
+
+      renderRulesTable(rules);
+    }
+    main();
+  </script>
+</body>
+</html>
