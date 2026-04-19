@@ -1,6 +1,12 @@
 # Telecom Prepaid BSS — Node Workflow Runner
 
-> **PRIMARY SCHEDULER: GitHub Actions** (`.github/workflows/scheduled.yml`). See repo → Actions tab. This repo no longer depends on a local Mac being awake.
+> **PRIMARY SCHEDULER: GitHub Actions** — see [`.github/workflows/scheduled.yml`](../.github/workflows/scheduled.yml).
+> All 11 cron jobs run on GitHub's infra; laptop uptime is irrelevant.
+> The `launchd` instructions further down are **legacy / local fallback only**.
+>
+> - List runs: `gh run list --workflow=scheduled.yml --repo shas232/telecom-prepaid-bss`
+> - Manual dispatch: `gh workflow run scheduled.yml -f script=fraud-scan --repo shas232/telecom-prepaid-bss`
+> - Secret: `ERPAI_TOKEN` (set at repo level).
 
 Workflows run as Node scripts (auto-builder API rejects PATs).
 
