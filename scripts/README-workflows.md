@@ -1,5 +1,7 @@
 # Telecom Prepaid BSS — Node Workflow Runner
 
+> **PRIMARY SCHEDULER: GitHub Actions** (`.github/workflows/scheduled.yml`). See repo → Actions tab. This repo no longer depends on a local Mac being awake.
+
 Workflows run as Node scripts (auto-builder API rejects PATs).
 
 ## Scripts
@@ -47,7 +49,9 @@ CSV header required: `msisdn,amount,channel,reference_id`.
 `channel` may be a name (`Voucher|USSD|App|Retail POS|IVR|Online|Bank Transfer`) or its numeric id (1-7).
 Ships with `scripts/bulk-recharge-sample.csv` (3 rows) as a starter.
 
-## Scheduling via launchd (macOS)
+## Scheduling via launchd (macOS) — DEPRECATED
+
+> **DEPRECATED — for offline dev only.** Production scheduling is handled by GitHub Actions (`.github/workflows/scheduled.yml`). The launchd plists are no longer installed on the maintainer's machine. Use this section only if you need to run the scheduler locally without network access to GitHub.
 
 On macOS use `launchd` (user LaunchAgents) — `crontab` is deprecated for user jobs.
 
